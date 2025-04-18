@@ -1,0 +1,202 @@
+openapi: 3.0.3
+info:
+  title: Between IMS
+  version: 1.0.0
+  description: An Internship matching system for everyone
+paths:
+  /api/user_account/departments/:
+    get:
+      operationId: api_user_account_departments_list
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Department'
+          description: ''
+  /api/user_account/programs/:
+    get:
+      operationId: api_user_account_programs_list
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Program'
+          description: ''
+  /api/user_account/register/applicant/:
+    post:
+      operationId: api_user_account_register_applicant_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicantRegister'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ApplicantRegister'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ApplicantRegister'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicantRegister'
+          description: ''
+  /api/user_account/schools/:
+    get:
+      operationId: api_user_account_schools_list
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/School'
+          description: ''
+components:
+  schemas:
+    ApplicantRegister:
+      type: object
+      properties:
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        middle_initial:
+          type: string
+          writeOnly: true
+          default: ''
+        email:
+          type: string
+          format: email
+          writeOnly: true
+        school:
+          type: string
+          format: uuid
+          nullable: true
+        password:
+          type: string
+          writeOnly: true
+        department:
+          type: integer
+          nullable: true
+        program:
+          type: integer
+          nullable: true
+        academic_program:
+          type: string
+          nullable: true
+          maxLength: 100
+        address:
+          type: string
+          maxLength: 255
+        quick_introduction:
+          type: string
+          nullable: true
+          maxLength: 500
+        resume:
+          type: string
+          format: uri
+        enrollment_record:
+          type: string
+          format: uri
+          nullable: true
+      required:
+      - address
+      - email
+      - first_name
+      - last_name
+      - password
+      - resume
+    Department:
+      type: object
+      properties:
+        school_name:
+          type: string
+          readOnly: true
+        department_id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+      required:
+      - department_id
+      - name
+      - school_name
+    Program:
+      type: object
+      properties:
+        school_name:
+          type: string
+          readOnly: true
+        department_name:
+          type: string
+          readOnly: true
+        program_id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+      required:
+      - department_name
+      - name
+      - program_id
+      - school_name
+    School:
+      type: object
+      properties:
+        school_id:
+          type: string
+          format: uuid
+          readOnly: true
+        school_name:
+          type: string
+          maxLength: 255
+      required:
+      - school_id
+      - school_name
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid

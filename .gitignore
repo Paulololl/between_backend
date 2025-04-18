@@ -1,0 +1,64 @@
+# created by virtualenv automatically
+# Django
+*.log
+*.pot
+*.pyc
+__pycache__/
+db.sqlite3
+media/
+
+# MySQL Workbench files (e.g., models or connections)
+*.mwb
+*.bak
+*.sql
+*.db
+
+# Environments
+.env
+.venv
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# React
+build/
+dist/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+
+# Ignore MinIO metadata and temporary files
+minio-data
+minio-mkcert
+mkcert
+minio-data/.minio.sys/
+minio-data/.minio.sys/buckets/*.meta
+minio-data/.minio.sys/buckets/.heal/
+minio-data/.minio.sys/buckets/.bloomcycle.bin/xl.meta
+minio-data/.minio.sys/buckets/.usage-cache.bin.bkp/xl.meta
+minio-data/.minio.sys/buckets/.usage-cache.bin/xl.meta
+minio-data/.minio.sys/buckets/.usage.json/xl.meta
+minio-data/.minio.sys/buckets/test/.usage-cache.bin.bkp/xl.meta
+minio-data/.minio.sys/buckets/test/.usage-cache.bin/xl.meta
+minio-data/.minio.sys/tmp/e8cb61a4-91dc-4ba3-861f-11a331a186e0
+minio-data/.minio.sys/buckets/.heal/mrf/list.bin
+minio-data/test/
+
+# PyCharm IDE files
+.idea/
