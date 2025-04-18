@@ -38,7 +38,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Program'
+                  $ref: '#/components/schemas/ProgramNested'
           description: ''
   /api/user_account/register/applicant/:
     post:
@@ -85,6 +85,24 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/School'
+          description: ''
+  /api/user_account/schools_departments_programs/:
+    get:
+      operationId: api_user_account_schools_departments_programs_list
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NestedSchoolDepartmentProgram'
           description: ''
 components:
   schemas:
@@ -150,39 +168,64 @@ components:
     Department:
       type: object
       properties:
-        school_name:
-          type: string
-          readOnly: true
         department_id:
           type: integer
           readOnly: true
-        name:
+        department_name:
           type: string
           maxLength: 100
       required:
       - department_id
-      - name
-      - school_name
-    Program:
+      - department_name
+    DepartmentNested:
       type: object
       properties:
-        school_name:
-          type: string
+        department_id:
+          type: integer
           readOnly: true
         department_name:
           type: string
           readOnly: true
+        programs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProgramNested'
+          readOnly: true
+      required:
+      - department_id
+      - department_name
+      - programs
+    NestedSchoolDepartmentProgram:
+      type: object
+      properties:
+        school_id:
+          type: string
+          format: uuid
+          readOnly: true
+        school_name:
+          type: string
+          readOnly: true
+        departments:
+          type: array
+          items:
+            $ref: '#/components/schemas/DepartmentNested'
+          readOnly: true
+      required:
+      - departments
+      - school_id
+      - school_name
+    ProgramNested:
+      type: object
+      properties:
         program_id:
           type: integer
           readOnly: true
-        name:
+        program_name:
           type: string
-          maxLength: 100
+          readOnly: true
       required:
-      - department_name
-      - name
       - program_id
-      - school_name
+      - program_name
     School:
       type: object
       properties:
