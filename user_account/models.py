@@ -67,6 +67,14 @@ class User(AbstractBaseUser, PermissionsMixin):
         return f'{self.email} | {self.user_id}'
 
 
+def applicant_resume_upload_path(instance, filename):
+    return f'Applicant/{instance.user.email} | {str(instance.user.user_id)[-12:]}/resume/{filename}'
+
+
+def applicant_enrollment_record_upload_path(instance, filename):
+    return f'Applicant/{instance.user.email} | {str(instance.user.user_id)[-12:]}/enrollment_record/{filename}'
+
+
 class Applicant(models.Model):
     applicant_id = models.AutoField(primary_key=True)
     user = models.OneToOneField('User', on_delete=models.CASCADE)
@@ -94,13 +102,9 @@ class Applicant(models.Model):
     academic_program = models.CharField(max_length=100, null=True, blank=True)
     quick_introduction = models.CharField(max_length=500, null=True, blank=True)
 
-    resume = models.FileField(storage=S3Boto3Storage,
-                              upload_to=lambda instance, filename: f'Applicant/{instance.user.email} | {str(instance.user.user_id)[-12:]}'
-                                                                   f'/resume/{filename}')
-    enrollment_record = models.FileField(storage=S3Boto3Storage,
-                                         upload_to=lambda instance, filename:
-                                         f'Applicant/{instance.user.email} | {str(instance.user.user_id)[-12:]}'
-                                         f'/enrollment_record/{filename}', null=True, blank=True)
+    resume = models.FileField(storage=S3Boto3Storage, upload_to=applicant_resume_upload_path)
+    enrollment_record = models.FileField(storage=S3Boto3Storage,upload_to=applicant_enrollment_record_upload_path,
+                                         null=True, blank=True)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} {self.middle_initial}"

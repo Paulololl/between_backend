@@ -22,13 +22,13 @@ class Department(models.Model):
     department_id = models.AutoField(primary_key=True)
     school = models.ForeignKey('user_account.School', related_name='departments', on_delete=models.CASCADE)
 
-    name = models.CharField(max_length=100)
+    department_name = models.CharField(max_length=100)
 
     class Meta:
-        unique_together = ('school', 'name')
+        unique_together = ('school', 'department_name')
 
     def __str__(self):
-        return f'{self.name} - {self.school.school_name}'
+        return f'{self.department_name}'
 
 
 class Program(models.Model):
@@ -36,12 +36,12 @@ class Program(models.Model):
     program_id = models.AutoField(primary_key=True)
     department = models.ForeignKey('Department', related_name='programs', on_delete=models.CASCADE)
 
-    name = models.CharField(max_length=100)
+    program_name = models.CharField(max_length=100)
 
     class Meta:
-        unique_together = ('department', 'name')
+        unique_together = ('department', 'program_name')
 
     def __str__(self):
-        return f'{self.name} - {self.department.name}'
+        return f'{self.program_name}'
 
 

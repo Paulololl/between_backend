@@ -1,4 +1,3 @@
-from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from cea_management.models import Program, Department
 from .models import Applicant, User, School
@@ -11,20 +10,38 @@ class SchoolSerializer(serializers.ModelSerializer):
 
 
 class DepartmentSerializer(serializers.ModelSerializer):
-    school_name = serializers.CharField(source='school.school_name', read_only=True)
-
     class Meta:
         model = Department
-        fields = ('school_name', 'department_id', 'name')
+        fields = ['department_id', 'department_name']
 
 
-class ProgramSerializer(serializers.ModelSerializer):
-    school_name = serializers.CharField(source='department.school.school_name', read_only=True)
-    department_name = serializers.CharField(source='department.name', read_only=True)
+class ProgramNestedSerializer(serializers.ModelSerializer):
+    program_id = serializers.PrimaryKeyRelatedField(read_only=True)
+    program_name = serializers.CharField(read_only=True)
 
     class Meta:
         model = Program
-        fields = ['school_name', 'department_name', 'program_id', 'name']
+        fields = ['program_id', 'program_name']
+
+
+class DepartmentNestedSerializer(serializers.ModelSerializer    ):
+    department_id = serializers.PrimaryKeyRelatedField(read_only=True)
+    department_name = serializers.CharField(read_only=True)
+    programs = ProgramNestedSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Department
+        fields = ['department_id', 'department_name', 'programs']
+
+
+class NestedSchoolDepartmentProgramSerializer(serializers.ModelSerializer):
+    school_id = serializers.UUIDField(read_only=True)
+    school_name = serializers.CharField(read_only=True)
+    departments = DepartmentNestedSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = School
+        fields = ['school_id', 'school_name', 'departments']
 
 
 class ApplicantRegisterSerializer(serializers.ModelSerializer):
@@ -60,3 +77,4 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
 
         applicant = Applicant.objects.create(user=user, **validated_data)
         return applicant
+
