@@ -95,11 +95,11 @@ class Applicant(models.Model):
     quick_introduction = models.CharField(max_length=500, null=True, blank=True)
 
     resume = models.FileField(storage=S3Boto3Storage,
-                              upload_to=lambda instance, filename: f'{instance.user.email} | {str(instance.user.user_id)[-12:]}'
+                              upload_to=lambda instance, filename: f'Applicant/{instance.user.email} | {str(instance.user.user_id)[-12:]}'
                                                                    f'/resume/{filename}')
     enrollment_record = models.FileField(storage=S3Boto3Storage,
                                          upload_to=lambda instance, filename:
-                                         f'{instance.user.email} | {str(instance.user.user_id)[-12:]}'
+                                         f'Applicant/{instance.user.email} | {str(instance.user.user_id)[-12:]}'
                                          f'/enrollment_record/{filename}', null=True, blank=True)
 
     def __str__(self):
