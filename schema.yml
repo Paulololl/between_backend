@@ -112,6 +112,9 @@ components:
         password:
           type: string
           writeOnly: true
+        confirm_password:
+          type: string
+          writeOnly: true
         department:
           type: integer
           nullable: true
@@ -138,6 +141,7 @@ components:
           nullable: true
       required:
       - address
+      - confirm_password
       - email
       - first_name
       - last_name

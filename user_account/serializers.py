@@ -31,19 +31,26 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(write_only=True)
     password = serializers.CharField(write_only=True)
     middle_initial = serializers.CharField(write_only=True, required=False, allow_blank=True, default='')
+    confirm_password = serializers.CharField(write_only=True)
 
     class Meta:
         model = Applicant
         fields = [
             'first_name', 'last_name', 'middle_initial',
-            'email', 'school', 'password',
+            'email', 'school', 'password', 'confirm_password',
             'department', 'program', 'academic_program',
             'address', 'quick_introduction', 'resume', 'enrollment_record',
         ]
 
+    def validate(self, attrs):
+        if attrs.get('password') != attrs.get('confirm_password'):
+            raise serializers.ValidationError({'confirm_password': 'Passwords do not match.'})
+        return attrs
+
     def create(self, validated_data):
         email = validated_data.pop('email')
         password = validated_data.pop('password')
+        validated_data.pop('confirm_password')
 
         user = User.objects.create_user(
             email=email,
