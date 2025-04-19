@@ -144,6 +144,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Custom User
 AUTH_USER_MODEL = 'user_account.User'
 
+AWS_S3_VERIFY_ENV = os.getenv('AWS_S3_VERIFY')
+
+# Convert string path to actual file path if it exists, else pass False
+AWS_S3_VERIFY = (
+    str(Path(AWS_S3_VERIFY_ENV)) if AWS_S3_VERIFY_ENV and Path(AWS_S3_VERIFY_ENV).exists()
+    else False
+)
+
 # Minio w/ Docker
 AWS_S3_ENDPOINT_URL = os.getenv('AWS_S3_ENDPOINT_URL')
 AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
@@ -152,7 +160,7 @@ AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
 AWS_S3_ADDRESSING_STYLE = os.getenv('AWS_S3_ADDRESSING_STYLE')
 AWS_S3_FILE_OVERWRITE = os.getenv('AWS_S3_FILE_OVERWRITE')
 AWS_S3_USE_SSL = os.getenv('AWS_S3_USE_SSL')
-AWS_S3_VERIFY = os.getenv('AWS_S3_VERIFY')
+AWS_S3_VERIFY = AWS_S3_VERIFY
 
 # pre signed url (temporary url)
 AWS_QUERYSTRING_AUTH = os.getenv('AWS_QUERYSTRING_AUTH')
