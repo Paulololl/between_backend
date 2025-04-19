@@ -7,5 +7,5 @@ urlpatterns = [
     path('schools/', SchoolListView.as_view()),
     path('departments/', DepartmentListView.as_view()),
     path('programs/', ProgramListView.as_view()),
-    path('schools_departments_programs/', NestedSchoolDepartmentProgramListView.as_view()),
+    path('schools/departments/programs/', NestedSchoolDepartmentProgramListView.as_view()),
 ]
