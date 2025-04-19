@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from cea_management.models import Program, Department
-from .models import Applicant, User, School
+from .models import Applicant, User, School, Company, CareerEmplacementAdmin
 
 
 class SchoolSerializer(serializers.ModelSerializer):
@@ -24,7 +24,7 @@ class ProgramNestedSerializer(serializers.ModelSerializer):
         fields = ['program_id', 'program_name']
 
 
-class DepartmentNestedSerializer(serializers.ModelSerializer    ):
+class DepartmentNestedSerializer(serializers.ModelSerializer):
     department_id = serializers.PrimaryKeyRelatedField(read_only=True)
     department_name = serializers.CharField(read_only=True)
     programs = ProgramNestedSerializer(many=True, read_only=True)
@@ -45,7 +45,7 @@ class NestedSchoolDepartmentProgramSerializer(serializers.ModelSerializer):
 
 
 class ApplicantRegisterSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(write_only=True)
+    applicant_email = serializers.EmailField(write_only=True)
     password = serializers.CharField(write_only=True)
     middle_initial = serializers.CharField(write_only=True, required=False, allow_blank=True, default='')
     confirm_password = serializers.CharField(write_only=True)
@@ -54,7 +54,7 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
         model = Applicant
         fields = [
             'first_name', 'last_name', 'middle_initial',
-            'email', 'school', 'password', 'confirm_password',
+            'applicant_email', 'school', 'password', 'confirm_password',
             'department', 'program', 'academic_program',
             'address', 'quick_introduction', 'resume', 'enrollment_record',
         ]
@@ -65,7 +65,7 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        email = validated_data.pop('email')
+        email = validated_data.pop('applicant_email')
         password = validated_data.pop('password')
         validated_data.pop('confirm_password')
 
@@ -77,4 +77,68 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
 
         applicant = Applicant.objects.create(user=user, **validated_data)
         return applicant
+
+
+class CompanyRegisterSerializer(serializers.ModelSerializer):
+    company_email = serializers.EmailField(write_only=True)
+    password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = Company
+        fields = [
+            'company_name', 'company_address', 'company_website_url', 'company_email',
+            'password', 'confirm_password', 'company_information', 'business_nature',
+            'profile_picture', 'background_image',
+        ]
+
+    def validate(self, attrs):
+        if attrs.get('password') != attrs.get('confirm_password'):
+            raise serializers.ValidationError({'confirm_password': 'Passwords do not match.'})
+        return attrs
+
+    def create(self, validated_data):
+        email = validated_data.pop('company_email')
+        password = validated_data.pop('password')
+        validated_data.pop('confirm_password')
+
+        user = User.objects.create_user(
+            email=email,
+            password=password,
+            user_role='COMPANY',
+        )
+
+        company = Company.objects.create(user=user, **validated_data)
+        return company
+
+
+class CareerEmplacementAdminRegisterSerializer(serializers.ModelSerializer):
+    CEA_email = serializers.EmailField(write_only=True)
+    password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = CareerEmplacementAdmin
+        fields = ['CEA_email', 'password', 'confirm_password', 'school']
+
+    def validate(self, attrs):
+        if attrs.get('password') != attrs.get('confirm_password'):
+            raise serializers.ValidationError({'confirm_password': 'Passwords do not match.'})
+        return attrs
+
+    def create(self, validated_data):
+        email = validated_data.pop('CEA_email')
+        password = validated_data.pop('password')
+        validated_data.pop('confirm_password')
+
+        user = User.objects.create_user(
+            email=email,
+            password=password,
+            user_role='CEA',
+        )
+
+        cea = CareerEmplacementAdmin.objects.create(user=user, **validated_data)
+        return cea
+
+
 

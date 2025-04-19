@@ -112,7 +112,7 @@ class Applicant(models.Model):
 
 class Company(models.Model):
     company_id = models.AutoField(primary_key=True)
-    user = models.OneToOneField('User', on_delete=models.CASCADE, editable=False)
+    user = models.OneToOneField('User', on_delete=models.CASCADE)
 
     company_name = models.CharField(max_length=255)
     company_address = models.CharField(max_length=255)
@@ -135,7 +135,7 @@ class Company(models.Model):
 
 class CareerEmplacementAdmin(models.Model):
     cea_id = models.AutoField(primary_key=True)
-    user = models.OneToOneField('User', on_delete=models.CASCADE, editable=False)
+    user = models.OneToOneField('User', on_delete=models.CASCADE)
     school = models.ForeignKey('School', on_delete=models.CASCADE)
 
     class Meta:
@@ -143,7 +143,7 @@ class CareerEmplacementAdmin(models.Model):
         verbose_name_plural = 'CEAs'
 
     def __str__(self):
-        return f'{self.cea_id} - {self.school.school_name}'
+        return f'{self.user.email}'
 
 
 class OJTCoordinator(models.Model):
