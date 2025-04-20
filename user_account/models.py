@@ -1,6 +1,7 @@
 import uuid
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
 from django.db import models
+from .filepaths import applicant_resume, applicant_enrollment_record, company_profile_picture, company_background_image
 from storages.backends.s3boto3 import S3Boto3Storage
 
 
@@ -67,25 +68,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         return f'{self.email} | {self.user_id}'
 
 
-class FilePaths(models.Model):
-
-    @staticmethod
-    def applicant_resume(instance, filename):
-        return f'Applicant/{instance.user.email} | {str(instance.user.user_id)[-12:]}/resume/{filename}'
-
-    @staticmethod
-    def applicant_enrollment_record(instance, filename):
-        return f'Applicant/{instance.user.email} | {str(instance.user.user_id)[-12:]}/enrollment_record/{filename}'
-
-    @staticmethod
-    def company_background_image(instance, filename):
-        return f'Company/{instance.user.email} | {str(instance.user.user_id)[-12:]}/background_image/{filename}'
-
-    @staticmethod
-    def company_profile_picture(instance, filename):
-        return f'Company/{instance.user.email} | {str(instance.user.user_id)[-12:]}/profile_picture/{filename}'
-
-
 class Applicant(models.Model):
     applicant_id = models.AutoField(primary_key=True)
     user = models.OneToOneField('User', on_delete=models.CASCADE)
@@ -113,8 +95,8 @@ class Applicant(models.Model):
     academic_program = models.CharField(max_length=100, null=True, blank=True)
     quick_introduction = models.CharField(max_length=500, null=True, blank=True)
 
-    resume = models.FileField(storage=S3Boto3Storage, upload_to=FilePaths.applicant_resume)
-    enrollment_record = models.FileField(storage=S3Boto3Storage,upload_to=FilePaths.applicant_enrollment_record,
+    resume = models.FileField(storage=S3Boto3Storage, upload_to=applicant_resume)
+    enrollment_record = models.FileField(storage=S3Boto3Storage,upload_to=applicant_enrollment_record,
                                          null=True, blank=True)
 
     def __str__(self):
@@ -137,8 +119,8 @@ class Company(models.Model):
     x_url = models.CharField(max_length=255, null=True, blank=True)
     other_url = models.CharField(max_length=255, null=True, blank=True)
 
-    background_image = models.FileField(storage=S3Boto3Storage, upload_to=FilePaths.company_background_image)
-    profile_picture = models.FileField(storage=S3Boto3Storage, upload_to=FilePaths.company_profile_picture)
+    background_image = models.FileField(storage=S3Boto3Storage, upload_to=company_background_image)
+    profile_picture = models.FileField(storage=S3Boto3Storage, upload_to=company_profile_picture)
 
     def __str__(self):
         return self.company_name
