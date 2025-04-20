@@ -65,3 +65,7 @@ minio-data/test/
 
 #mkcert.exe
 mkcert.exe
+
+# Ignore all migration files across apps, but keep __init__.py
+**/migrations/*
+!**/migrations/__init__.py
