@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from cea_management.models import Program, Department
-from .models import Applicant, User, School, Company, CareerEmplacementAdmin
+from .models import Applicant, User, School, Company, CareerEmplacementAdmin, OJTCoordinator
 
 
 class SchoolSerializer(serializers.ModelSerializer):
@@ -140,5 +140,35 @@ class CareerEmplacementAdminRegisterSerializer(serializers.ModelSerializer):
         cea = CareerEmplacementAdmin.objects.create(user=user, **validated_data)
         return cea
 
+
+class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
+    OJTCoordinator_email = serializers.EmailField(write_only=True)
+    middle_initial = serializers.CharField(write_only=True, required=False, allow_blank=True, default='')
+    password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = OJTCoordinator
+        fields = ['OJTCoordinator_email', 'first_name', 'last_name', 'middle_initial',
+                  'password', 'confirm_password', 'program']
+
+    def validate(self, attrs):
+        if attrs.get('password') != attrs.get('confirm_password'):
+            raise serializers.ValidationError({'confirm_password': 'Passwords do not match.'})
+        return attrs
+
+    def create(self, validated_data):
+        email = validated_data.pop('OJTCoordinator_email')
+        password = validated_data.pop('password')
+        validated_data.pop('confirm_password')
+
+        user = User.objects.create_user(
+            email=email,
+            password=password,
+            user_role='OJT_COORDINATOR',
+        )
+
+        ojt_coordinator = OJTCoordinator.objects.create(user=user, **validated_data)
+        return ojt_coordinator
 
 

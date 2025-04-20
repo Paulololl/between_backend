@@ -68,6 +68,90 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApplicantRegister'
           description: ''
+  /api/user_account/register/cea/:
+    post:
+      operationId: api_user_account_register_cea_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CareerEmplacementAdminRegister'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CareerEmplacementAdminRegister'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CareerEmplacementAdminRegister'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CareerEmplacementAdminRegister'
+          description: ''
+  /api/user_account/register/company/:
+    post:
+      operationId: api_user_account_register_company_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompanyRegister'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CompanyRegister'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CompanyRegister'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyRegister'
+          description: ''
+  /api/user_account/register/ojt_coordinator/:
+    post:
+      operationId: api_user_account_register_ojt_coordinator_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OJTCoordinatorRegister'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OJTCoordinatorRegister'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OJTCoordinatorRegister'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OJTCoordinatorRegister'
+          description: ''
   /api/user_account/schools/:
     get:
       operationId: api_user_account_schools_list
@@ -86,7 +170,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/School'
           description: ''
-  /api/user_account/schools_departments_programs/:
+  /api/user_account/schools/departments/programs/:
     get:
       operationId: api_user_account_schools_departments_programs_list
       tags:
@@ -119,7 +203,7 @@ components:
           type: string
           writeOnly: true
           default: ''
-        email:
+        applicant_email:
           type: string
           format: email
           writeOnly: true
@@ -159,12 +243,78 @@ components:
           nullable: true
       required:
       - address
+      - applicant_email
       - confirm_password
-      - email
       - first_name
       - last_name
       - password
       - resume
+    CareerEmplacementAdminRegister:
+      type: object
+      properties:
+        CEA_email:
+          type: string
+          format: email
+          writeOnly: true
+        password:
+          type: string
+          writeOnly: true
+        confirm_password:
+          type: string
+          writeOnly: true
+        school:
+          type: string
+          format: uuid
+      required:
+      - CEA_email
+      - confirm_password
+      - password
+      - school
+    CompanyRegister:
+      type: object
+      properties:
+        company_name:
+          type: string
+          maxLength: 255
+        company_address:
+          type: string
+          maxLength: 255
+        company_website_url:
+          type: string
+          nullable: true
+          maxLength: 255
+        company_email:
+          type: string
+          format: email
+          writeOnly: true
+        password:
+          type: string
+          writeOnly: true
+        confirm_password:
+          type: string
+          writeOnly: true
+        company_information:
+          type: string
+          maxLength: 1000
+        business_nature:
+          type: string
+          maxLength: 100
+        profile_picture:
+          type: string
+          format: uri
+        background_image:
+          type: string
+          format: uri
+      required:
+      - background_image
+      - business_nature
+      - company_address
+      - company_email
+      - company_information
+      - company_name
+      - confirm_password
+      - password
+      - profile_picture
     Department:
       type: object
       properties:
@@ -214,6 +364,38 @@ components:
       - departments
       - school_id
       - school_name
+    OJTCoordinatorRegister:
+      type: object
+      properties:
+        OJTCoordinator_email:
+          type: string
+          format: email
+          writeOnly: true
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        middle_initial:
+          type: string
+          writeOnly: true
+          default: ''
+        password:
+          type: string
+          writeOnly: true
+        confirm_password:
+          type: string
+          writeOnly: true
+        program:
+          type: integer
+      required:
+      - OJTCoordinator_email
+      - confirm_password
+      - first_name
+      - last_name
+      - password
+      - program
     ProgramNested:
       type: object
       properties:

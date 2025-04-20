@@ -153,7 +153,7 @@ class OJTCoordinator(models.Model):
         verbose_name_plural = 'OJT Coordinators'
 
     def __str__(self):
-        return f'{self.first_name} {self.last_name} - {self.program.department.school.school_name}'
+        return f'{self.user.email}'
 
 
 class School(models.Model):

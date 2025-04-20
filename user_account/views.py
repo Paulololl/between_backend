@@ -2,10 +2,10 @@ from rest_framework import generics
 from rest_framework.generics import ListAPIView, CreateAPIView
 
 from cea_management.models import Department, Program
-from .models import Applicant, School, Company, CareerEmplacementAdmin
+from .models import Applicant, School, Company, CareerEmplacementAdmin, OJTCoordinator
 from .serializers import (ApplicantRegisterSerializer, NestedSchoolDepartmentProgramSerializer,
                           DepartmentSerializer, ProgramNestedSerializer, SchoolSerializer, CompanyRegisterSerializer,
-                          CareerEmplacementAdminRegisterSerializer)
+                          CareerEmplacementAdminRegisterSerializer, OJTCoordinatorRegisterSerializer)
 
 
 class SchoolListView(ListAPIView):
@@ -75,3 +75,8 @@ class CompanyRegisterView(CreateAPIView):
 class CareerEmplacementAdminRegisterView(CreateAPIView):
     queryset = CareerEmplacementAdmin.objects.all()
     serializer_class = CareerEmplacementAdminRegisterSerializer
+
+
+class OJTCoordinatorRegisterView(CreateAPIView):
+    queryset = OJTCoordinator.objects.all()
+    serializer_class = OJTCoordinatorRegisterSerializer
