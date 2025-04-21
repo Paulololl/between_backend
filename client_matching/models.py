@@ -152,7 +152,7 @@ class RequiredHardSkill(models.Model):
     required_hard_skill_id = models.AutoField(primary_key=True)
     internship_posting = models.ForeignKey('InternshipPosting', on_delete=models.CASCADE)
 
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=500)
 
     lightcast_identifier = models.CharField(max_length=20)
 
@@ -168,7 +168,7 @@ class RequiredSoftSkill(models.Model):
     required_soft_skill_id = models.AutoField(primary_key=True)
     internship_posting = models.ForeignKey('InternshipPosting', on_delete=models.CASCADE)
 
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=500)
 
     lightcast_identifier = models.CharField(max_length=20)
 
