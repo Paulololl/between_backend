@@ -201,7 +201,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
         'OPTIONS': {
-            'user_attributes': ('email', 'first_name', 'last_name')
+            'user_attributes': ('email',)
         }
     },
     {
@@ -215,6 +215,15 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+    {
+        'NAME': 'user_account.validators.CapitalFirstLetterValidator',
+    },
+    {
+        'NAME': 'user_account.validators.SpecialCharacterValidator',
+    },
+    {
+        'NAME': 'user_account.validators.NumberRequiredValidator',
     },
 ]
 

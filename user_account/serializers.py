@@ -64,8 +64,13 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
         ]
 
     def validate_password(self, value):
+        user_data = {
+            'email': self.initial_data.get('applicant_email', ''),
+        }
+        user = User(**user_data)
+
         try:
-            validate_password(value)
+            validate_password(value, user=user)
         except ValidationError as e:
             raise serializers.ValidationError(e.messages)
         return value
