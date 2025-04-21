@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status
 from rest_framework.generics import ListAPIView, CreateAPIView
 from rest_framework.permissions import IsAuthenticated
@@ -99,6 +100,11 @@ class MyTokenObtainPairView(TokenObtainPairView):
 
 
 class EmailLoginView(APIView):
+
+    @extend_schema(
+        request=EmailLoginSerializer,
+        responses={200: {'message': 'Email verified'}}
+    )
     def post(self, request):
         serializer = EmailLoginSerializer(data=request.data)
         if serializer.is_valid():

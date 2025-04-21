@@ -17,7 +17,7 @@ class HardSkillsTagList(models.Model):
         unique_together = ('applicant', 'lightcast_identifier')
 
     def __str__(self):
-        return f'{self.name} ({self.applicant.applicant_id})'
+        return f'{self.name} - {str(self.applicant.user.user_id)[-12:]}'
 
 
 class SoftSkillsTagList(models.Model):
@@ -32,7 +32,7 @@ class SoftSkillsTagList(models.Model):
         unique_together = ('applicant', 'lightcast_identifier')
 
     def __str__(self):
-        return f'{self.name} ({self.applicant.applicant_id})'
+        return f'{self.name} - {str(self.applicant.user.user_id)[-12:]}'
 
 
 class InternshipPosting(models.Model):

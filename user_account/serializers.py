@@ -274,7 +274,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 
 class EmailLoginSerializer(serializers.Serializer):
-    email = serializers.EmailField()
+    email = serializers.EmailField(required=True)
 
     def validate_email(self, value):
         if not User.objects.filter(email=value).exists():
