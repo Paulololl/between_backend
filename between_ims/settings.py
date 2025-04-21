@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'user_account',
     'client_matching',
     'client_application',
@@ -51,9 +52,12 @@ INSTALLED_APPS = [
     'silk',
     'rest_framework',
     'drf_spectacular',
+    'lightcast_rest',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -62,6 +66,10 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'silk.middleware.SilkyMiddleware',
+]
+
+CORS_ALLOWED_ORIGINS = [
+  "https://localhost:5173",
 ]
 
 ROOT_URLCONF = 'between_ims.urls'
