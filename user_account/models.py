@@ -70,7 +70,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 class Applicant(models.Model):
     applicant_id = models.AutoField(primary_key=True)
-    user = models.OneToOneField('User', on_delete=models.CASCADE)
+    user = models.OneToOneField('User', on_delete=models.CASCADE, editable=False)
     school = models.ForeignKey('School', on_delete=models.CASCADE, null=True, blank=True)
     department = models.ForeignKey('cea_management.Department', on_delete=models.CASCADE, null=True, blank=True)
     program = models.ForeignKey('cea_management.Program', on_delete=models.CASCADE, null=True, blank=True)
@@ -100,12 +100,12 @@ class Applicant(models.Model):
                                          null=True, blank=True)
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name} {self.middle_initial}"
+        return f"{self.user.email} | {self.user.user_id}"
 
 
 class Company(models.Model):
     company_id = models.AutoField(primary_key=True)
-    user = models.OneToOneField('User', on_delete=models.CASCADE)
+    user = models.OneToOneField('User', on_delete=models.CASCADE, editable=False)
 
     company_name = models.CharField(max_length=255)
     company_address = models.CharField(max_length=255)
@@ -123,12 +123,12 @@ class Company(models.Model):
     profile_picture = models.FileField(storage=S3Boto3Storage, upload_to=company_profile_picture)
 
     def __str__(self):
-        return self.company_name
+        return f"{self.user.email} | {self.user.user_id}"
 
 
 class CareerEmplacementAdmin(models.Model):
     cea_id = models.AutoField(primary_key=True)
-    user = models.OneToOneField('User', on_delete=models.CASCADE)
+    user = models.OneToOneField('User', on_delete=models.CASCADE, editable=False)
     school = models.ForeignKey('School', on_delete=models.CASCADE)
 
     class Meta:
@@ -136,7 +136,7 @@ class CareerEmplacementAdmin(models.Model):
         verbose_name_plural = 'CEAs'
 
     def __str__(self):
-        return f'{self.user.email}'
+        return f"{self.user.email} | {self.user.user_id}"
 
 
 class OJTCoordinator(models.Model):
@@ -153,7 +153,7 @@ class OJTCoordinator(models.Model):
         verbose_name_plural = 'OJT Coordinators'
 
     def __str__(self):
-        return f'{self.user.email}'
+        return f"{self.user.email} | {self.user.user_id}"
 
 
 class School(models.Model):
