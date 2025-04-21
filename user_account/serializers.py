@@ -1,9 +1,13 @@
+from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
 from cea_management.models import Program, Department
 from client_matching.models import HardSkillsTagList, SoftSkillsTagList
 from .models import Applicant, User, School, Company, CareerEmplacementAdmin, OJTCoordinator
 from django.core.exceptions import ValidationError
+
 
 class SchoolSerializer(serializers.ModelSerializer):
     class Meta:
@@ -96,14 +100,14 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
         applicant = Applicant.objects.create(user=user, **validated_data)
 
         for name in hard_skills:
-            HardSkillsTagList.objects.create(
+            HardSkillsTagList.objects.get_or_create(
                 applicant=applicant,
                 name=name,
                 lightcast_identifier=''
             )
 
         for name in soft_skills:
-            SoftSkillsTagList.objects.create(
+            SoftSkillsTagList.objects.get_or_create(
                 applicant=applicant,
                 name=name,
                 lightcast_identifier=''
@@ -239,5 +243,25 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
 
         ojt_coordinator = OJTCoordinator.objects.create(user=user, **validated_data)
         return ojt_coordinator
+
+
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    username_field = 'email'
+
+    def validate(self, attrs):
+        credentials = {
+            'email': attrs.get('email'),
+            'password': attrs.get('password')
+        }
+
+        user = authenticate(**credentials)
+
+        if user is None:
+            raise serializers.ValidationError('Invalid email or password')
+
+        data = super().validate(attrs)
+        data['user_id'] = user.user_id
+        data['user_role'] = user.user_role
+        return data
 
 

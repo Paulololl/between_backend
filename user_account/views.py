@@ -1,22 +1,29 @@
 from rest_framework import generics
 from rest_framework.generics import ListAPIView, CreateAPIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 from cea_management.models import Department, Program
 from .models import Applicant, School, Company, CareerEmplacementAdmin, OJTCoordinator
 from .serializers import (ApplicantRegisterSerializer, NestedSchoolDepartmentProgramSerializer,
                           DepartmentSerializer, ProgramNestedSerializer, SchoolSerializer, CompanyRegisterSerializer,
-                          CareerEmplacementAdminRegisterSerializer, OJTCoordinatorRegisterSerializer)
+                          CareerEmplacementAdminRegisterSerializer, OJTCoordinatorRegisterSerializer,
+                          MyTokenObtainPairSerializer)
 
 
 class SchoolListView(ListAPIView):
     queryset = School.objects.all()
     serializer_class = SchoolSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         queryset = School.objects.all()
         school_id = self.request.query_params.get('school_id')
         if school_id:
             queryset = queryset.filter(school_id=school_id)
+
+        print(self.request.user)
+
         return queryset
 
 
@@ -80,3 +87,8 @@ class CareerEmplacementAdminRegisterView(CreateAPIView):
 class OJTCoordinatorRegisterView(CreateAPIView):
     queryset = OJTCoordinator.objects.all()
     serializer_class = OJTCoordinatorRegisterSerializer
+
+
+class MyTokenObtainPairView(TokenObtainPairView):
+    serializer_class = MyTokenObtainPairSerializer
+

@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import os
+from datetime import timedelta
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -51,6 +52,7 @@ INSTALLED_APPS = [
     'django_extensions',
     'silk',
     'rest_framework',
+    'rest_framework_simplejwt',
     'drf_spectacular',
     'lightcast_rest',
 ]
@@ -184,7 +186,18 @@ SECURE_KEY_PATH = os.path.join(BASE_DIR, 'mkcert', 'localhost-key.pem')
 
 # Django Rest Framework
 REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+# Simple JWT
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'USER_ID_FIELD': 'user_id',
 }
 
 # Django Spectacular

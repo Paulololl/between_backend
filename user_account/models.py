@@ -93,7 +93,7 @@ class Applicant(models.Model):
     ], default="Onsite")
 
     academic_program = models.CharField(max_length=100, null=True, blank=True)
-    quick_introduction = models.CharField(max_length=500, null=True, blank=True)
+    quick_introduction = models.CharField(max_length=500)
 
     resume = models.FileField(storage=S3Boto3Storage, upload_to=applicant_resume)
     enrollment_record = models.FileField(storage=S3Boto3Storage,upload_to=applicant_enrollment_record,

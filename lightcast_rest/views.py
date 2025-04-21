@@ -5,7 +5,9 @@ from rest_framework import status
 import requests
 from .lightcast_utils import get_lightcast_token
 
+
 class LightcastSkillsAPIView(APIView):
+
   def get(self, request):
     query = request.GET.get('q', '')
     skill_type = request.GET.get('type', '')
