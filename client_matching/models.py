@@ -11,7 +11,7 @@ class HardSkillsTagList(models.Model):
     applicant = models.ForeignKey('user_account.Applicant', on_delete=models.CASCADE)
 
     lightcast_identifier = models.CharField(max_length=20)
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=500)
 
     class Meta:
         unique_together = ('applicant', 'lightcast_identifier')
@@ -26,7 +26,7 @@ class SoftSkillsTagList(models.Model):
     applicant = models.ForeignKey('user_account.Applicant', on_delete=models.CASCADE)
 
     lightcast_identifier = models.CharField(max_length=20)
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=500)
 
     class Meta:
         unique_together = ('applicant', 'lightcast_identifier')
