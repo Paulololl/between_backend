@@ -155,6 +155,7 @@ class OJTCoordinator(models.Model):
     def __str__(self):
         return f"{self.user.email} | {self.user.user_id}"
 
+
 class School(models.Model):
     school_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 

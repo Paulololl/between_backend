@@ -1,7 +1,9 @@
+from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from cea_management.models import Program, Department
+from client_matching.models import HardSkillsTagList, SoftSkillsTagList
 from .models import Applicant, User, School, Company, CareerEmplacementAdmin, OJTCoordinator
-
+from django.core.exceptions import ValidationError
 
 class SchoolSerializer(serializers.ModelSerializer):
     class Meta:
@@ -46,18 +48,27 @@ class NestedSchoolDepartmentProgramSerializer(serializers.ModelSerializer):
 
 class ApplicantRegisterSerializer(serializers.ModelSerializer):
     applicant_email = serializers.EmailField(write_only=True)
-    password = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True, style={'input_type': 'password'})
     middle_initial = serializers.CharField(write_only=True, required=False, allow_blank=True, default='')
-    confirm_password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    hard_skills = serializers.ListField(child=serializers.CharField(), required=False)
+    soft_skills = serializers.ListField(child=serializers.CharField(), required=False)
 
     class Meta:
         model = Applicant
         fields = [
             'first_name', 'last_name', 'middle_initial',
             'applicant_email', 'school', 'password', 'confirm_password',
-            'department', 'program', 'academic_program',
+            'department', 'program', 'academic_program', 'hard_skills', 'soft_skills',
             'address', 'quick_introduction', 'resume', 'enrollment_record',
         ]
+
+    def validate_password(self, value):
+        try:
+            validate_password(value)
+        except ValidationError as e:
+            raise serializers.ValidationError(e.messages)
+        return value
 
     def validate(self, attrs):
         if attrs.get('password') != attrs.get('confirm_password'):
@@ -68,6 +79,8 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
         email = validated_data.pop('applicant_email')
         password = validated_data.pop('password')
         validated_data.pop('confirm_password')
+        hard_skills = validated_data.pop('hard_skills', [])
+        soft_skills = validated_data.pop('soft_skills', [])
 
         user = User.objects.create_user(
             email=email,
@@ -76,6 +89,21 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
         )
 
         applicant = Applicant.objects.create(user=user, **validated_data)
+
+        for name in hard_skills:
+            HardSkillsTagList.objects.create(
+                applicant=applicant,
+                name=name,
+                lightcast_identifier=''
+            )
+
+        for name in soft_skills:
+            SoftSkillsTagList.objects.create(
+                applicant=applicant,
+                name=name,
+                lightcast_identifier=''
+            )
+
         return applicant
 
 

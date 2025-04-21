@@ -182,10 +182,12 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_CERTIFICATE_PATH = os.path.join(BASE_DIR, 'mkcert', 'localhost.pem')
 SECURE_KEY_PATH = os.path.join(BASE_DIR, 'mkcert', 'localhost-key.pem')
 
+# Django Rest Framework
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
+# Django Spectacular
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Between IMS',
     'DESCRIPTION': 'An Internship matching system for everyone',
@@ -193,6 +195,30 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
     # OTHER SETTINGS
 }
+
+# AUTH PASSWORD VALIDATORS
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        'OPTIONS': {
+            'user_attributes': ('email', 'first_name', 'last_name')
+        }
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 8
+        }
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
+
 
 
 
