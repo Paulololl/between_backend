@@ -125,6 +125,18 @@ class CompanyRegisterSerializer(serializers.ModelSerializer):
             'profile_picture', 'background_image',
         ]
 
+    def validate_password(self, value):
+        user_data = {
+            'email': self.initial_data.get('company_email', ''),
+        }
+        user = User(**user_data)
+
+        try:
+            validate_password(value, user=user)
+        except ValidationError as e:
+            raise serializers.ValidationError(e.messages)
+        return value
+
     def validate(self, attrs):
         if attrs.get('password') != attrs.get('confirm_password'):
             raise serializers.ValidationError({'confirm_password': 'Passwords do not match.'})
@@ -153,6 +165,18 @@ class CareerEmplacementAdminRegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = CareerEmplacementAdmin
         fields = ['CEA_email', 'password', 'confirm_password', 'school']
+
+    def validate_password(self, value):
+        user_data = {
+            'email': self.initial_data.get('CEA_email', ''),
+        }
+        user = User(**user_data)
+
+        try:
+            validate_password(value, user=user)
+        except ValidationError as e:
+            raise serializers.ValidationError(e.messages)
+        return value
 
     def validate(self, attrs):
         if attrs.get('password') != attrs.get('confirm_password'):
@@ -184,6 +208,18 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
         model = OJTCoordinator
         fields = ['OJTCoordinator_email', 'first_name', 'last_name', 'middle_initial',
                   'password', 'confirm_password', 'program']
+
+    def validate_password(self, value):
+        user_data = {
+            'email': self.initial_data.get('OJTCoordinator_email', ''),
+        }
+        user = User(**user_data)
+
+        try:
+            validate_password(value, user=user)
+        except ValidationError as e:
+            raise serializers.ValidationError(e.messages)
+        return value
 
     def validate(self, attrs):
         if attrs.get('password') != attrs.get('confirm_password'):

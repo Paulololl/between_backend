@@ -5,14 +5,14 @@ from django.utils.translation import gettext as _
 
 class CapitalFirstLetterValidator:
     def validate(self, password, user=None):
-        if not password[0].isupper():
+        if not any(char.isupper() for char in password):
             raise ValidationError(
-                _('The password must start with a capital letter.'),
+                _('The password must contain at least one capital letter.'),
                 code='capital_first_letter',
             )
 
     def get_help_text(self):
-        return _('The password must start with a capital letter.')
+        return _('The password must contain at least one capital letter.')
 
 
 class SpecialCharacterValidator:
