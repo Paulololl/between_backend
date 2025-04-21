@@ -1,6 +1,8 @@
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.generics import ListAPIView, CreateAPIView
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from cea_management.models import Department, Program
@@ -8,7 +10,7 @@ from .models import Applicant, School, Company, CareerEmplacementAdmin, OJTCoord
 from .serializers import (ApplicantRegisterSerializer, NestedSchoolDepartmentProgramSerializer,
                           DepartmentSerializer, ProgramNestedSerializer, SchoolSerializer, CompanyRegisterSerializer,
                           CareerEmplacementAdminRegisterSerializer, OJTCoordinatorRegisterSerializer,
-                          MyTokenObtainPairSerializer)
+                          MyTokenObtainPairSerializer, EmailLoginSerializer)
 
 
 class SchoolListView(ListAPIView):
@@ -30,6 +32,7 @@ class SchoolListView(ListAPIView):
 class DepartmentListView(ListAPIView):
     queryset = Department.objects.all()
     serializer_class = DepartmentSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         queryset = Department.objects.all()
@@ -45,6 +48,7 @@ class DepartmentListView(ListAPIView):
 class ProgramListView(ListAPIView):
     queryset = Program.objects.all()
     serializer_class = ProgramNestedSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         queryset = Program.objects.all()
@@ -60,6 +64,7 @@ class ProgramListView(ListAPIView):
 class NestedSchoolDepartmentProgramListView(ListAPIView):
     queryset = School.objects.prefetch_related('departments__programs')
     serializer_class = NestedSchoolDepartmentProgramSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         queryset = School.objects.all()
@@ -91,4 +96,12 @@ class OJTCoordinatorRegisterView(CreateAPIView):
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
+
+
+class EmailLoginView(APIView):
+    def post(self, request):
+        serializer = EmailLoginSerializer(data=request.data)
+        if serializer.is_valid():
+            return Response({'Message': "Email is valid!"})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

@@ -249,9 +249,17 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     username_field = 'email'
 
     def validate(self, attrs):
+        email = attrs.get('email')
+        password = attrs.get('password')
+
+        try:
+            User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError('Email does not exist')
+
         credentials = {
-            'email': attrs.get('email'),
-            'password': attrs.get('password')
+            'email': email,
+            'password': password,
         }
 
         user = authenticate(**credentials)
@@ -263,5 +271,15 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         data['user_id'] = user.user_id
         data['user_role'] = user.user_role
         return data
+
+
+class EmailLoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        if not User.objects.filter(email=value).exists():
+            raise ValidationError('Email not found. Please try again.')
+        return value
+
 
 

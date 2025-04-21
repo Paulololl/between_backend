@@ -1,6 +1,9 @@
 from django.urls import path
+from rest_framework_simplejwt.views import TokenRefreshView
+
 from .views import ApplicantRegisterView, NestedSchoolDepartmentProgramListView, DepartmentListView, ProgramListView, \
-    SchoolListView, CompanyRegisterView, CareerEmplacementAdminRegisterView, OJTCoordinatorRegisterView
+    SchoolListView, CompanyRegisterView, CareerEmplacementAdminRegisterView, OJTCoordinatorRegisterView, \
+    MyTokenObtainPairView, EmailLoginView
 
 urlpatterns = [
     path('register/applicant/', ApplicantRegisterView.as_view()),
@@ -11,4 +14,8 @@ urlpatterns = [
     path('departments/', DepartmentListView.as_view()),
     path('programs/', ProgramListView.as_view()),
     path('schools/departments/programs/', NestedSchoolDepartmentProgramListView.as_view()),
+    path('login/token/', MyTokenObtainPairView.as_view()),
+    path('token/refresh/', TokenRefreshView.as_view()),
+    path('login/email/', EmailLoginView.as_view())
+
 ]

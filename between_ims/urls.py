@@ -30,6 +30,4 @@ urlpatterns = [
     path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
     path('api/lightcast/', include('lightcast_rest.urls')),
-    path('api/token/', MyTokenObtainPairView.as_view()),
-    path('api/token/refresh/', TokenRefreshView.as_view()),
 ]
