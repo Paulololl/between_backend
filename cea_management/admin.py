@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .forms import CustomProgramForm
+from .forms import CustomProgramForm, SchoolFilter
 from .models import (SchoolPartnershipList, Department, Program, School)
 
 
@@ -30,7 +30,7 @@ class CustomProgram(admin.ModelAdmin):
 
     list_display = ('program_name', 'department', 'school_name')
 
-    list_filter = ('department',)
+    list_filter = ('department', SchoolFilter)
 
     fieldsets = (
         (None, {'fields': ('department', 'program_name',)}),
