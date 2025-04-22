@@ -113,6 +113,14 @@ class EmailLoginView(APIView):
 
 
 class SchoolEmailCheckView(APIView):
+
+    @extend_schema(
+        request=SchoolEmailCheckSerializer,
+        responses={200: {
+            'message': 'Institutional email is valid.',
+            "email": ["email"]
+        }}
+    )
     def post(self, request):
         serializer = SchoolEmailCheckSerializer(data=request.data)
         if serializer.is_valid():
