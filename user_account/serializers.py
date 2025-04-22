@@ -91,6 +91,9 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
         hard_skills = validated_data.pop('hard_skills', [])
         soft_skills = validated_data.pop('soft_skills', [])
 
+        if User.objects.filter(email=email).exists():
+            raise serializers.ValidationError({'applicant_email': 'This email is already in use.'})
+
         user = User.objects.create_user(
             email=email,
             password=password,
@@ -151,6 +154,9 @@ class CompanyRegisterSerializer(serializers.ModelSerializer):
         password = validated_data.pop('password')
         validated_data.pop('confirm_password')
 
+        if User.objects.filter(email=email).exists():
+            raise serializers.ValidationError({'company_email': 'This email is already in use.'})
+
         user = User.objects.create_user(
             email=email,
             password=password,
@@ -191,6 +197,9 @@ class CareerEmplacementAdminRegisterSerializer(serializers.ModelSerializer):
         email = validated_data.pop('CEA_email')
         password = validated_data.pop('password')
         validated_data.pop('confirm_password')
+
+        if User.objects.filter(email=email).exists():
+            raise serializers.ValidationError({'CEA_email': 'This email is already in use.'})
 
         user = User.objects.create_user(
             email=email,
@@ -234,6 +243,9 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
         email = validated_data.pop('OJTCoordinator_email')
         password = validated_data.pop('password')
         validated_data.pop('confirm_password')
+
+        if User.objects.filter(email=email).exists():
+            raise serializers.ValidationError({'OJTCoordinator_email': 'This email is already in use.'})
 
         user = User.objects.create_user(
             email=email,
