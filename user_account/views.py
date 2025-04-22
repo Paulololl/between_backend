@@ -1,13 +1,12 @@
 from drf_spectacular.utils import extend_schema
-from rest_framework import generics, status
+from rest_framework import status
 from rest_framework.generics import ListAPIView, CreateAPIView
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from cea_management.models import Department, Program
-from .models import Applicant, School, Company, CareerEmplacementAdmin, OJTCoordinator
+from cea_management.models import Department, Program, School
+from .models import Applicant, Company, CareerEmplacementAdmin, OJTCoordinator
 from .serializers import (ApplicantRegisterSerializer, NestedSchoolDepartmentProgramSerializer,
                           DepartmentSerializer, ProgramNestedSerializer, SchoolSerializer, CompanyRegisterSerializer,
                           CareerEmplacementAdminRegisterSerializer, OJTCoordinatorRegisterSerializer,
@@ -17,7 +16,6 @@ from .serializers import (ApplicantRegisterSerializer, NestedSchoolDepartmentPro
 class SchoolListView(ListAPIView):
     queryset = School.objects.all()
     serializer_class = SchoolSerializer
-    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         queryset = School.objects.all()
@@ -33,7 +31,6 @@ class SchoolListView(ListAPIView):
 class DepartmentListView(ListAPIView):
     queryset = Department.objects.all()
     serializer_class = DepartmentSerializer
-    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         queryset = Department.objects.all()
@@ -49,7 +46,6 @@ class DepartmentListView(ListAPIView):
 class ProgramListView(ListAPIView):
     queryset = Program.objects.all()
     serializer_class = ProgramNestedSerializer
-    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         queryset = Program.objects.all()
@@ -65,7 +61,6 @@ class ProgramListView(ListAPIView):
 class NestedSchoolDepartmentProgramListView(ListAPIView):
     queryset = School.objects.prefetch_related('departments__programs')
     serializer_class = NestedSchoolDepartmentProgramSerializer
-    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         queryset = School.objects.all()

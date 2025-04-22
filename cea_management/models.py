@@ -5,7 +5,7 @@ from django.db import models
 
 class SchoolPartnershipList(models.Model):
 
-    school = models.ForeignKey('user_account.School', on_delete=models.CASCADE)
+    school = models.ForeignKey('School', on_delete=models.CASCADE)
     company = models.ForeignKey('user_account.Company', on_delete=models.CASCADE)
 
     class Meta:
@@ -20,7 +20,7 @@ class SchoolPartnershipList(models.Model):
 class Department(models.Model):
 
     department_id = models.AutoField(primary_key=True)
-    school = models.ForeignKey('user_account.School', related_name='departments', on_delete=models.CASCADE)
+    school = models.ForeignKey('School', related_name='departments', on_delete=models.CASCADE)
 
     department_name = models.CharField(max_length=100)
 
@@ -43,5 +43,26 @@ class Program(models.Model):
 
     def __str__(self):
         return f'{self.program_name}'
+
+
+class School(models.Model):
+    school_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    school_name = models.CharField(max_length=255, unique=True)
+    school_acronym = models.CharField(max_length=10, null=True, blank=True)
+    school_address = models.CharField(max_length=255)
+    domain = models.CharField(max_length=255)
+
+    date_joined = models.DateTimeField(auto_now_add=True)
+
+    status = models.CharField(max_length=20, choices=[
+        ('Active', 'Active'),
+        ('Inactive', 'Inactive'),
+        ('Pending', 'Pending'),
+        ('Deleted', 'Deleted'),
+    ], default="Pending")
+
+    def __str__(self):
+        return self.school_name
 
 

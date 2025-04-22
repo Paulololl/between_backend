@@ -1,9 +1,9 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import (User, Applicant, Company, CareerEmplacementAdmin, OJTCoordinator, School)
+from .models import (User, Applicant, Company, CareerEmplacementAdmin, OJTCoordinator)
 
 
-model_to_register = [Applicant, Company, CareerEmplacementAdmin, OJTCoordinator, School]
+model_to_register = [Applicant, Company, CareerEmplacementAdmin, OJTCoordinator]
 
 for model in model_to_register:
     admin.site.register(model)

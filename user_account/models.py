@@ -71,7 +71,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 class Applicant(models.Model):
     applicant_id = models.AutoField(primary_key=True)
     user = models.OneToOneField('User', on_delete=models.CASCADE, editable=False)
-    school = models.ForeignKey('School', on_delete=models.CASCADE, null=True, blank=True)
+    school = models.ForeignKey('cea_management.School', on_delete=models.CASCADE, null=True, blank=True)
     department = models.ForeignKey('cea_management.Department', on_delete=models.CASCADE, null=True, blank=True)
     program = models.ForeignKey('cea_management.Program', on_delete=models.CASCADE, null=True, blank=True)
 
@@ -129,7 +129,7 @@ class Company(models.Model):
 class CareerEmplacementAdmin(models.Model):
     cea_id = models.AutoField(primary_key=True)
     user = models.OneToOneField('User', on_delete=models.CASCADE, editable=False)
-    school = models.ForeignKey('School', on_delete=models.CASCADE)
+    school = models.ForeignKey('cea_management.School', on_delete=models.CASCADE)
 
     class Meta:
         verbose_name = 'CEA'
@@ -156,22 +156,4 @@ class OJTCoordinator(models.Model):
         return f"{self.user.email} | {self.user.user_id}"
 
 
-class School(models.Model):
-    school_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
-    school_name = models.CharField(max_length=255, unique=True)
-    school_acronym = models.CharField(max_length=10, null=True, blank=True)
-    school_address = models.CharField(max_length=255)
-    domain = models.CharField(max_length=255)
-
-    date_joined = models.DateTimeField(auto_now_add=True)
-
-    status = models.CharField(max_length=20, choices=[
-        ('Active', 'Active'),
-        ('Inactive', 'Inactive'),
-        ('Pending', 'Pending'),
-        ('Deleted', 'Deleted'),
-    ], default="Pending")
-
-    def __str__(self):
-        return self.school_name

@@ -3,9 +3,9 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 import requests
-from cea_management.models import Program, Department
+from cea_management.models import Program, Department, School
 from client_matching.models import HardSkillsTagList, SoftSkillsTagList
-from .models import Applicant, User, School, Company, CareerEmplacementAdmin, OJTCoordinator
+from .models import Applicant, User, Company, CareerEmplacementAdmin, OJTCoordinator
 from django.core.exceptions import ValidationError
 
 
