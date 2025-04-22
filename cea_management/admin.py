@@ -1,4 +1,6 @@
 from django.contrib import admin
+
+from .forms import CustomProgramForm
 from .models import (SchoolPartnershipList, Department, Program, School)
 
 
@@ -24,6 +26,7 @@ class CustomDepartment(admin.ModelAdmin):
 @admin.register(Program)
 class CustomProgram(admin.ModelAdmin):
     model = Program
+    form = CustomProgramForm
 
     list_display = ('program_name', 'department', 'school_name')
 
