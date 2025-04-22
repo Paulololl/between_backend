@@ -82,6 +82,29 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if attrs.get('password') != attrs.get('confirm_password'):
             raise serializers.ValidationError({'confirm_password': 'Passwords do not match.'})
+
+        email = attrs.get('applicant_email', '')
+        errors = []
+
+        if '.edu' in email:
+            required_fields = ['school', 'department', 'program']
+            for field in required_fields:
+                if not attrs.get(field):
+                    errors.append(f'{field.capitalize()} is required for school (.edu) emails.')
+
+            school = attrs.get('school')
+            department = attrs.get('department')
+            program = attrs.get('program')
+
+            if department and school and department.school_id != school.school_id:
+                errors.append('Selected department does not belong to the selected school.')
+
+            if program and department and program.department_id != department.department_id:
+                errors.append('Selected program does not belong to the selected department.')
+
+        if errors:
+            raise serializers.ValidationError(errors)
+
         return attrs
 
     def create(self, validated_data):
