@@ -11,7 +11,7 @@ from .models import Applicant, School, Company, CareerEmplacementAdmin, OJTCoord
 from .serializers import (ApplicantRegisterSerializer, NestedSchoolDepartmentProgramSerializer,
                           DepartmentSerializer, ProgramNestedSerializer, SchoolSerializer, CompanyRegisterSerializer,
                           CareerEmplacementAdminRegisterSerializer, OJTCoordinatorRegisterSerializer,
-                          MyTokenObtainPairSerializer, EmailLoginSerializer)
+                          MyTokenObtainPairSerializer, EmailLoginSerializer, SchoolEmailCheckSerializer)
 
 
 class SchoolListView(ListAPIView):
@@ -109,5 +109,16 @@ class EmailLoginView(APIView):
         serializer = EmailLoginSerializer(data=request.data)
         if serializer.is_valid():
             return Response({'Message': "Email is valid!"})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SchoolEmailCheckView(APIView):
+    def post(self, request):
+        serializer = SchoolEmailCheckSerializer(data=request.data)
+        if serializer.is_valid():
+            return Response({
+                "message": "Institutional email is valid.",
+                "email": serializer.validated_data["email"]
+            }, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

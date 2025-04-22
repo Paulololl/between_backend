@@ -2,7 +2,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-
+import requests
 from cea_management.models import Program, Department
 from client_matching.models import HardSkillsTagList, SoftSkillsTagList
 from .models import Applicant, User, School, Company, CareerEmplacementAdmin, OJTCoordinator
@@ -280,6 +280,55 @@ class EmailLoginSerializer(serializers.Serializer):
         if not User.objects.filter(email=value).exists():
             raise ValidationError('Email not found. Please try again.')
         return value
+
+
+class SchoolEmailCheckSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+    school_id = serializers.UUIDField(required=True)
+
+    def validate(self, data):
+        email = data.get('email')
+        school_id = data.get('school_id')
+
+        abstract_api_key = '25330309a4cb4b158042866db58aa697'
+        url = f"https://emailvalidation.abstractapi.com/v1/"
+        params = {'api_key': abstract_api_key, 'email': email}
+        response = requests.get(url, params=params)
+
+        if response.status_code != 200:
+            raise serializers.ValidationError('Failed to validate email with external service.')
+
+        data_api = response.json()
+        errors = []
+
+        if data_api.get('deliverability') != 'DELIVERABLE':
+            errors.append('Email is not deliverable.')
+
+        if float(data_api.get('quality_score', 0)) < 0.70:
+            errors.append('Email quality score is too low.')
+
+        if not data_api.get('is_valid_format', {}).get('value', False):
+            errors.append('Email format is invalid.')
+
+        if data_api.get('is_free_email', {}).get('value', True):
+            errors.append('Email is not an institutional email.')
+
+        if data_api.get('is_disposable_email', {}).get('value', True):
+            errors.append('Disposable email addresses are not allowed.')
+
+        domain = '@' + email.split('@', 1)[-1].strip().lower()
+        try:
+            school = School.objects.get(school_id=school_id)
+            if school.domain.lower() != domain:
+                errors.append('Email domain does not match the selected school.')
+        except School.DoesNotExist:
+            errors.append('Selected school does not exist.')
+
+        if errors:
+            raise serializers.ValidationError(errors)
+
+        return data
+
 
 
 
