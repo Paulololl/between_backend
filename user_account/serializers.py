@@ -53,6 +53,7 @@ class NestedSchoolDepartmentProgramSerializer(serializers.ModelSerializer):
 class SkillSerializer(serializers.Serializer):
     id = serializers.CharField()
     name = serializers.CharField()
+    type = serializers.DictField(required=False)
 
 
 class ApplicantRegisterSerializer(serializers.ModelSerializer):
@@ -60,8 +61,8 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, style={'input_type': 'password'})
     middle_initial = serializers.CharField(write_only=True, required=False, allow_blank=True, default='')
     confirm_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
-    hard_skills = serializers.ListField(child=SkillSerializer(), required=False, write_only=True)
-    soft_skills = serializers.ListField(child=SkillSerializer(), required=False, write_only=True)
+    hard_skills = SkillSerializer(many=True, required=False)
+    soft_skills = SkillSerializer(many=True, required=False)
 
     school = serializers.PrimaryKeyRelatedField(
         queryset=School.objects.all(), required=False, allow_null=True
@@ -147,21 +148,17 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
         applicant = Applicant.objects.create(user=user, **validated_data)
 
         for skill in hard_skills:
-            name = skill.get('name', '')
-            lightcast_identifier = skill.get('id', '')
             HardSkillsTagList.objects.get_or_create(
                 applicant=applicant,
-                name=name,
-                lightcast_identifier=lightcast_identifier
+                name=skill.get('name', ''),
+                lightcast_identifier=skill.get('id', '')
             )
 
         for skill in soft_skills:
-            name = skill.get('name', '')
-            lightcast_identifier = skill.get('id', '')
             SoftSkillsTagList.objects.get_or_create(
                 applicant=applicant,
-                name=name,
-                lightcast_identifier=lightcast_identifier
+                name=skill.get('name', ''),
+                lightcast_identifier=skill.get('id', '')
             )
 
         return applicant
