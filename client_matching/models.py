@@ -8,7 +8,7 @@ from storages.backends.s3boto3 import S3Boto3Storage
 class HardSkillsTagList(models.Model):
 
     hard_skills_tag_id = models.AutoField(primary_key=True)
-    applicant = models.ForeignKey('user_account.Applicant', on_delete=models.CASCADE)
+    applicant = models.ForeignKey('user_account.Applicant', related_name='hard_skills', on_delete=models.CASCADE)
 
     lightcast_identifier = models.CharField(max_length=20)
     name = models.CharField(max_length=500)
@@ -23,7 +23,7 @@ class HardSkillsTagList(models.Model):
 class SoftSkillsTagList(models.Model):
 
     soft_skills_tag_id = models.AutoField(primary_key=True)
-    applicant = models.ForeignKey('user_account.Applicant', on_delete=models.CASCADE)
+    applicant = models.ForeignKey('user_account.Applicant', related_name='soft_skills', on_delete=models.CASCADE)
 
     lightcast_identifier = models.CharField(max_length=20)
     name = models.CharField(max_length=500)

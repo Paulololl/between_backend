@@ -1,3 +1,5 @@
+import json
+
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
@@ -50,9 +52,16 @@ class NestedSchoolDepartmentProgramSerializer(serializers.ModelSerializer):
         fields = ['school_id', 'school_name', 'departments']
 
 
-class SkillSerializer(serializers.Serializer):
-    id = serializers.CharField()
-    name = serializers.CharField()
+class HardSkillsTagListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HardSkillsTagList
+        fields = ['lightcast_identifier', 'name']
+
+
+class SoftSkillsTagListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SoftSkillsTagList
+        fields = ['lightcast_identifier', 'name']
 
 
 class ApplicantRegisterSerializer(serializers.ModelSerializer):
@@ -60,8 +69,8 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, style={'input_type': 'password'})
     middle_initial = serializers.CharField(write_only=True, required=False, allow_blank=True, default='')
     confirm_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
-    hard_skills = SkillSerializer(many=True, required=True)
-    soft_skills = SkillSerializer(many=True, required=True)
+    hard_skills = HardSkillsTagListSerializer(many=True)
+    soft_skills = SoftSkillsTagListSerializer(many=True)
 
     school = serializers.PrimaryKeyRelatedField(
         queryset=School.objects.all(), required=False, allow_null=True
@@ -132,8 +141,13 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
         email = validated_data.pop('applicant_email')
         password = validated_data.pop('password')
         validated_data.pop('confirm_password')
-        hard_skills = validated_data.pop('hard_skills', [])
-        soft_skills = validated_data.pop('soft_skills', [])
+        hard_skills_data = validated_data.pop('hard_skills', [])
+        soft_skills_data = validated_data.pop('soft_skills', [])
+
+        if isinstance(hard_skills_data, str):
+            hard_skills_data = json.loads(hard_skills_data)
+        if isinstance(soft_skills_data, str):
+            soft_skills_data = json.loads(soft_skills_data)
 
         if User.objects.filter(email=email).exists():
             raise serializers.ValidationError({'applicant_email': 'This email is already in use.'})
@@ -146,18 +160,16 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
 
         applicant = Applicant.objects.create(user=user, **validated_data)
 
-        for skill in hard_skills:
-            HardSkillsTagList.objects.get_or_create(
+        for skill_data in hard_skills_data:
+            HardSkillsTagList.objects.create(
                 applicant=applicant,
-                name=skill.get('name', ''),
-                lightcast_identifier=skill.get('id', '')
+                **skill_data
             )
 
-        for skill in soft_skills:
-            SoftSkillsTagList.objects.get_or_create(
+        for skill_data in soft_skills_data:
+            SoftSkillsTagList.objects.create(
                 applicant=applicant,
-                name=skill.get('name', ''),
-                lightcast_identifier=skill.get('id', '')
+                **skill_data
             )
 
         return applicant
