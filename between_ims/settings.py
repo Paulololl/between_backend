@@ -32,7 +32,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -71,7 +70,7 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-  "https://localhost:5173",
+    "https://localhost:5173",
 ]
 
 ROOT_URLCONF = 'between_ims.urls'
@@ -94,7 +93,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'between_ims.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
@@ -108,7 +106,6 @@ DATABASES = {
         'PORT': os.getenv('DB_PORT'),
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -128,7 +125,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
@@ -139,7 +135,6 @@ TIME_ZONE = 'Asia/Manila'
 USE_I18N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
@@ -174,7 +169,6 @@ AWS_S3_VERIFY = AWS_S3_VERIFY
 
 # pre signed url (temporary url)
 AWS_QUERYSTRING_AUTH = os.getenv('AWS_QUERYSTRING_AUTH')
-
 
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
@@ -239,12 +233,3 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'user_account.validators.NumberRequiredValidator',
     },
 ]
-
-
-
-
-
-
-
-
-

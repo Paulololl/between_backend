@@ -57,10 +57,8 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, style={'input_type': 'password'})
     middle_initial = serializers.CharField(write_only=True, required=False, allow_blank=True, default='')
     confirm_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
-    hard_skills = serializers.ListField(
-        child=serializers.CharField(), write_only=True, required=False)
-    soft_skills = serializers.ListField(
-        child=serializers.CharField(), write_only=True, required=False)
+    hard_skills = serializers.CharField(required=True)
+    soft_skills = serializers.CharField(required=True)
 
     school = serializers.PrimaryKeyRelatedField(
         queryset=School.objects.all(), required=False, allow_null=True
@@ -131,8 +129,8 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
         email = validated_data.pop('applicant_email')
         password = validated_data.pop('password')
         validated_data.pop('confirm_password')
-        hard_skills = validated_data.pop('hard_skills', [])
-        soft_skills = validated_data.pop('soft_skills', [])
+        hard_skills_string = validated_data.pop('hard_skills', None)
+        soft_skills_string = validated_data.pop('soft_skills', None)
 
         if User.objects.filter(email=email).exists():
             raise serializers.ValidationError({'applicant_email': 'This email is already in use.'})
@@ -145,19 +143,35 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
 
         applicant = Applicant.objects.create(user=user, **validated_data)
 
-        for skill in hard_skills:
-            HardSkillsTagList.objects.create(
-                applicant=applicant,
-                name=skill['name'],
-                lightcast_identifier=skill['lightcast_identifier']
-            )
+        if hard_skills_string:
+            try:
+                hard_skills_data = json.loads(hard_skills_string.split(' - ')[0])
+                hard_skills = [
+                    HardSkillsTagList(
+                        applicant=applicant,
+                        name=skill['name'],
+                        lightcast_identifier=skill['id']
+                    )
+                    for skill in hard_skills_data
+                ]
+                HardSkillsTagList.objects.bulk_create(hard_skills)
+            except json.JSONDecodeError:
+                raise serializers.ValidationError("Invalid format for hard_skills")
 
-        for skill in soft_skills:
-            SoftSkillsTagList.objects.create(
-                applicant=applicant,
-                name=skill['name'],
-                lightcast_identifier=skill['lightcast_identifier']
-            )
+        if soft_skills_string:
+            try:
+                soft_skills_data = json.loads(soft_skills_string.split(' - ')[0])
+                soft_skills = [
+                    SoftSkillsTagList(
+                        applicant=applicant,
+                        name=skill['name'],
+                        lightcast_identifier=skill['id']
+                    )
+                    for skill in soft_skills_data
+                ]
+                SoftSkillsTagList.objects.bulk_create(soft_skills)
+            except json.JSONDecodeError:
+                raise serializers.ValidationError("Invalid format for soft_skills")
 
         return applicant
 

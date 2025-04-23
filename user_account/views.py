@@ -1,5 +1,3 @@
-import json
-
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.generics import ListAPIView, CreateAPIView
@@ -76,28 +74,6 @@ class ApplicantRegisterView(CreateAPIView):
     queryset = Applicant.objects.all()
     serializer_class = ApplicantRegisterSerializer
 
-    def create(self, request, *args, **kwargs):
-        def parse_skills(skill_str):
-            try:
-                skill_list = json.loads(skill_str)
-                return [
-                    {
-                        "lightcast_identifier": skill.get("id", ""),
-                        "name": skill.get("name", "")
-                    } for skill in skill_list if isinstance(skill, dict)
-                ]
-            except json.JSONDecodeError as e:
-                raise ValueError(f"Invalid JSON: {str(e)}")
-
-        try:
-            request.data._mutable = True
-            request.data['hard_skills'] = parse_skills(request.data.get('hard_skills', '[]'))
-            request.data['soft_skills'] = parse_skills(request.data.get('soft_skills', '[]'))
-        except ValueError as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-        return super().create(request, *args, **kwargs)
-
 
 class CompanyRegisterView(CreateAPIView):
     queryset = Company.objects.all()
@@ -148,4 +124,5 @@ class SchoolEmailCheckView(APIView):
                 "email": serializer.validated_data["email"]
             }, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
