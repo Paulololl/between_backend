@@ -99,10 +99,10 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
             department = attrs.get('department')
             program = attrs.get('program')
 
-            if department and school and department.school_id != school.school_id:
+            if department and school and department.school_id != school:
                 errors.append('Selected department does not belong to the selected school.')
 
-            if program and department and program.department_id != department.department_id:
+            if program and department and program.department_id != department:
                 errors.append('Selected program does not belong to the selected department.')
 
         if errors:
