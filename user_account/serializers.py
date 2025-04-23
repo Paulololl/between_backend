@@ -55,8 +55,11 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, style={'input_type': 'password'})
     middle_initial = serializers.CharField(write_only=True, required=False, allow_blank=True, default='')
     confirm_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
-    hard_skills = serializers.ListField(child=serializers.CharField(), required=False)
-    soft_skills = serializers.ListField(child=serializers.CharField(), required=False)
+    hard_skills = serializers.ListField(child=serializers.CharField(), required=False, write_only=True)
+    soft_skills = serializers.ListField(child=serializers.CharField(), required=False, write_only=True)
+    hard_skills_display = serializers.SerializerMethodField()
+    soft_skills_display = serializers.SerializerMethodField()
+
     school = serializers.PrimaryKeyRelatedField(
         queryset=School.objects.all(), required=False, allow_null=True
     )
@@ -73,8 +76,15 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
             'first_name', 'last_name', 'middle_initial',
             'applicant_email', 'school', 'password', 'confirm_password',
             'department', 'program', 'academic_program', 'hard_skills', 'soft_skills',
+            'hard_skills_display', 'soft_skills_display',
             'address', 'quick_introduction', 'resume', 'enrollment_record',
         ]
+
+    def get_hard_skills_display(self, obj):
+        return [s.name for s in obj.hardskillstaglist_set.all()]
+
+    def get_soft_skills_display(self, obj):
+        return [s.name for s in obj.softskillstaglist_set.all()]
 
     def validate_password(self, value):
         user_data = {
@@ -95,11 +105,17 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
         email = attrs.get('applicant_email', '')
         errors = []
 
+        if '.edu' not in email and not attrs.get('academic_program'):
+            raise serializers.ValidationError({
+                'academic_program': 'This field is required for non-.edu emails.'
+            })
+
         if '.edu' in email:
             required_fields = ['school', 'department', 'program']
             for field in required_fields:
                 if not attrs.get(field):
-                    errors.append(f'{field.capitalize()} is required for school (.edu) emails.')
+                    raise (serializers.ValidationError
+                           ({field: f'{field.capitalize()} is required for school (.edu) emails.'}))
 
             school = attrs.get('school')
             department = attrs.get('department')
