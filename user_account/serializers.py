@@ -57,9 +57,15 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
     hard_skills = serializers.ListField(child=serializers.CharField(), required=False)
     soft_skills = serializers.ListField(child=serializers.CharField(), required=False)
-    school = serializers.UUIDField(required=False, allow_null=True, default='')
-    department = serializers.PrimaryKeyRelatedField(required=False, allow_null=True, default='')
-    program = serializers.PrimaryKeyRelatedField(required=False, allow_null=True, default='')
+    school = serializers.PrimaryKeyRelatedField(
+        queryset=School.objects.all(), required=False, allow_null=True
+    )
+    department = serializers.PrimaryKeyRelatedField(
+        queryset=Department.objects.all(), required=False, allow_null=True
+    )
+    program = serializers.PrimaryKeyRelatedField(
+        queryset=Program.objects.all(), required=False, allow_null=True
+    )
 
     class Meta:
         model = Applicant
@@ -99,10 +105,10 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
             department = attrs.get('department')
             program = attrs.get('program')
 
-            if department and school and department.school_id != school:
+            if department and school and department.school_id != school.school_id:
                 errors.append('Selected department does not belong to the selected school.')
 
-            if program and department and program.department_id != department:
+            if program and department and program.department_id != department.department_id:
                 errors.append('Selected program does not belong to the selected department.')
 
         if errors:
