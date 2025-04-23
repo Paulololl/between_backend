@@ -74,7 +74,6 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
             'first_name', 'last_name', 'middle_initial',
             'applicant_email', 'school', 'password', 'confirm_password',
             'department', 'program', 'academic_program', 'hard_skills', 'soft_skills',
-            'hard_skills_display', 'soft_skills_display',
             'address', 'quick_introduction', 'resume', 'enrollment_record',
         ]
 
