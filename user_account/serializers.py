@@ -55,8 +55,11 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, style={'input_type': 'password'})
     middle_initial = serializers.CharField(write_only=True, required=False, allow_blank=True, default='')
     confirm_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
-    hard_skills = serializers.ListField(child=serializers.CharField(), required=False)
-    soft_skills = serializers.ListField(child=serializers.CharField(), required=False)
+    hard_skills = serializers.ListField(child=serializers.CharField(), required=True)
+    soft_skills = serializers.ListField(child=serializers.CharField(), required=True)
+    school = serializers.CharField(allow_null=True)
+    department = serializers.CharField(allow_null=True)
+    program = serializers.CharField(allow_null=True)
 
     class Meta:
         model = Applicant
