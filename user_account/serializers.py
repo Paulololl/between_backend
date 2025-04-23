@@ -57,7 +57,7 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
     hard_skills = serializers.ListField(child=serializers.CharField(), required=False)
     soft_skills = serializers.ListField(child=serializers.CharField(), required=False)
-    school = serializers.UUIDField(required=False, allow_blank=True, default='')
+    school = serializers.UUIDField(required=False, allow_null=True, default='')
     department = serializers.PrimaryKeyRelatedField(required=False, allow_null=True, default='')
     program = serializers.PrimaryKeyRelatedField(required=False, allow_null=True, default='')
 
