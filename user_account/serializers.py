@@ -350,7 +350,7 @@ class SchoolEmailCheckSerializer(serializers.Serializer):
         email = data.get('email')
         school_id = data.get('school_id')
 
-        abstract_api_key = '25330309a4cb4b158042866db58aa697'
+        abstract_api_key = '33db7db0899a40f7a7008c545f185dca'
         url = f"https://emailvalidation.abstractapi.com/v1/"
         params = {'api_key': abstract_api_key, 'email': email}
         response = requests.get(url, params=params)
