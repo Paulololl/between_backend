@@ -57,8 +57,6 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
     hard_skills = serializers.ListField(child=serializers.CharField(), required=False, write_only=True)
     soft_skills = serializers.ListField(child=serializers.CharField(), required=False, write_only=True)
-    hard_skills_display = serializers.SerializerMethodField()
-    soft_skills_display = serializers.SerializerMethodField()
 
     school = serializers.PrimaryKeyRelatedField(
         queryset=School.objects.all(), required=False, allow_null=True
@@ -79,12 +77,6 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
             'hard_skills_display', 'soft_skills_display',
             'address', 'quick_introduction', 'resume', 'enrollment_record',
         ]
-
-    def get_hard_skills_display(self, obj):
-        return [s.name for s in obj.hardskillstaglist_set.all()]
-
-    def get_soft_skills_display(self, obj):
-        return [s.name for s in obj.softskillstaglist_set.all()]
 
     def validate_password(self, value):
         user_data = {
@@ -150,19 +142,25 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
 
         applicant = Applicant.objects.create(user=user, **validated_data)
 
-        for name in hard_skills:
-            HardSkillsTagList.objects.get_or_create(
-                applicant=applicant,
-                name=name,
-                lightcast_identifier=''
-            )
+        for skill_name in hard_skills:
+            HardSkillsTagList.objects.create(applicant=applicant, name=skill_name)
 
-        for name in soft_skills:
-            SoftSkillsTagList.objects.get_or_create(
-                applicant=applicant,
-                name=name,
-                lightcast_identifier=''
-            )
+        for skill_name in soft_skills:
+            SoftSkillsTagList.objects.create(applicant=applicant, name=skill_name)
+
+        # for name in hard_skills:
+        #     HardSkillsTagList.objects.get_or_create(
+        #         applicant=applicant,
+        #         name=name,
+        #         lightcast_identifier=''
+        #     )
+        #
+        # for name in soft_skills:
+        #     SoftSkillsTagList.objects.get_or_create(
+        #         applicant=applicant,
+        #         name=name,
+        #         lightcast_identifier=''
+        #     )
 
         return applicant
 
