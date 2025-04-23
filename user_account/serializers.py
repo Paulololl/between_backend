@@ -129,8 +129,8 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
         email = validated_data.pop('applicant_email')
         password = validated_data.pop('password')
         validated_data.pop('confirm_password')
-        hard_skills_string = validated_data.pop('hard_skills', None)
-        soft_skills_string = validated_data.pop('soft_skills', None)
+        hard_skills_string = validated_data.pop('hard_skills')
+        soft_skills_string = validated_data.pop('soft_skills')
 
         if User.objects.filter(email=email).exists():
             raise serializers.ValidationError({'applicant_email': 'This email is already in use.'})
