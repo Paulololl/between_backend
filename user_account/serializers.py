@@ -58,8 +58,8 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
     hard_skills = serializers.ListField(child=serializers.CharField(), required=False)
     soft_skills = serializers.ListField(child=serializers.CharField(), required=False)
     school = serializers.UUIDField(required=False, allow_blank=True, default='')
-    department = serializers.PrimaryKeyRelatedField(required=False, allow_blank=True, default='')
-    program = serializers.PrimaryKeyRelatedField(required=False, allow_blank=True, default='')
+    department = serializers.PrimaryKeyRelatedField(required=False, allow_null=True, default='')
+    program = serializers.PrimaryKeyRelatedField(required=False, allow_null=True, default='')
 
     class Meta:
         model = Applicant
