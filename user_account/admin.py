@@ -1,9 +1,11 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.utils.safestring import mark_safe
+
 from .models import (User, Applicant, Company, CareerEmplacementAdmin, OJTCoordinator)
 
 
-model_to_register = [Applicant, Company, CareerEmplacementAdmin, OJTCoordinator]
+model_to_register = [Company, CareerEmplacementAdmin, OJTCoordinator]
 
 for model in model_to_register:
     admin.site.register(model)
@@ -14,11 +16,11 @@ for model in model_to_register:
 class UserAdmin(BaseUserAdmin):
     model = User
 
-    list_display = ('email', 'user_id', 'status', 'user_role', 'is_staff', 'is_superuser')
+    list_display = ('user_id', 'status', 'user_role', 'is_staff', 'date_joined')
 
-    ordering = ('email',)
+    ordering = ('status',)
 
-    list_filter = ('status', 'user_role', 'is_staff')
+    list_filter = ('status', 'user_role', 'is_staff', 'date_joined')
 
     readonly_fields = (
         'email', 'user_id', 'date_joined', 'date_modified',
@@ -41,4 +43,51 @@ class UserAdmin(BaseUserAdmin):
     def has_delete_permission(self, request, obj=None):
         return True
 
+
+# For displaying selected skills of applicant
+@admin.register(Applicant)
+class ApplicantAdmin(admin.ModelAdmin):
+    list_display = ('get_email',)
+
+    exclude = ('hard_skills', 'soft_skills')
+
+    fieldsets = (
+        (None, {
+            'fields': (
+                'user', 'first_name', 'last_name', 'middle_initial',
+                'school', 'department', 'program',
+                'academic_program', 'address', 'preferred_modality',
+                'quick_introduction', 'in_practicum'
+            )
+        }),
+        ('Skills', {
+            'fields': ('display_hard_skills', 'display_soft_skills'),
+        }),
+        ('Documents', {
+            'fields': ('resume', 'enrollment_record'),
+        }),
+    )
+
+    def get_email(self, obj):
+        return obj.user.email
+    get_email.short_description = 'email'
+
+    def display_hard_skills(self, obj):
+        skills = "<br>".join([skill.name for skill in obj.hard_skills.all()])
+        return mark_safe(skills)
+    display_hard_skills.short_description = "Selected Hard Skills"
+
+    def display_soft_skills(self, obj):
+        skills = "<br>".join([skill.name for skill in obj.soft_skills.all()])
+        return mark_safe(skills)
+    display_soft_skills.short_description = "Selected Soft Skills"
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return True
 

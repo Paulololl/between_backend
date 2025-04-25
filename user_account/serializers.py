@@ -2,6 +2,7 @@ import json
 
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.password_validation import validate_password
+from geopy.geocoders import Nominatim
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 import requests
@@ -52,6 +53,20 @@ class NestedSchoolDepartmentProgramSerializer(serializers.ModelSerializer):
     class Meta:
         model = School
         fields = ['school_id', 'school_name', 'departments']
+
+
+def get_coordinates(location):
+    geolocator = Nominatim(user_agent="abcd")
+    try:
+        location = geolocator.geocode(location)
+        if location:
+            return {'lat': location.latitude, 'lng': location.longitude}
+        else:
+            print('Error: Unable to get the location')
+            return None
+    except Exception as e:
+        print(f'Exception: {e}')
+        return None
 
 
 class ApplicantRegisterSerializer(serializers.ModelSerializer):
@@ -122,6 +137,23 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
             if program and department and program.department_id != department.department_id:
                 errors.append('Selected program does not belong to the selected department.')
 
+        address = attrs.get('address')
+        if len(address) < 15:
+            raise serializers.ValidationError({'address': 'Address must be at least 15 characters.'})
+
+        if address:
+            coordinates = get_coordinates(address)
+            if coordinates:
+                lat = coordinates.get('lat')
+                lng = coordinates.get('lng')
+                if lat is not None and lng is not None:
+                    attrs['coordinates'] = {'lat': lat, 'lng': lng}
+                else:
+                    raise serializers.ValidationError({
+                        'address': 'Coordinates must include "lat" and "lng".'})
+            else:
+                raise serializers.ValidationError({'address': 'Unable to get coordinates.'})
+
         if errors:
             raise serializers.ValidationError({'school info': errors})
 
@@ -133,6 +165,7 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
         validated_data.pop('confirm_password')
         hard_skills_string = validated_data.pop('hard_skills')
         soft_skills_string = validated_data.pop('soft_skills')
+        coordinates = validated_data.pop('coordinates', None)
 
         if User.objects.filter(email=email).exists():
             raise serializers.ValidationError({'applicant_email': 'This email is already in use.'})
@@ -152,7 +185,7 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
                 hard_skills_json = json.loads(hard_skills_string)
                 hard_skills = []
                 for skill in hard_skills_json:
-                    skill_instance, created = HardSkillsTagList.objects.get_or_create(
+                    skill_instance, _ = HardSkillsTagList.objects.get_or_create(
                         lightcast_identifier=skill['id'],
                         defaults={'name': skill['name']}
                     )
@@ -166,7 +199,7 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
                 soft_skills_json = json.loads(soft_skills_string)
                 soft_skills = []
                 for skill in soft_skills_json:
-                    skill_instance, created = SoftSkillsTagList.objects.get_or_create(
+                    skill_instance, _ = SoftSkillsTagList.objects.get_or_create(
                         lightcast_identifier=skill['id'],
                         defaults={'name': skill['name']}
                     )
@@ -174,6 +207,11 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
                 applicant.soft_skills.set(soft_skills)
             except json.JSONDecodeError:
                 raise serializers.ValidationError("Invalid format for soft_skills")
+
+        if coordinates:
+            applicant.coordinates = coordinates
+
+        applicant.save()
 
         return applicant
 
@@ -431,13 +469,14 @@ class GetApplicantSerializer(serializers.ModelSerializer):
     hard_skills = serializers.SerializerMethodField()
     soft_skills = serializers.SerializerMethodField()
     email = serializers.EmailField(source='user.email')
+    coordinates = serializers.SerializerMethodField()
 
     class Meta:
         model = Applicant
         fields = ['user', 'email', 'school', 'department', 'program', 'first_name', 'last_name',
                   'middle_initial', 'address', 'hard_skills', 'soft_skills', 'in_practicum',
                   'preferred_modality', 'academic_program', 'quick_introduction',
-                  'resume', 'enrollment_record']
+                  'resume', 'enrollment_record', 'coordinates']
 
     def get_hard_skills(self, obj):
         return [

@@ -65,7 +65,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = []
 
     def __str__(self):
-        return f'{self.email} | {self.user_id}'
+        return f'{self.user_id}'
 
 
 class Applicant(models.Model):
@@ -79,8 +79,10 @@ class Applicant(models.Model):
     last_name = models.CharField(max_length=100)
     middle_initial = models.CharField(max_length=20, null=True, blank=True)
     address = models.CharField(max_length=255)
-    hard_skills = models.ManyToManyField('client_matching.HardSkillsTagList', related_name="applicant_hard_skills")
-    soft_skills = models.ManyToManyField('client_matching.SoftSkillsTagList', related_name="applicant_soft_skills")
+    hard_skills = models.ManyToManyField('client_matching.HardSkillsTagList', related_name="applicant_hard_skills",
+                                         blank=True)
+    soft_skills = models.ManyToManyField('client_matching.SoftSkillsTagList', related_name="applicant_soft_skills",
+                                         blank=True)
 
     in_practicum = models.CharField(max_length=20, choices=[
         ('No', 'No'),
@@ -102,7 +104,7 @@ class Applicant(models.Model):
                                          null=True, blank=True)
 
     def __str__(self):
-        return f"{self.user.email} | {self.user.user_id}"
+        return f"{self.user.email}"
 
 
 class Company(models.Model):
