@@ -1,10 +1,12 @@
 import json
 
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 import requests
+from rest_framework_simplejwt.tokens import RefreshToken
+
 from cea_management.models import Program, Department, School
 from client_matching.models import HardSkillsTagList, SoftSkillsTagList
 from .models import Applicant, User, Company, CareerEmplacementAdmin, OJTCoordinator
@@ -76,7 +78,7 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
             'first_name', 'last_name', 'middle_initial',
             'applicant_email', 'school', 'password', 'confirm_password',
             'department', 'program', 'academic_program', 'hard_skills', 'soft_skills',
-            'address', 'quick_introduction', 'resume', 'enrollment_record',
+            'address', 'preferred_modality', 'quick_introduction', 'resume', 'enrollment_record',
         ]
 
     def validate_password(self, value):
@@ -339,6 +341,29 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         data = super().validate(attrs)
         data['user_id'] = user.user_id
         data['user_role'] = user.user_role
+        return data
+
+
+class MyTokenRefreshSerializer(TokenRefreshSerializer):
+    def validate(self, attrs):
+        refresh = attrs.get('refresh')
+
+        try:
+            token = RefreshToken(refresh)
+        except Exception as e:
+            raise serializers.ValidationError('Invalid refresh token')
+
+        user_id = token.get('user_id')
+
+        try:
+            user = get_user_model().objects.get(user_id=user_id)
+        except get_user_model().DoesNotExist:
+            raise serializers.ValidationError('User does not exist.')
+
+        data = super().validate(attrs)
+        data['user_id'] = user.user_id
+        data['user_role'] = user.user_role
+
         return data
 
 

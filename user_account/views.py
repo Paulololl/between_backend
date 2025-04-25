@@ -3,7 +3,7 @@ from rest_framework import status
 from rest_framework.generics import ListAPIView, CreateAPIView, RetrieveAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from cea_management.models import Department, Program, School
 from .models import Applicant, Company, CareerEmplacementAdmin, OJTCoordinator
@@ -11,7 +11,7 @@ from .serializers import (ApplicantRegisterSerializer, NestedSchoolDepartmentPro
                           DepartmentSerializer, ProgramNestedSerializer, SchoolSerializer, CompanyRegisterSerializer,
                           CareerEmplacementAdminRegisterSerializer, OJTCoordinatorRegisterSerializer,
                           MyTokenObtainPairSerializer, EmailLoginSerializer, SchoolEmailCheckSerializer,
-                          GetApplicantSerializer)
+                          GetApplicantSerializer, MyTokenRefreshSerializer)
 
 
 class SchoolListView(ListAPIView):
@@ -105,6 +105,10 @@ class OJTCoordinatorRegisterView(CreateAPIView):
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
+
+
+class MyTokenRefreshView(TokenRefreshView):
+    serializer_class = MyTokenRefreshSerializer
 
 
 class EmailLoginView(APIView):
