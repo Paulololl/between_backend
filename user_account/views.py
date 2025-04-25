@@ -1,6 +1,6 @@
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
-from rest_framework.generics import ListAPIView, CreateAPIView
+from rest_framework.generics import ListAPIView, CreateAPIView, RetrieveAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -10,7 +10,8 @@ from .models import Applicant, Company, CareerEmplacementAdmin, OJTCoordinator
 from .serializers import (ApplicantRegisterSerializer, NestedSchoolDepartmentProgramSerializer,
                           DepartmentSerializer, ProgramNestedSerializer, SchoolSerializer, CompanyRegisterSerializer,
                           CareerEmplacementAdminRegisterSerializer, OJTCoordinatorRegisterSerializer,
-                          MyTokenObtainPairSerializer, EmailLoginSerializer, SchoolEmailCheckSerializer)
+                          MyTokenObtainPairSerializer, EmailLoginSerializer, SchoolEmailCheckSerializer,
+                          GetApplicantSerializer)
 
 
 class SchoolListView(ListAPIView):
@@ -73,6 +74,18 @@ class NestedSchoolDepartmentProgramListView(ListAPIView):
 class ApplicantRegisterView(CreateAPIView):
     queryset = Applicant.objects.all()
     serializer_class = ApplicantRegisterSerializer
+
+
+class GetApplicantView(ListAPIView):
+    queryset = Applicant.objects.all()
+    serializer_class = GetApplicantSerializer
+
+    def get_queryset(self):
+        queryset = Applicant.objects.all()
+        user = self.request.query_params.get('user')
+        if user:
+            queryset = queryset.filter(user=user)
+        return queryset
 
 
 class CompanyRegisterView(CreateAPIView):

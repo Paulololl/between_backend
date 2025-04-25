@@ -141,35 +141,35 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
             user_role='APPLICANT',
         )
 
-        applicant = Applicant.objects.create(user=user, **validated_data)
+        applicant = Applicant.objects.create(
+            user=user,
+            **validated_data)
 
         if hard_skills_string:
             try:
-                hard_skills_data = json.loads(hard_skills_string.split(' - ')[0])
-                hard_skills = [
-                    HardSkillsTagList(
-                        applicant=applicant,
-                        name=skill['name'],
-                        lightcast_identifier=skill['id']
+                hard_skills_json = json.loads(hard_skills_string)
+                hard_skills = []
+                for skill in hard_skills_json:
+                    skill_instance, created = HardSkillsTagList.objects.get_or_create(
+                        lightcast_identifier=skill['id'],
+                        defaults={'name': skill['name']}
                     )
-                    for skill in hard_skills_data
-                ]
-                HardSkillsTagList.objects.bulk_create(hard_skills)
+                    hard_skills.append(skill_instance)
+                applicant.hard_skills.set(hard_skills)
             except json.JSONDecodeError:
                 raise serializers.ValidationError("Invalid format for hard_skills")
 
         if soft_skills_string:
             try:
-                soft_skills_data = json.loads(soft_skills_string.split(' - ')[0])
-                soft_skills = [
-                    SoftSkillsTagList(
-                        applicant=applicant,
-                        name=skill['name'],
-                        lightcast_identifier=skill['id']
+                soft_skills_json = json.loads(soft_skills_string)
+                soft_skills = []
+                for skill in soft_skills_json:
+                    skill_instance, created = SoftSkillsTagList.objects.get_or_create(
+                        lightcast_identifier=skill['id'],
+                        defaults={'name': skill['name']}
                     )
-                    for skill in soft_skills_data
-                ]
-                SoftSkillsTagList.objects.bulk_create(soft_skills)
+                    soft_skills.append(skill_instance)
+                applicant.soft_skills.set(soft_skills)
             except json.JSONDecodeError:
                 raise serializers.ValidationError("Invalid format for soft_skills")
 
@@ -362,31 +362,34 @@ class SchoolEmailCheckSerializer(serializers.Serializer):
         abstract_api_key = '33db7db0899a40f7a7008c545f185dca'
         url = f"https://emailvalidation.abstractapi.com/v1/"
         params = {'api_key': abstract_api_key, 'email': email}
+
         response = requests.get(url, params=params)
 
         if response.status_code != 200:
             raise serializers.ValidationError('Failed to validate email with external service.')
 
         data_api = response.json()
+
         errors = []
 
-        if data_api.get('deliverability') != 'DELIVERABLE':
-            errors.append('Email is not deliverable.')
-
-        if float(data_api.get('quality_score', 0)) < 0.70:
-            errors.append('Email quality score is too low.')
-
-        if not data_api.get('is_valid_format', {}).get('value', False):
-            errors.append('Email format is invalid.')
-
-        if data_api.get('is_free_email', {}).get('value', True):
-            errors.append('Email is not an institutional email.')
-
-        if data_api.get('is_disposable_email', {}).get('value', True):
-            errors.append('Disposable email addresses are not allowed.')
-
-        domain = '@' + email.split('@', 1)[-1].strip().lower()
         try:
+            if data_api.get('deliverability') != 'DELIVERABLE':
+                errors.append('Email is not deliverable.')
+
+            if float(data_api.get('quality_score', 0)) < 0.90:
+                errors.append('Email may not exist.')
+
+            if not data_api.get('is_valid_format', {}).get('value', False):
+                errors.append('Email format is invalid.')
+
+            if data_api.get('is_free_email', {}).get('value', True):
+                errors.append('Email is not an institutional email.')
+
+            if data_api.get('is_disposable_email', {}).get('value', True):
+                errors.append('Disposable email addresses are not allowed.')
+
+            domain = '@' + email.split('@', 1)[-1].strip().lower()
+
             school = School.objects.get(school_id=school_id)
             if school.domain.lower() != domain:
                 errors.append('Email domain does not match the selected school.')
@@ -399,5 +402,26 @@ class SchoolEmailCheckSerializer(serializers.Serializer):
         return data
 
 
+class GetApplicantSerializer(serializers.ModelSerializer):
+    hard_skills = serializers.SerializerMethodField()
+    soft_skills = serializers.SerializerMethodField()
+    email = serializers.EmailField(source='user.email')
 
+    class Meta:
+        model = Applicant
+        fields = ['user', 'email', 'school', 'department', 'program', 'first_name', 'last_name',
+                  'middle_initial', 'address', 'hard_skills', 'soft_skills', 'in_practicum',
+                  'preferred_modality', 'academic_program', 'quick_introduction',
+                  'resume', 'enrollment_record']
 
+    def get_hard_skills(self, obj):
+        return [
+            {"id": skill.lightcast_identifier, "name": skill.name}
+            for skill in obj.hard_skills.all()
+        ]
+
+    def get_soft_skills(self, obj):
+        return [
+            {"id": skill.lightcast_identifier, "name": skill.name}
+            for skill in obj.soft_skills.all()
+        ]

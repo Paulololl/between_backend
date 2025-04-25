@@ -79,6 +79,8 @@ class Applicant(models.Model):
     last_name = models.CharField(max_length=100)
     middle_initial = models.CharField(max_length=20, null=True, blank=True)
     address = models.CharField(max_length=255)
+    hard_skills = models.ManyToManyField('client_matching.HardSkillsTagList', related_name="applicant_hard_skills")
+    soft_skills = models.ManyToManyField('client_matching.SoftSkillsTagList', related_name="applicant_soft_skills")
 
     in_practicum = models.CharField(max_length=20, choices=[
         ('No', 'No'),
@@ -88,7 +90,7 @@ class Applicant(models.Model):
 
     preferred_modality = models.CharField(max_length=20, choices=[
         ('Onsite', 'Onsite'),
-        ('Online', 'Online'),
+        ('WorkFromHome', 'WorkFromHome'),
         ('Hybrid', 'Hybrid')
     ], default="Onsite")
 

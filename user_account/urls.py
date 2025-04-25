@@ -3,9 +3,10 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import ApplicantRegisterView, NestedSchoolDepartmentProgramListView, DepartmentListView, ProgramListView, \
     SchoolListView, CompanyRegisterView, CareerEmplacementAdminRegisterView, OJTCoordinatorRegisterView, \
-    MyTokenObtainPairView, EmailLoginView, SchoolEmailCheckView
+    MyTokenObtainPairView, EmailLoginView, SchoolEmailCheckView, GetApplicantView
 
 urlpatterns = [
+    path('applicant/', GetApplicantView.as_view()),
     path('register/applicant/', ApplicantRegisterView.as_view()),
     path('register/applicant/school_verify', SchoolEmailCheckView.as_view()),
     path('register/company/', CompanyRegisterView.as_view()),
