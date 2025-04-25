@@ -389,7 +389,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         try:
             User.objects.get(email=email)
         except User.DoesNotExist:
-            raise serializers.ValidationError('Email does not exist')
+            raise serializers.ValidationError({'email': 'Email does not exist'})
 
         credentials = {
             'email': email,
@@ -399,7 +399,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         user = authenticate(**credentials)
 
         if user is None:
-            raise serializers.ValidationError('Invalid email or password')
+            raise serializers.ValidationError({'password': 'Invalid Password'})
 
         data = super().validate(attrs)
         data['user_id'] = user.user_id
