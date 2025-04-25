@@ -238,11 +238,6 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
             except json.JSONDecodeError:
                 raise serializers.ValidationError("Invalid format for soft_skills")
 
-        if coordinates:
-            applicant.coordinates = coordinates
-
-        applicant.save()
-
         return applicant
 
 
