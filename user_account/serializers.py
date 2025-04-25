@@ -1,8 +1,11 @@
 import json
-
+import googlemaps
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.password_validation import validate_password
+from dotenv import load_dotenv
+import os
 from geopy.geocoders import Nominatim
+from googlemaps import Client
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 import requests
@@ -12,6 +15,8 @@ from cea_management.models import Program, Department, School
 from client_matching.models import HardSkillsTagList, SoftSkillsTagList
 from .models import Applicant, User, Company, CareerEmplacementAdmin, OJTCoordinator
 from django.core.exceptions import ValidationError
+
+load_dotenv()
 
 
 class SchoolSerializer(serializers.ModelSerializer):
@@ -55,12 +60,28 @@ class NestedSchoolDepartmentProgramSerializer(serializers.ModelSerializer):
         fields = ['school_id', 'school_name', 'departments']
 
 
-def get_coordinates(location):
-    geolocator = Nominatim(user_agent="abcd")
+# def get_coordinates(location):
+#     geolocator = Nominatim(user_agent="abcd")
+#     try:
+#         location = geolocator.geocode(location)
+#         if location:
+#             return {'lat': location.latitude, 'lng': location.longitude}
+#         else:
+#             print('Error: Unable to get the location')
+#             return None
+#     except Exception as e:
+#         print(f'Exception: {e}')
+#         return None
+
+def get_google_coordinates(location):
+    gmaps = googlemaps.Client(key=os.getenv('GOOGLEMAPS_API_KEY'))
+
     try:
-        location = geolocator.geocode(location)
+        location = gmaps.geocode(location)  # type: ignore[attr-defined]
         if location:
-            return {'lat': location.latitude, 'lng': location.longitude}
+            latitude = location[0]['geometry']['location']['lat']
+            longitude = location[0]['geometry']['location']['lng']
+            return latitude, longitude
         else:
             print('Error: Unable to get the location')
             return None
@@ -141,21 +162,30 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
         if len(address) < 15:
             raise serializers.ValidationError({'address': 'Address must be at least 15 characters.'})
 
-        if address:
-            coordinates = get_coordinates(address)
-            if coordinates:
-                lat = coordinates.get('lat')
-                lng = coordinates.get('lng')
-                if lat is not None and lng is not None:
-                    attrs['coordinates'] = {'lat': lat, 'lng': lng}
-                else:
-                    raise serializers.ValidationError({
-                        'address': 'Coordinates must include "lat" and "lng".'})
-            else:
-                raise serializers.ValidationError({'address': 'Unable to get coordinates.'})
 
-        if errors:
-            raise serializers.ValidationError({'school info': errors})
+        # if address:
+        #     coordinates = get_coordinates(address)
+        #     if coordinates:
+        #         lat = coordinates.get('lat')
+        #         lng = coordinates.get('lng')
+        #         if lat is not None and lng is not None:
+        #             attrs['coordinates'] = {'lat': lat, 'lng': lng}
+        #         else:
+        #             raise serializers.ValidationError({
+        #                 'address': 'Coordinates must include "lat" and "lng".'})
+        #     else:
+        #         raise serializers.ValidationError({'address': 'Unable to get coordinates.'})
+
+        if address:
+            coordinates = get_google_coordinates(address)
+            if coordinates:
+                lat, lng = coordinates
+                attrs['coordinates'] = {'lat': lat, 'lng': lng}
+            else:
+                raise serializers.ValidationError({'address': 'Unable to retrieve coordinates from Google Maps.'})
+
+            if errors:
+                raise serializers.ValidationError({'school info': errors})
 
         return attrs
 

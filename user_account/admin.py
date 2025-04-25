@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.safestring import mark_safe
 
+from .forms import DateJoinedFilter
 from .models import (User, Applicant, Company, CareerEmplacementAdmin, OJTCoordinator)
 
 
@@ -47,7 +48,9 @@ class UserAdmin(BaseUserAdmin):
 # For displaying selected skills of applicant
 @admin.register(Applicant)
 class ApplicantAdmin(admin.ModelAdmin):
-    list_display = ('get_email',)
+    list_display = ('get_email', 'preferred_modality', 'in_practicum', 'get_date_joined')
+
+    list_filter = ('preferred_modality', 'in_practicum', DateJoinedFilter)
 
     exclude = ('hard_skills', 'soft_skills')
 
@@ -71,6 +74,10 @@ class ApplicantAdmin(admin.ModelAdmin):
     def get_email(self, obj):
         return obj.user.email
     get_email.short_description = 'email'
+
+    def get_date_joined(self, obj):
+        return obj.user.date_joined
+    get_date_joined.short_description = 'date_joined'
 
     def display_hard_skills(self, obj):
         skills = "<br>".join([skill.name for skill in obj.hard_skills.all()])
