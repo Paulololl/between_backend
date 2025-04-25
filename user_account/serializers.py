@@ -100,7 +100,7 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
 
         if '.edu' not in email and not attrs.get('academic_program'):
             raise serializers.ValidationError({
-                'academic_program': 'This field is required for non-.edu emails.'
+                'academic_program': 'This field is required for non .edu emails.'
             })
 
         if '.edu' in email:
@@ -121,7 +121,7 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
                 errors.append('Selected program does not belong to the selected department.')
 
         if errors:
-            raise serializers.ValidationError(errors)
+            raise serializers.ValidationError({'school info': errors})
 
         return attrs
 
@@ -394,7 +394,7 @@ class SchoolEmailCheckSerializer(serializers.Serializer):
             errors.append('Selected school does not exist.')
 
         if errors:
-            raise serializers.ValidationError(errors)
+            raise serializers.ValidationError({'email': errors})
 
         return data
 
