@@ -1,16 +1,15 @@
 import json
+import os
 import googlemaps
+from googlemaps import Client
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.password_validation import validate_password
 from dotenv import load_dotenv
-import os
 from geopy.geocoders import Nominatim
-from googlemaps import Client
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 import requests
 from rest_framework_simplejwt.tokens import RefreshToken
-
 from cea_management.models import Program, Department, School
 from client_matching.models import HardSkillsTagList, SoftSkillsTagList
 from .models import Applicant, User, Company, CareerEmplacementAdmin, OJTCoordinator
@@ -60,34 +59,37 @@ class NestedSchoolDepartmentProgramSerializer(serializers.ModelSerializer):
         fields = ['school_id', 'school_name', 'departments']
 
 
-# def get_coordinates(location):
-#     geolocator = Nominatim(user_agent="abcd")
-#     try:
-#         location = geolocator.geocode(location)
-#         if location:
-#             return {'lat': location.latitude, 'lng': location.longitude}
-#         else:
-#             print('Error: Unable to get the location')
-#             return None
-#     except Exception as e:
-#         print(f'Exception: {e}')
-#         return None
-
-def get_google_coordinates(location):
-    gmaps = googlemaps.Client(key=os.getenv('GOOGLEMAPS_API_KEY'))
-
+# Geopy
+def get_coordinates(location):
+    geolocator = Nominatim(user_agent="abcd")
     try:
-        location = gmaps.geocode(location)  # type: ignore[attr-defined]
+        location = geolocator.geocode(location)
         if location:
-            latitude = location[0]['geometry']['location']['lat']
-            longitude = location[0]['geometry']['location']['lng']
-            return latitude, longitude
+            return {'lat': location.latitude, 'lng': location.longitude}
         else:
             print('Error: Unable to get the location')
             return None
     except Exception as e:
         print(f'Exception: {e}')
         return None
+
+
+# Google Maps
+# def get_google_coordinates(location):
+#     gmaps = googlemaps.Client(key=os.getenv('GOOGLEMAPS_API_KEY'))
+#
+#     try:
+#         location = gmaps.geocode(location)  # type: ignore[attr-defined]
+#         if location:
+#             latitude = location[0]['geometry']['location']['lat']
+#             longitude = location[0]['geometry']['location']['lng']
+#             return latitude, longitude
+#         else:
+#             print('Error: Unable to get the location')
+#             return None
+#     except Exception as e:
+#         print(f'Exception: {e}')
+#         return None
 
 
 class ApplicantRegisterSerializer(serializers.ModelSerializer):
@@ -162,30 +164,27 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
         if len(address) < 15:
             raise serializers.ValidationError({'address': 'Address must be at least 15 characters.'})
 
-
-        # if address:
-        #     coordinates = get_coordinates(address)
-        #     if coordinates:
-        #         lat = coordinates.get('lat')
-        #         lng = coordinates.get('lng')
-        #         if lat is not None and lng is not None:
-        #             attrs['coordinates'] = {'lat': lat, 'lng': lng}
-        #         else:
-        #             raise serializers.ValidationError({
-        #                 'address': 'Coordinates must include "lat" and "lng".'})
-        #     else:
-        #         raise serializers.ValidationError({'address': 'Unable to get coordinates.'})
-
         if address:
-            coordinates = get_google_coordinates(address)
+            coordinates = get_coordinates(address)
             if coordinates:
                 lat, lng = coordinates
                 attrs['coordinates'] = {'lat': lat, 'lng': lng}
             else:
-                raise serializers.ValidationError({'address': 'Unable to retrieve coordinates from Google Maps.'})
+                raise serializers.ValidationError({'address': 'Unable to retrieve coordinates'})
 
             if errors:
                 raise serializers.ValidationError({'school info': errors})
+
+        # if address:
+        #     coordinates = get_google_coordinates(address)
+        #     if coordinates:
+        #         lat, lng = coordinates
+        #         attrs['coordinates'] = {'lat': lat, 'lng': lng}
+        #     else:
+        #         raise serializers.ValidationError({'address': 'Unable to retrieve coordinates from Google Maps.'})
+        #
+        #     if errors:
+        #         raise serializers.ValidationError({'school info': errors})
 
         return attrs
 
@@ -206,9 +205,7 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
             user_role='APPLICANT',
         )
 
-        applicant = Applicant.objects.create(
-            user=user,
-            **validated_data)
+        applicant = Applicant.objects.create(user=user, **validated_data)
 
         if hard_skills_string:
             try:
@@ -269,24 +266,47 @@ class CompanyRegisterSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if attrs.get('password') != attrs.get('confirm_password'):
             raise serializers.ValidationError({'confirm_password': 'Passwords do not match.'})
+
+        address = attrs.get('company_address')
+        if len(address) < 15:
+            raise serializers.ValidationError({'company_address': 'Address must be at least 15 characters.'})
+
+        if address:
+            coordinates = get_coordinates(address)
+            if coordinates:
+                lat, lng = coordinates
+                attrs['coordinates'] = {'lat': lat, 'lng': lng}
+            else:
+                raise serializers.ValidationError({'company_address': 'Unable to retrieve coordinates'})
+
+        # if address:
+        #     coordinates = get_google_coordinates(address)
+        #     if coordinates:
+        #         lat, lng = coordinates
+        #         attrs['coordinates'] = {'lat': lat, 'lng': lng}
+        #     else:
+        #         raise serializers.ValidationError({'address': 'Unable to retrieve coordinates from Google Maps.'})
+
         return attrs
 
     def create(self, validated_data):
         email = validated_data.pop('company_email')
         password = validated_data.pop('password')
         validated_data.pop('confirm_password')
+        coordinates = validated_data.pop('coordinates', None),
 
         if User.objects.filter(email=email).exists():
             raise serializers.ValidationError({'company_email': 'This email is already in use.'})
 
-        user = User.objects.create_user(
-            email=email,
-            password=password,
-            user_role='COMPANY',
-        )
+        else:
+            user = User.objects.create_user(
+                email=email,
+                password=password,
+                user_role='COMPANY',
+            )
 
-        company = Company.objects.create(user=user, **validated_data)
-        return company
+            company = Company.objects.create(user=user, **validated_data)
+            return company
 
 
 class CareerEmplacementAdminRegisterSerializer(serializers.ModelSerializer):
@@ -414,14 +434,14 @@ class MyTokenRefreshSerializer(TokenRefreshSerializer):
         try:
             token = RefreshToken(refresh)
         except Exception as e:
-            raise serializers.ValidationError('Invalid refresh token')
+            raise serializers.ValidationError({'Token': 'Invalid refresh token'})
 
         user_id = token.get('user_id')
 
         try:
             user = get_user_model().objects.get(user_id=user_id)
         except get_user_model().DoesNotExist:
-            raise serializers.ValidationError('User does not exist.')
+            raise serializers.ValidationError({'User': 'User does not exist.'})
 
         data = super().validate(attrs)
         data['user_id'] = user.user_id

@@ -113,7 +113,7 @@ class Company(models.Model):
 
     company_name = models.CharField(max_length=255)
     company_address = models.CharField(max_length=255)
-    company_information = models.CharField(max_length=1000)
+    company_information = models.CharField(max_length=500)
     business_nature = models.CharField(max_length=100)
 
     company_website_url = models.CharField(max_length=255, null=True, blank=True)
@@ -125,6 +125,10 @@ class Company(models.Model):
 
     background_image = models.FileField(storage=S3Boto3Storage, upload_to=company_background_image)
     profile_picture = models.FileField(storage=S3Boto3Storage, upload_to=company_profile_picture)
+
+    class Meta:
+        verbose_name = 'Company'
+        verbose_name_plural = 'Companies'
 
     def __str__(self):
         return f"{self.user.email} | {self.user.user_id}"
