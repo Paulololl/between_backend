@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
+from django.core.cache import cache
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect
 from django.utils import timezone
@@ -167,10 +168,13 @@ class VerifyEmailView(APIView):
             uid = force_str(urlsafe_base64_decode(uidb64))
             user = User.objects.get(pk=uid)
 
-            if default_token_generator.check_token(user, token):
+            stored_token = cache.get(f"verification_token_{user.pk}")
+            expiration_time = cache.get(f"verification_expiration_{user.pk}")
 
-                if timezone.now() > user.verification_expiration_time:
-                    return Response({"error": "The verification link has expired."}, status=status.HTTP_400_BAD_REQUEST)
+            if stored_token and default_token_generator.check_token(user, token) and token == stored_token:
+                if timezone.now() > expiration_time:
+                    return Response({"error": "The verification link has expired."},
+                                    status=status.HTTP_400_BAD_REQUEST)
 
                 user.status = 'Active'
                 user.save()

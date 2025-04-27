@@ -1,6 +1,9 @@
 import json
 import os
 from datetime import timedelta
+
+from django.core.cache import cache
+
 from user_account.models import User
 import googlemaps
 from django.contrib.auth.tokens import default_token_generator
@@ -568,6 +571,9 @@ class SendEmailVerificationSerializer(serializers.Serializer):
         expiration_time = timezone.now() + timedelta(minutes=15)
         user.verification_expiration_time = expiration_time
         user.save()
+
+        cache.set(f"verification_token_{user.pk}", token, timeout=900)
+        cache.set(f"verification_expiration_{user.pk}", expiration_time, timeout=900)
 
         verification_url = f'https://localhost:8000/api/user_account/verify-email/{uid}/{token}/'
 
