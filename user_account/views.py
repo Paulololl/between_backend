@@ -1,3 +1,12 @@
+from datetime import timedelta
+
+from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
+from django.http import HttpResponseRedirect
+from django.shortcuts import redirect
+from django.utils import timezone
+from django.utils.http import urlsafe_base64_decode
+from django.utils.encoding import force_str
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.generics import ListAPIView, CreateAPIView, RetrieveAPIView
@@ -11,7 +20,9 @@ from .serializers import (ApplicantRegisterSerializer, NestedSchoolDepartmentPro
                           DepartmentSerializer, ProgramNestedSerializer, SchoolSerializer, CompanyRegisterSerializer,
                           CareerEmplacementAdminRegisterSerializer, OJTCoordinatorRegisterSerializer,
                           MyTokenObtainPairSerializer, EmailLoginSerializer, SchoolEmailCheckSerializer,
-                          GetApplicantSerializer, MyTokenRefreshSerializer)
+                          GetApplicantSerializer, MyTokenRefreshSerializer, SendEmailVerificationSerializer, )
+
+User = get_user_model()
 
 
 class SchoolListView(ListAPIView):
@@ -143,3 +154,31 @@ class SchoolEmailCheckView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class VerifyEmailView(APIView):
+    def post(self, request):
+        serializer = SendEmailVerificationSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Verification email sent!"}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def get(self, request, uidb64, token):
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+
+            if default_token_generator.check_token(user, token):
+
+                if timezone.now() > user.verification_expiration_time:
+                    return Response({"error": "The verification link has expired."}, status=status.HTTP_400_BAD_REQUEST)
+
+                user.status = 'Active'
+                user.save()
+
+                return HttpResponseRedirect(
+                    f'https://localhost:5173/sign-up/applicant/account-verified?uid={uidb64}&token={token}')
+            else:
+                return Response({"error": "Invalid token!"}, status=status.HTTP_400_BAD_REQUEST)
+
+        except (User.DoesNotExist, ValueError, TypeError):
+            return Response({"error": "Invalid token!"}, status=status.HTTP_400_BAD_REQUEST)

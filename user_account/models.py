@@ -30,6 +30,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     date_joined = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
 
+    verification_expiration_time = models.DateTimeField(null=True, blank=True)
+
     status = models.CharField(max_length=20, choices=[
         ('Active', 'Active'),
         ('Inactive', 'Inactive'),

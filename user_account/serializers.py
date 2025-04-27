@@ -1,6 +1,14 @@
 import json
 import os
+from datetime import timedelta
+from user_account.models import User
 import googlemaps
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils import timezone
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 from googlemaps import Client
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.password_validation import validate_password
@@ -10,6 +18,8 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 import requests
 from rest_framework_simplejwt.tokens import RefreshToken
+
+from between_ims import settings
 from cea_management.models import Program, Department, School
 from client_matching.models import HardSkillsTagList, SoftSkillsTagList
 from .models import Applicant, User, Company, CareerEmplacementAdmin, OJTCoordinator
@@ -303,6 +313,7 @@ class CompanyRegisterSerializer(serializers.ModelSerializer):
                 email=email,
                 password=password,
                 user_role='COMPANY',
+                date_joined=timezone.now(),
             )
 
             company = Company.objects.create(user=user, **validated_data)
@@ -533,3 +544,49 @@ class GetApplicantSerializer(serializers.ModelSerializer):
             {"id": skill.lightcast_identifier, "name": skill.name}
             for skill in obj.soft_skills.all()
         ]
+
+
+class SendEmailVerificationSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    expiration_time = serializers.DateTimeField(required=False)
+
+    def validate_email(self, value):
+        from user_account.models import User
+        try:
+            user = User.objects.get(email=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError({'User': 'User with this email does not exist.'})
+
+        self.user = user
+        return value
+
+    def send_verification_email(self):
+        user = self.user
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+
+        expiration_time = timezone.now() + timedelta(minutes=15)
+        user.verification_expiration_time = expiration_time
+        user.save()
+
+        verification_url = f'https://localhost:8000/api/user_account/verify-email/{uid}/{token}/'
+
+        first_name = user.applicant.first_name
+
+        subject = 'Verify your email'
+        message = (f'Hi {first_name},\n\n'
+                   f'Please verify your email by clicking the link below:'
+                   f'\n\n{verification_url}\n\nNote: This link will expire after 15 minutes.'
+                   f'\n\nThank you!')
+
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email='Between_IMS <no-reply.between.internships@gmail.com>',
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+
+    def create(self, validated_data):
+        self.send_verification_email()
+        return {'status': 'Verification email sent successfully.'}
