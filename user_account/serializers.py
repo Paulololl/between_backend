@@ -690,7 +690,7 @@ class ResetPasswordSerializer(serializers.Serializer):
         try:
             validate_password(new_password)
         except ValidationError as e:
-            raise serializers.ValidationError(e.messages)
+            raise serializers.ValidationError({'new_password': e.messages})
 
         self.user = user
         return data
