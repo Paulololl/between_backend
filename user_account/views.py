@@ -198,7 +198,7 @@ class VerifyEmailView(APIView):
                                     f'status=success&uuid={user.pk}')
 
                 elif hasattr(user, 'company'):
-                    return redirect(f'https://localhost:5173/sign-up/company/account-verified/'
+                    return redirect(f'https://localhost:5173/sign-up/company/account-verified'
                                     f'?status=success&uuid={user.pk}')
 
                 else:
