@@ -550,6 +550,16 @@ class GetApplicantSerializer(serializers.ModelSerializer):
         ]
 
 
+class GetCompanySerializer(serializers.ModelSerializer):
+    verified_at = serializers.DateTimeField(source='user.verified_at')
+
+    class Meta:
+        model = Company
+        fields = ['user', 'company_name', 'company_address', 'company_information', 'business_nature',
+                  'company_website_url', 'linkedin_url', 'facebook_url', 'instagram_url', 'x_url',
+                  'other_url', 'background_image', 'profile_picture', 'verified_at']
+
+
 class SendEmailVerificationSerializer(serializers.Serializer):
     email = serializers.EmailField()
     expiration_time = serializers.DateTimeField(required=False)

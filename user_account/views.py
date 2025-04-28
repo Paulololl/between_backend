@@ -21,7 +21,8 @@ from .serializers import (ApplicantRegisterSerializer, NestedSchoolDepartmentPro
                           DepartmentSerializer, ProgramNestedSerializer, SchoolSerializer, CompanyRegisterSerializer,
                           CareerEmplacementAdminRegisterSerializer, OJTCoordinatorRegisterSerializer,
                           MyTokenObtainPairSerializer, EmailLoginSerializer, SchoolEmailCheckSerializer,
-                          GetApplicantSerializer, MyTokenRefreshSerializer, SendEmailVerificationSerializer, )
+                          GetApplicantSerializer, MyTokenRefreshSerializer, SendEmailVerificationSerializer,
+                          GetCompanySerializer, )
 
 User = get_user_model()
 
@@ -94,6 +95,18 @@ class GetApplicantView(ListAPIView):
 
     def get_queryset(self):
         queryset = Applicant.objects.all()
+        user = self.request.query_params.get('user')
+        if user:
+            queryset = queryset.filter(user=user)
+        return queryset
+
+
+class GetCompanyView(ListAPIView):
+    queryset = Company.objects.all()
+    serializer_class = GetCompanySerializer
+
+    def get_queryset(self):
+        queryset = Company.objects.all()
         user = self.request.query_params.get('user')
         if user:
             queryset = queryset.filter(user=user)
