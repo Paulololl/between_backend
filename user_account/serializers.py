@@ -438,9 +438,6 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         if user is None:
             raise serializers.ValidationError({'password': 'Invalid Password'})
 
-        if user.status == 'Deleted':
-            raise serializers.ValidationError({'user': 'user does not exist.'})
-
         data = super().validate(attrs)
         data['user_id'] = user.user_id
         data['user_role'] = user.user_role
@@ -474,8 +471,14 @@ class EmailLoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
 
     def validate_email(self, value):
-        if not User.objects.filter(email=value).exists():
-            raise ValidationError('Email not found. Please try again.')
+        try:
+            user = User.objects.get(email=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError('Email not found. Please try again.')
+
+        if user.status == 'Deleted':
+            raise serializers.ValidationError('Email not found. Please try again.')
+
         return value
 
 
@@ -728,7 +731,7 @@ class DeleteAccountSerializer(serializers.Serializer):
         user = self.context['request'].user
 
         if user.email.lower() != email.lower():
-            raise AuthenticationFailed({'detail': 'Invalid email for this token'})
+            raise serializers.ValidationError({'email': 'Invalid email for this token'})
 
         if not user.check_password(password):
             raise AuthenticationFailed({'detail': 'Invalid credentials'})
