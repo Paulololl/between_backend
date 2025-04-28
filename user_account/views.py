@@ -180,14 +180,17 @@ class VerifyEmailView(APIView):
                 user.save()
 
                 if hasattr(user, 'applicant'):
-                    return redirect('https://localhost:5173/sign-up/applicant/account-verified?status=success')
+                    return redirect(f'https://localhost:5173/sign-up/applicant/account-verified?'
+                                    f'status=success&uuid={user.pk}')
 
                 elif hasattr(user, 'company'):
-                    return redirect('https://localhost:5173/sign-up/company/account-verified?status=success')
+                    return redirect(f'https://localhost:5173/sign-up/company/account-verified/'
+                                    f'?status=success&uuid={user.pk}')
 
                 else:
                     return redirect(
-                        'https://localhost:5173/sign-up/account-verified?status=error&reason=role_not_found')
+                        f'https://localhost:5173/sign-up/account-verified/'
+                        f'?status=error&reason=role_not_found')
 
             else:
                 return redirect('https://localhost:5173/sign-up/applicant/account-verified?status=error&reason=invalid')
