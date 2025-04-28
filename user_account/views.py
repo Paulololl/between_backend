@@ -11,6 +11,7 @@ from django.utils.encoding import force_str
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.generics import ListAPIView, CreateAPIView, RetrieveAPIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -22,7 +23,8 @@ from .serializers import (ApplicantRegisterSerializer, NestedSchoolDepartmentPro
                           CareerEmplacementAdminRegisterSerializer, OJTCoordinatorRegisterSerializer,
                           MyTokenObtainPairSerializer, EmailLoginSerializer, SchoolEmailCheckSerializer,
                           GetApplicantSerializer, MyTokenRefreshSerializer, SendEmailVerificationSerializer,
-                          GetCompanySerializer, SendForgotPasswordLinkSerializer, ResetPasswordSerializer, )
+                          GetCompanySerializer, SendForgotPasswordLinkSerializer, ResetPasswordSerializer,
+                          DeleteAccountSerializer, )
 
 User = get_user_model()
 
@@ -257,6 +259,18 @@ class ResetPasswordView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response({"message": "Password reset successfully."}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class DeleteAccountView(APIView):
+    def post(self, request):
+        serializer = DeleteAccountSerializer(data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+
+            return Response({"message": "Account deleted successfully."}, status=status.HTTP_200_OK)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 

@@ -3,6 +3,9 @@ import os
 from datetime import timedelta
 
 from django.core.cache import cache
+from jwt.exceptions import ExpiredSignatureError, DecodeError, InvalidTokenError
+from rest_framework.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.exceptions import TokenError
 
 from user_account.models import User
 import googlemaps
@@ -20,7 +23,7 @@ from geopy.geocoders import Nominatim
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 import requests
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 
 from between_ims import settings
 from cea_management.models import Program, Department, School
@@ -704,4 +707,53 @@ class ResetPasswordSerializer(serializers.Serializer):
         cache.delete(f"reset_expiration_{user.pk}")
 
         return user
+
+
+class DeleteAccountSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+    access = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        email = data.get('email')
+        password = data.get('password')
+        confirm_password = data.get('confirm_password')
+        access = data.get('access')
+
+        if password != confirm_password:
+            raise serializers.ValidationError({'password': 'Passwords do not match.'})
+
+        print("Access Token:", access)
+
+        try:
+            access_token = access(access)
+            user_id_from_token = access_token['user_id']
+            user = get_user_model().objects.get(pk=user_id_from_token)
+            if user.email != email:
+                raise AuthenticationFailed({'detail': 'Invalid email for this token'})
+
+            if not user.check_password(password):
+                raise AuthenticationFailed({'detail': 'Invalid credentials'})
+
+        except ExpiredSignatureError:
+            raise AuthenticationFailed({'detail': 'Token has expired'})
+        except DecodeError:
+            raise AuthenticationFailed({'detail': 'Invalid token format'})
+        except InvalidTokenError:
+            raise AuthenticationFailed({'detail': 'Invalid or malformed token'})
+        except Exception as e:
+            raise AuthenticationFailed({'detail': 'Invalid or expired token'})
+
+        self.user = user
+        return data
+
+    def save(self):
+        user = self.user
+        user.status = 'Deleted'
+        user.save()
+
+        return user
+
+
 
