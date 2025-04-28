@@ -22,7 +22,7 @@ from .serializers import (ApplicantRegisterSerializer, NestedSchoolDepartmentPro
                           CareerEmplacementAdminRegisterSerializer, OJTCoordinatorRegisterSerializer,
                           MyTokenObtainPairSerializer, EmailLoginSerializer, SchoolEmailCheckSerializer,
                           GetApplicantSerializer, MyTokenRefreshSerializer, SendEmailVerificationSerializer,
-                          GetCompanySerializer, SendForgotPasswordLinkSerializer, )
+                          GetCompanySerializer, SendForgotPasswordLinkSerializer, ResetPasswordSerializer, )
 
 User = get_user_model()
 
@@ -245,6 +245,15 @@ class ForgotPasswordLinkView(APIView):
 
         except (User.DoesNotExist, ValueError, TypeError):
             return Response({"error": "Invalid or expired reset link."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ResetPasswordView(APIView):
+    def post(self, request):
+        serializer = ResetPasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Password reset successfully."}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 

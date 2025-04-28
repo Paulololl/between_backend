@@ -10,8 +10,8 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils import timezone
-from django.utils.encoding import force_bytes
-from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from googlemaps import Client
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.password_validation import validate_password
@@ -481,7 +481,7 @@ class SchoolEmailCheckSerializer(serializers.Serializer):
         email = data.get('email')
         school_id = data.get('school_id')
 
-        abstract_api_key = 'd0282e1316c0496d9b777e3bce3911b0'
+        abstract_api_key = '740c2772783f47f694eb0513f044b887'
         url = f"https://emailvalidation.abstractapi.com/v1/"
         params = {'api_key': abstract_api_key, 'email': email}
 
@@ -651,4 +651,55 @@ class SendForgotPasswordLinkSerializer(serializers.Serializer):
     def create(self, validated_data):
         self.send_password_reset_email()
         return {'status': 'Password reset email sent successfully.'}
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    uidb64 = serializers.CharField()
+    token = serializers.CharField()
+    email = serializers.EmailField()
+    new_password = serializers.CharField(write_only=True)
+    confirm_new_password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        uidb64 = data.get('uidb64')
+        token = data.get('token')
+        email = data.get('email')
+        new_password = data.get('new_password')
+        confirm_new_password = data.get('confirm_new_password')
+
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid, email=email)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            raise serializers.ValidationError({'uidb64': 'Invalid uid.'})
+
+        stored_token = cache.get(f"reset_token_{user.pk}")
+        expiration_time = cache.get(f"reset_expiration_{user.pk}")
+
+        if not email:
+            raise serializers.ValidationError({'email': 'Invalid email'})
+
+        if not stored_token or token != stored_token:
+            raise serializers.ValidationError({'token': 'Invalid or expired token.'})
+
+        if expiration_time and expiration_time < timezone.now():
+            raise serializers.ValidationError({'token': 'Token has expired.'})
+
+        if new_password != confirm_new_password:
+            raise serializers.ValidationError({'password': 'Passwords do not match.'})
+
+        validate_password(new_password)
+
+        self.user = user
+        return data
+
+    def save(self):
+        user = self.user
+        user.set_password(self.validated_data['new_password'])
+        user.save()
+
+        cache.delete(f"reset_token_{user.pk}")
+        cache.delete(f"reset_expiration_{user.pk}")
+
+        return user
 
