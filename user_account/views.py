@@ -231,6 +231,7 @@ class ForgotPasswordLinkView(APIView):
     def get(self, request, uidb64, token):
         try:
             uid = force_str(urlsafe_base64_decode(uidb64))
+
             user = User.objects.get(pk=uid)
 
             stored_token = cache.get(f"reset_token_{user.pk}")
@@ -239,7 +240,10 @@ class ForgotPasswordLinkView(APIView):
             if stored_token and default_token_generator.check_token(user, token) and token == stored_token:
                 if timezone.now() > expiration_time:
                     return Response({"error": "The reset link has expired."}, status=status.HTTP_400_BAD_REQUEST)
-                return Response({"message": "The reset link is valid."}, status=status.HTTP_200_OK)
+                return Response({
+                    "message": "The reset link is valid.",
+                    "email": user.email
+                }, status=status.HTTP_200_OK)
             else:
                 return Response({"error": "Invalid or expired reset link."}, status=status.HTTP_400_BAD_REQUEST)
 
