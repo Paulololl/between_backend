@@ -631,7 +631,7 @@ class SendForgotPasswordLinkSerializer(serializers.Serializer):
         cache.set(f"reset_token_{user.pk}", token, timeout=900)
         cache.set(f"reset_expiration_{user.pk}", expiration_time, timeout=900)
 
-        reset_url = f'https://localhost:5173/forgot-password/?uid={uid}&token={token}/'
+        reset_url = f'https://localhost:5173/forgot-password?uid={uid}&token={token}'
 
         subject = 'Reset your password'
 
