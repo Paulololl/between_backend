@@ -528,13 +528,14 @@ class GetApplicantSerializer(serializers.ModelSerializer):
     hard_skills = serializers.SerializerMethodField()
     soft_skills = serializers.SerializerMethodField()
     email = serializers.EmailField(source='user.email')
+    verified_at = serializers.DateTimeField(source='user.verified_at')
 
     class Meta:
         model = Applicant
         fields = ['user', 'email', 'school', 'department', 'program', 'first_name', 'last_name',
                   'middle_initial', 'address', 'hard_skills', 'soft_skills', 'in_practicum',
                   'preferred_modality', 'academic_program', 'quick_introduction',
-                  'resume', 'enrollment_record']
+                  'resume', 'enrollment_record', 'verified_at']
 
     def get_hard_skills(self, obj):
         return [
