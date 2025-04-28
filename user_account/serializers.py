@@ -687,8 +687,10 @@ class ResetPasswordSerializer(serializers.Serializer):
 
         if new_password != confirm_new_password:
             raise serializers.ValidationError({'password': 'Passwords do not match.'})
-
-        validate_password(new_password)
+        try:
+            validate_password(new_password)
+        except ValidationError as e:
+            raise serializers.ValidationError(e.messages)
 
         self.user = user
         return data
