@@ -32,7 +32,7 @@ class UserAdmin(BaseUserAdmin):
     fieldsets = (
         (None, {'fields': ('email', 'user_id', 'status', 'user_role')}),
         ('Permissions', {'fields': ('is_staff', 'is_superuser', 'groups', 'user_permissions')}),
-        ('Dates', {'fields': ('date_joined', 'date_modified')}),
+        ('Dates', {'fields': ('date_joined', 'date_modified', 'verified_at',)}),
     )
 
     def has_add_permission(self, request):

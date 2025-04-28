@@ -177,6 +177,7 @@ class VerifyEmailView(APIView):
                         'https://localhost:5173/sign-up/applicant/account-verified?status=error&reason=expired')
 
                 user.status = 'Active'
+                user.verified_at = timezone.now()
                 user.save()
 
                 if hasattr(user, 'applicant'):
@@ -193,8 +194,8 @@ class VerifyEmailView(APIView):
                         f'?status=error&reason=role_not_found')
 
             else:
-                return redirect('https://localhost:5173/sign-up/applicant/account-verified?status=error&reason=invalid')
+                return redirect('https://localhost:5173/sign-up/account-verified?status=error&reason=invalid')
 
         except (User.DoesNotExist, ValueError, TypeError):
-            return redirect('https://localhost:5173/sign-up/applicant/account-verified?status=error&reason=invalid')
+            return redirect('https://localhost:5173/sign-up/account-verified?status=error&reason=invalid')
 
