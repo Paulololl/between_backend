@@ -713,37 +713,25 @@ class DeleteAccountSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
-    access = serializers.CharField(write_only=True)
 
     def validate(self, data):
         email = data.get('email')
         password = data.get('password')
         confirm_password = data.get('confirm_password')
-        access = data.get('access')
 
         if password != confirm_password:
             raise serializers.ValidationError({'password': 'Passwords do not match.'})
 
-        print("Access Token:", access)
+        user = self.context['request'].user
 
-        try:
-            access_token = access(access)
-            user_id_from_token = access_token['user_id']
-            user = get_user_model().objects.get(pk=user_id_from_token)
-            if user.email != email:
-                raise AuthenticationFailed({'detail': 'Invalid email for this token'})
+        print(f'Email {email}' 
+              f'Auth {user.is_authenticated}')
 
-            if not user.check_password(password):
-                raise AuthenticationFailed({'detail': 'Invalid credentials'})
+        if user.email.lower() != email.lower():
+            raise AuthenticationFailed({'detail': 'Invalid email for this token'})
 
-        except ExpiredSignatureError:
-            raise AuthenticationFailed({'detail': 'Token has expired'})
-        except DecodeError:
-            raise AuthenticationFailed({'detail': 'Invalid token format'})
-        except InvalidTokenError:
-            raise AuthenticationFailed({'detail': 'Invalid or malformed token'})
-        except Exception as e:
-            raise AuthenticationFailed({'detail': 'Invalid or expired token'})
+        if not user.check_password(password):
+            raise AuthenticationFailed({'detail': 'Invalid credentials'})
 
         self.user = user
         return data

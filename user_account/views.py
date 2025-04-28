@@ -14,6 +14,7 @@ from rest_framework.generics import ListAPIView, CreateAPIView, RetrieveAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from cea_management.models import Department, Program, School
@@ -264,7 +265,7 @@ class ResetPasswordView(APIView):
 
 class DeleteAccountView(APIView):
     def post(self, request):
-        serializer = DeleteAccountSerializer(data=request.data)
+        serializer = DeleteAccountSerializer(data=request.data, context={'request': request})
 
         if serializer.is_valid():
             serializer.save()
