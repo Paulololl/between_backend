@@ -179,10 +179,19 @@ class VerifyEmailView(APIView):
                 user.status = 'Active'
                 user.save()
 
-                return redirect('https://localhost:5173/sign-up/applicant/account-verified?status=success')
+                if hasattr(user, 'applicant'):
+                    return redirect('https://localhost:5173/sign-up/applicant/account-verified?status=success')
+
+                elif hasattr(user, 'company'):
+                    return redirect('https://localhost:5173/sign-up/company/account-verified?status=success')
+
+                else:
+                    return redirect(
+                        'https://localhost:5173/sign-up/account-verified?status=error&reason=role_not_found')
 
             else:
                 return redirect('https://localhost:5173/sign-up/applicant/account-verified?status=error&reason=invalid')
 
         except (User.DoesNotExist, ValueError, TypeError):
             return redirect('https://localhost:5173/sign-up/applicant/account-verified?status=error&reason=invalid')
+

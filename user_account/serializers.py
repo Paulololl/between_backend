@@ -576,11 +576,11 @@ class SendEmailVerificationSerializer(serializers.Serializer):
 
         verification_url = f'https://localhost:8000/api/user_account/verify-email/{uid}/{token}/'
 
-        first_name = user.applicant.first_name
+        # first_name = user.applicant.first_name
 
         subject = 'Verify your email'
 
-        message = (f'Hi {first_name},\n\n'
+        message = (f'Hi {user.email},\n\n'
                    f'Please verify your email by clicking the link below:'
                    f'\n\n{verification_url}\n\nNote: This link will expire after 15 minutes.'
                    f'\n\nThank you!')
