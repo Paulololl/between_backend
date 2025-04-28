@@ -257,7 +257,7 @@ class ResetPasswordView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response({"message": "Password reset successfully."}, status=status.HTTP_200_OK)
-        return Response({'error': "Reset Password unsuccessful."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 
