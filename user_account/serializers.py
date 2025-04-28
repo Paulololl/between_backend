@@ -569,7 +569,6 @@ class SendEmailVerificationSerializer(serializers.Serializer):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
 
         expiration_time = timezone.now() + timedelta(minutes=15)
-        user.verification_expiration_time = expiration_time
         user.save()
 
         cache.set(f"verification_token_{user.pk}", token, timeout=900)
@@ -580,6 +579,7 @@ class SendEmailVerificationSerializer(serializers.Serializer):
         first_name = user.applicant.first_name
 
         subject = 'Verify your email'
+
         message = (f'Hi {first_name},\n\n'
                    f'Please verify your email by clicking the link below:'
                    f'\n\n{verification_url}\n\nNote: This link will expire after 15 minutes.'

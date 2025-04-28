@@ -173,16 +173,16 @@ class VerifyEmailView(APIView):
 
             if stored_token and default_token_generator.check_token(user, token) and token == stored_token:
                 if timezone.now() > expiration_time:
-                    return Response({"error": "The verification link has expired."},
-                                    status=status.HTTP_400_BAD_REQUEST)
+                    return redirect(
+                        'https://localhost:5173/sign-up/applicant/account-verified?status=error&reason=expired')
 
                 user.status = 'Active'
                 user.save()
 
-                return HttpResponseRedirect(
-                    f'https://localhost:5173/sign-up/applicant/account-verified?uid={uidb64}&token={token}')
+                return redirect('https://localhost:5173/sign-up/applicant/account-verified?status=success')
+
             else:
-                return Response({"error": "Invalid token!"}, status=status.HTTP_400_BAD_REQUEST)
+                return redirect('https://localhost:5173/sign-up/applicant/account-verified?status=error&reason=invalid')
 
         except (User.DoesNotExist, ValueError, TypeError):
-            return Response({"error": "Invalid token!"}, status=status.HTTP_400_BAD_REQUEST)
+            return redirect('https://localhost:5173/sign-up/applicant/account-verified?status=error&reason=invalid')
