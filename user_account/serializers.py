@@ -587,7 +587,6 @@ class SendEmailVerificationSerializer(serializers.Serializer):
 
         verification_url = f'https://localhost:8000/api/user_account/verify-email/{uid}/{token}/'
 
-        # first_name = user.applicant.first_name
 
         subject = 'Verify your email'
 
@@ -607,3 +606,48 @@ class SendEmailVerificationSerializer(serializers.Serializer):
     def create(self, validated_data):
         self.send_verification_email()
         return {'status': 'Verification email sent successfully.'}
+
+
+class SendForgotPasswordLinkSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        try:
+            user = User.objects.get(email=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError({'User': 'User with this email does not exist.'})
+
+        self.user = user
+        return value
+
+    def send_password_reset_email(self):
+        user = self.user
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+
+        expiration_time = timezone.now() + timedelta(minutes=15)
+
+        cache.set(f"reset_token_{user.pk}", token, timeout=900)
+        cache.set(f"reset_expiration_{user.pk}", expiration_time, timeout=900)
+
+        reset_url = f'https://localhost:5173/forgot-password/?uid={uid}&token={token}/'
+
+        subject = 'Reset your password'
+
+        message = (f'Hi {user.email},\n\n'
+                   f'Please reset your password by clicking the link below:'
+                   f'\n\n{reset_url}\n\nNote: This link will expire after 15 minutes.'
+                   f'\n\nThank you!')
+
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email='Between_IMS <no-reply.between.internships@gmail.com>',
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+
+    def create(self, validated_data):
+        self.send_password_reset_email()
+        return {'status': 'Password reset email sent successfully.'}
+

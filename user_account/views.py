@@ -22,7 +22,7 @@ from .serializers import (ApplicantRegisterSerializer, NestedSchoolDepartmentPro
                           CareerEmplacementAdminRegisterSerializer, OJTCoordinatorRegisterSerializer,
                           MyTokenObtainPairSerializer, EmailLoginSerializer, SchoolEmailCheckSerializer,
                           GetApplicantSerializer, MyTokenRefreshSerializer, SendEmailVerificationSerializer,
-                          GetCompanySerializer, )
+                          GetCompanySerializer, SendForgotPasswordLinkSerializer, )
 
 User = get_user_model()
 
@@ -204,11 +204,47 @@ class VerifyEmailView(APIView):
                 else:
                     return redirect(
                         f'https://localhost:5173/sign-up/account-verified/'
-                        f'?status=error&reason=role_not_found')
-
+                        f'?status=invalid')
             else:
-                return redirect('https://localhost:5173/sign-up/account-verified?status=error&reason=invalid')
+                if hasattr(user, 'applicant'):
+                    return redirect(f'https://localhost:5173/sign-up/applicant/account-reverify'
+                                    f'?status=invalid&uuid={user.pk}')
+
+                elif hasattr(user, 'company'):
+                    return redirect(f'https://localhost:5173/sign-up/company/account-reverify'
+                                    f'?status=invalid&uuid={user.pk}')
+                else:
+                    return redirect(f'https://localhost:5173/sign-up/account-verified?status=invalid')
 
         except (User.DoesNotExist, ValueError, TypeError):
-            return redirect('https://localhost:5173/sign-up/account-verified?status=error&reason=invalid')
+            return redirect('https://localhost:5173/sign-up/account-verified?status=invalid')
+
+
+class ForgotPasswordLinkView(APIView):
+    def post(self, request):
+        serializer = SendForgotPasswordLinkSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Password reset link sent successfully!"}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def get(self, request, uidb64, token):
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+
+            stored_token = cache.get(f"reset_token_{user.pk}")
+            expiration_time = cache.get(f"reset_expiration_{user.pk}")
+
+            if stored_token and default_token_generator.check_token(user, token) and token == stored_token:
+                if timezone.now() > expiration_time:
+                    return Response({"error": "The reset link has expired."}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"message": "The reset link is valid."}, status=status.HTTP_200_OK)
+            else:
+                return Response({"error": "Invalid or expired reset link."}, status=status.HTTP_400_BAD_REQUEST)
+
+        except (User.DoesNotExist, ValueError, TypeError):
+            return Response({"error": "Invalid or expired reset link."}, status=status.HTTP_400_BAD_REQUEST)
+
+
 
