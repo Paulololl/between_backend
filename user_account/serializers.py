@@ -787,3 +787,54 @@ class GetOJTCoordinatorSerializer(serializers.ModelSerializer):
     class Meta:
         model = OJTCoordinator
         fields = ['user', 'program', 'first_name', 'last_name', 'middle_initial']
+
+
+class EditCompanySerializer(serializers.ModelSerializer):
+    company_website_url = serializers.CharField(allow_blank=True, allow_null=True)
+    linkedin_url = serializers.CharField(allow_blank=True, allow_null=True)
+    facebook_url = serializers.CharField(allow_blank=True, allow_null=True)
+    instagram_url = serializers.CharField(allow_blank=True, allow_null=True)
+    x_url = serializers.CharField(allow_blank=True, allow_null=True)
+    other_url = serializers.CharField(allow_blank=True, allow_null=True)
+
+    class Meta:
+        model = Company
+        fields = [
+            'company_name',
+            'company_address',
+            'company_information',
+            'business_nature',
+            'company_website_url',
+            'linkedin_url',
+            'facebook_url',
+            'instagram_url',
+            'x_url',
+            'other_url',
+            'background_image',
+            'profile_picture',
+        ]
+
+    def validate(self, attrs):
+
+        address = attrs.get('company_address')
+        if len(address) < 15:
+            raise serializers.ValidationError({'company_address': 'Address must be at least 15 characters.'})
+
+        if address:
+            coordinates = get_coordinates(address)
+            if coordinates:
+                lat, lng = coordinates
+                attrs['coordinates'] = {'lat': lat, 'lng': lng}
+            else:
+                raise serializers.ValidationError({'company_address': 'Unable to retrieve coordinates'})
+
+        # if address:
+        #     coordinates = get_google_coordinates(address)
+        #     if coordinates:
+        #         lat, lng = coordinates
+        #         attrs['coordinates'] = {'lat': lat, 'lng': lng}
+        #     else:
+        #         raise serializers.ValidationError({'address': 'Unable to retrieve coordinates from Google Maps.'})
+
+        return attrs
+

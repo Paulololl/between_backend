@@ -25,7 +25,8 @@ from .serializers import (ApplicantRegisterSerializer, NestedSchoolDepartmentPro
                           MyTokenObtainPairSerializer, EmailLoginSerializer, SchoolEmailCheckSerializer,
                           GetApplicantSerializer, MyTokenRefreshSerializer, SendEmailVerificationSerializer,
                           GetCompanySerializer, SendForgotPasswordLinkSerializer, ResetPasswordSerializer,
-                          DeleteAccountSerializer, ChangePasswordSerializer, GetOJTCoordinatorSerializer, )
+                          DeleteAccountSerializer, ChangePasswordSerializer, GetOJTCoordinatorSerializer,
+                          EditCompanySerializer, )
 
 User = get_user_model()
 
@@ -119,6 +120,15 @@ class GetCompanyView(ListAPIView):
 class CompanyRegisterView(CreateAPIView):
     queryset = Company.objects.all()
     serializer_class = CompanyRegisterSerializer
+
+
+class EditCompanyView(APIView):
+    def put(self, request):
+        serializer = EditCompanySerializer(instance=request.user.company, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
 
 
 class CareerEmplacementAdminRegisterView(CreateAPIView):
