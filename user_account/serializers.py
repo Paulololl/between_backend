@@ -831,13 +831,12 @@ class EditCompanySerializer(serializers.ModelSerializer):
         if len(address) < 15:
             raise serializers.ValidationError({'company_address': 'Address must be at least 15 characters.'})
 
-        if address:
-            coordinates = get_coordinates(address)
-            if coordinates:
-                lat, lng = coordinates
-                attrs['coordinates'] = {'lat': lat, 'lng': lng}
-            else:
-                raise serializers.ValidationError({'company_address': 'Unable to retrieve coordinates'})
+        coordinates = get_coordinates(address)
+        if coordinates:
+            lat, lng = coordinates
+            attrs['coordinates'] = {'lat': lat, 'lng': lng}
+        else:
+            raise serializers.ValidationError({'company_address': 'Unable to retrieve coordinates'})
 
         # if address:
         #     coordinates = get_google_coordinates(address)
