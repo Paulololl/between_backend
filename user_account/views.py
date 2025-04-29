@@ -26,9 +26,22 @@ from .serializers import (ApplicantRegisterSerializer, NestedSchoolDepartmentPro
                           GetApplicantSerializer, MyTokenRefreshSerializer, SendEmailVerificationSerializer,
                           GetCompanySerializer, SendForgotPasswordLinkSerializer, ResetPasswordSerializer,
                           DeleteAccountSerializer, ChangePasswordSerializer, GetOJTCoordinatorSerializer,
-                          EditCompanySerializer, EditApplicantSerializer, )
+                          EditCompanySerializer, EditApplicantSerializer, GetUserSerializer, )
 
 User = get_user_model()
+
+
+class GetUserView(ListAPIView):
+    queryset = User.objects.all()
+    serializer_class = GetUserSerializer
+
+    def get_queryset(self):
+        queryset = User.objects.all()
+        user_id = self.request.query_params.get('user_id')
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
+        print(self.request.user)
+        return queryset
 
 
 class SchoolListView(ListAPIView):
@@ -40,9 +53,7 @@ class SchoolListView(ListAPIView):
         school_id = self.request.query_params.get('school_id')
         if school_id:
             queryset = queryset.filter(school_id=school_id)
-
         print(self.request.user)
-
         return queryset
 
 
@@ -94,6 +105,7 @@ class ApplicantRegisterView(CreateAPIView):
 
 
 class GetApplicantView(ListAPIView):
+    permission_classes = [IsAuthenticated]
     queryset = Applicant.objects.all()
     serializer_class = GetApplicantSerializer
 
@@ -106,6 +118,7 @@ class GetApplicantView(ListAPIView):
 
 
 class EditApplicantView(APIView):
+    permission_classes = [IsAuthenticated]
     def put(self, request):
         serializer = EditApplicantSerializer(instance=request.user.applicant, data=request.data, partial=True)
         if serializer.is_valid():
@@ -120,6 +133,7 @@ class CompanyRegisterView(CreateAPIView):
 
 
 class GetCompanyView(ListAPIView):
+    permission_classes = [IsAuthenticated]
     queryset = Company.objects.all()
     serializer_class = GetCompanySerializer
 
@@ -132,6 +146,7 @@ class GetCompanyView(ListAPIView):
 
 
 class EditCompanyView(APIView):
+    permission_classes = [IsAuthenticated]
     def put(self, request):
         serializer = EditCompanySerializer(instance=request.user.company, data=request.data, partial=True)
         if serializer.is_valid():
@@ -151,6 +166,7 @@ class OJTCoordinatorRegisterView(CreateAPIView):
 
 
 class GetOJTCoordinatorView(ListAPIView):
+    permission_classes = [IsAuthenticated]
     queryset = OJTCoordinator.objects.all()
     serializer_class = GetOJTCoordinatorSerializer
 

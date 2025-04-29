@@ -962,4 +962,10 @@ class EditApplicantSerializer(serializers.ModelSerializer):
         return instance
 
 
+class GetUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['email', 'verified_at']
+
+
 
