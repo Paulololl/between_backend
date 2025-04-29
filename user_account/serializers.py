@@ -542,9 +542,9 @@ class GetApplicantSerializer(serializers.ModelSerializer):
     soft_skills = serializers.SerializerMethodField()
     email = serializers.EmailField(source='user.email')
     verified_at = serializers.DateTimeField(source='user.verified_at')
-    school = serializers.CharField(source='school.school_name')
-    department = serializers.CharField(source='department.department_name')
-    program = serializers.CharField(source='program.program_name')
+    school = serializers.CharField(source='school.school_name', allow_blank=True, allow_null=True)
+    department = serializers.CharField(source='department.department_name', allow_blank=True, allow_null=True)
+    program = serializers.CharField(source='program.program_name', allow_blank=True, allow_null=True)
 
     class Meta:
         model = Applicant
