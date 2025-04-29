@@ -258,6 +258,7 @@ class CompanyRegisterSerializer(serializers.ModelSerializer):
     company_email = serializers.EmailField(write_only=True)
     password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
+    company_website_url = serializers.CharField(allow_null=True, allow_blank=True)
 
     class Meta:
         model = Company
