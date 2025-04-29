@@ -264,7 +264,7 @@ class ResetPasswordView(APIView):
 
 
 class DeleteAccountView(APIView):
-    def post(self, request):
+    def put(self, request):
         serializer = DeleteAccountSerializer(data=request.data, context={'request': request})
 
         if serializer.is_valid():

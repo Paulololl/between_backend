@@ -694,6 +694,9 @@ class ResetPasswordSerializer(serializers.Serializer):
         if expiration_time and expiration_time < timezone.now():
             raise serializers.ValidationError({'token': 'Token has expired.'})
 
+        if user.check_password(new_password):
+            raise serializers.ValidationError({'new_password': 'Please enter a new password.'})
+
         if new_password != confirm_new_password:
             raise serializers.ValidationError({'password': 'Passwords do not match.'})
         try:
