@@ -781,3 +781,9 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.set_password(self.validated_data['new_password'])
         user.save()
         return user
+
+
+class GetOJTCoordinatorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OJTCoordinator
+        fields = ['user', 'program', 'first_name', 'last_name', 'middle_initial']

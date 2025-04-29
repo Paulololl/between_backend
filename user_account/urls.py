@@ -3,11 +3,13 @@ from django.urls import path
 from .views import ApplicantRegisterView, NestedSchoolDepartmentProgramListView, DepartmentListView, ProgramListView, \
     SchoolListView, CompanyRegisterView, CareerEmplacementAdminRegisterView, OJTCoordinatorRegisterView, \
     MyTokenObtainPairView, EmailLoginView, SchoolEmailCheckView, GetApplicantView, MyTokenRefreshView, VerifyEmailView, \
-    GetCompanyView, ForgotPasswordLinkView, ResetPasswordView, DeleteAccountView, ChangePasswordView
+    GetCompanyView, ForgotPasswordLinkView, ResetPasswordView, DeleteAccountView, ChangePasswordView, \
+    GetOJTCoordinatorView
 
 urlpatterns = [
     path('applicant/', GetApplicantView.as_view()),
     path('company/', GetCompanyView.as_view()),
+    path('ojtcoordinator/', GetOJTCoordinatorView.as_view()),
     path('forgot-password/', ForgotPasswordLinkView.as_view()),
     path('forgot-password/<uidb64>/<token>/', ForgotPasswordLinkView.as_view()),
     path('reset-password/', ResetPasswordView.as_view()),

@@ -25,7 +25,7 @@ from .serializers import (ApplicantRegisterSerializer, NestedSchoolDepartmentPro
                           MyTokenObtainPairSerializer, EmailLoginSerializer, SchoolEmailCheckSerializer,
                           GetApplicantSerializer, MyTokenRefreshSerializer, SendEmailVerificationSerializer,
                           GetCompanySerializer, SendForgotPasswordLinkSerializer, ResetPasswordSerializer,
-                          DeleteAccountSerializer, ChangePasswordSerializer, )
+                          DeleteAccountSerializer, ChangePasswordSerializer, GetOJTCoordinatorSerializer, )
 
 User = get_user_model()
 
@@ -129,6 +129,18 @@ class CareerEmplacementAdminRegisterView(CreateAPIView):
 class OJTCoordinatorRegisterView(CreateAPIView):
     queryset = OJTCoordinator.objects.all()
     serializer_class = OJTCoordinatorRegisterSerializer
+
+
+class GetOJTCoordinatorView(ListAPIView):
+    queryset = OJTCoordinator.objects.all()
+    serializer_class = GetOJTCoordinatorSerializer
+
+    def get_queryset(self):
+        queryset = OJTCoordinator.objects.all()
+        user = self.request.query_params.get('user')
+        if user:
+            queryset = queryset.filter(user=user)
+        return queryset
 
 
 class MyTokenObtainPairView(TokenObtainPairView):
