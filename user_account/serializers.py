@@ -731,10 +731,10 @@ class DeleteAccountSerializer(serializers.Serializer):
         user = self.context['request'].user
 
         if user.email.lower() != email.lower():
-            raise serializers.ValidationError({'email': 'Invalid email for this token'})
+            raise serializers.ValidationError({'email': 'Invalid email'})
 
         if not user.check_password(password):
-            raise AuthenticationFailed({'detail': 'Invalid credentials'})
+            raise serializers.ValidationError({'password': 'Invalid Password'})
 
         self.user = user
         return data
