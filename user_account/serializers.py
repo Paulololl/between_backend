@@ -543,7 +543,7 @@ class GetApplicantSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(source='user.email')
     verified_at = serializers.DateTimeField(source='user.verified_at')
     school = serializers.CharField(source='school.school_name')
-    department = serializers.CharField(source='department.department_name')
+    department = serializers.CharField(source='department.department_   name')
     program = serializers.CharField(source='program.program_name')
 
     class Meta:
@@ -851,6 +851,8 @@ class EditCompanySerializer(serializers.ModelSerializer):
 
 
 class EditApplicantSerializer(serializers.ModelSerializer):
+    hard_skills = serializers.SerializerMethodField()
+    soft_skills = serializers.SerializerMethodField()
     class Meta:
         model = Applicant
         fields = [
@@ -897,6 +899,18 @@ class EditApplicantSerializer(serializers.ModelSerializer):
         #         raise serializers.ValidationError({'school info': errors})
 
         return attrs
+
+    def get_hard_skills(self, obj):
+        return [
+            {"id": skill.lightcast_identifier, "name": skill.name}
+            for skill in obj.hard_skills.all()
+        ]
+
+    def get_soft_skills(self, obj):
+        return [
+            {"id": skill.lightcast_identifier, "name": skill.name}
+            for skill in obj.soft_skills.all()
+        ]
 
     def update(self, instance, validated_data):
         hard_skills_string = validated_data.pop('hard_skills', None)
