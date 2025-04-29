@@ -851,8 +851,10 @@ class EditCompanySerializer(serializers.ModelSerializer):
 
 
 class EditApplicantSerializer(serializers.ModelSerializer):
-    hard_skills = serializers.SerializerMethodField()
-    soft_skills = serializers.SerializerMethodField()
+    hard_skills = serializers.CharField(write_only=True, required=False)
+    soft_skills = serializers.CharField(write_only=True, required=False)
+    displayed_hard_skills = serializers.SerializerMethodField()
+    displayed_soft_skills = serializers.SerializerMethodField()
     class Meta:
         model = Applicant
         fields = [
@@ -862,16 +864,26 @@ class EditApplicantSerializer(serializers.ModelSerializer):
             'address',
             'hard_skills',
             'soft_skills',
-            'preferred_modality',
-            'quick_introduction',
+            'displayed_hard_skills',
+            'displayed_soft_skills',
             'resume',
             'enrollment_record'
         ]
 
-    def validate(self, attrs):
+    def get_displayed_hard_skills(self, obj):
+        return [
+            {"id": skill.lightcast_identifier, "name": skill.name}
+            for skill in obj.hard_skills.all()
+        ]
 
+    def get_displayed_soft_skills(self, obj):
+        return [
+            {"id": skill.lightcast_identifier, "name": skill.name}
+            for skill in obj.soft_skills.all()
+        ]
+
+    def validate(self, attrs):
         address = attrs.get('address')
-        print(address)
 
         if address is None:
             raise serializers.ValidationError({'address': 'This field is required.'})
@@ -879,13 +891,12 @@ class EditApplicantSerializer(serializers.ModelSerializer):
         if len(address) < 15:
             raise serializers.ValidationError({'address': 'Address must be at least 15 characters.'})
 
-        if address:
-            coordinates = get_coordinates(address)
-            if coordinates:
-                lat, lng = coordinates
-                attrs['coordinates'] = {'lat': lat, 'lng': lng}
-            else:
-                raise serializers.ValidationError({'address': 'Unable to retrieve coordinates'})
+        coordinates = get_coordinates(address)
+        if coordinates:
+            lat, lng = coordinates
+            attrs['coordinates'] = {'lat': lat, 'lng': lng}
+        else:
+            raise serializers.ValidationError({'address': 'Unable to retrieve coordinates'})
 
         # if address:
         #     coordinates = get_google_coordinates(address)
@@ -898,57 +909,53 @@ class EditApplicantSerializer(serializers.ModelSerializer):
         #     if errors:
         #         raise serializers.ValidationError({'school info': errors})
 
+        for field in ['hard_skills', 'soft_skills']:
+            value = attrs.get(field)
+            if value:
+                try:
+                    parsed = json.loads(value)
+                    if not isinstance(parsed, list):
+                        raise serializers.ValidationError({field: 'Must be a list.'})
+                except json.JSONDecodeError:
+                    raise serializers.ValidationError({field: 'Invalid JSON format.'})
+
         return attrs
 
-    def get_hard_skills(self, obj):
-        return [
-            {"id": skill.lightcast_identifier, "name": skill.name}
-            for skill in obj.hard_skills.all()
-        ]
-
-    def get_soft_skills(self, obj):
-        return [
-            {"id": skill.lightcast_identifier, "name": skill.name}
-            for skill in obj.soft_skills.all()
-        ]
-
     def update(self, instance, validated_data):
-        hard_skills_string = validated_data.pop('hard_skills', None)
-        soft_skills_string = validated_data.pop('soft_skills', None)
+        hard_skills_json = validated_data.pop('hard_skills', None)
+        soft_skills_json = validated_data.pop('soft_skills', None)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-
         instance.save()
 
-        if hard_skills_string:
+        if hard_skills_json:
             try:
-                hard_skills_json = json.loads(hard_skills_string)
-                hard_skills = []
-                for skill in hard_skills_json:
-                    skill_instance, _ = HardSkillsTagList.objects.get_or_create(
-                        lightcast_identifier=skill['id'],
-                        defaults={'name': skill['name']}
+                parsed_hard_skills = json.loads(hard_skills_json)
+                hard_skill_objs = []
+                for item in parsed_hard_skills:
+                    obj, _ = HardSkillsTagList.objects.get_or_create(
+                        lightcast_identifier=item['id'],
+                        defaults={'name': item['name']}
                     )
-                    hard_skills.append(skill_instance)
-                instance.hard_skills.set(hard_skills)
-            except json.JSONDecodeError:
-                raise serializers.ValidationError("Invalid format for hard_skills")
+                    hard_skill_objs.append(obj)
+                instance.hard_skills.set(hard_skill_objs)
+            except Exception:
+                raise serializers.ValidationError({'hard skills': 'error in parsing hard skills'})
 
-        if soft_skills_string:
+        if soft_skills_json:
             try:
-                soft_skills_json = json.loads(soft_skills_string)
-                soft_skills = []
-                for skill in soft_skills_json:
-                    skill_instance, _ = SoftSkillsTagList.objects.get_or_create(
-                        lightcast_identifier=skill['id'],
-                        defaults={'name': skill['name']}
+                parsed_soft_skills = json.loads(soft_skills_json)
+                soft_skill_objs = []
+                for item in parsed_soft_skills:
+                    obj, _ = SoftSkillsTagList.objects.get_or_create(
+                        lightcast_identifier=item['id'],
+                        defaults={'name': item['name']}
                     )
-                    soft_skills.append(skill_instance)
-                instance.soft_skills.set(soft_skills)
-            except json.JSONDecodeError:
-                raise serializers.ValidationError("Invalid format for soft_skills")
-
+                    soft_skill_objs.append(obj)
+                instance.soft_skills.set(soft_skill_objs)
+            except Exception:
+                raise serializers.ValidationError({'soft skills': 'error in parsing soft skills'})
         return instance
 
 
