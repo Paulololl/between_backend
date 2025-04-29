@@ -26,7 +26,7 @@ from .serializers import (ApplicantRegisterSerializer, NestedSchoolDepartmentPro
                           GetApplicantSerializer, MyTokenRefreshSerializer, SendEmailVerificationSerializer,
                           GetCompanySerializer, SendForgotPasswordLinkSerializer, ResetPasswordSerializer,
                           DeleteAccountSerializer, ChangePasswordSerializer, GetOJTCoordinatorSerializer,
-                          EditCompanySerializer, )
+                          EditCompanySerializer, EditApplicantSerializer, )
 
 User = get_user_model()
 
@@ -105,6 +105,20 @@ class GetApplicantView(ListAPIView):
         return queryset
 
 
+class EditApplicantView(APIView):
+    def put(self, request):
+        serializer = EditApplicantSerializer(instance=request.user.applicant, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
+
+class CompanyRegisterView(CreateAPIView):
+    queryset = Company.objects.all()
+    serializer_class = CompanyRegisterSerializer
+
+
 class GetCompanyView(ListAPIView):
     queryset = Company.objects.all()
     serializer_class = GetCompanySerializer
@@ -115,11 +129,6 @@ class GetCompanyView(ListAPIView):
         if user:
             queryset = queryset.filter(user=user)
         return queryset
-
-
-class CompanyRegisterView(CreateAPIView):
-    queryset = Company.objects.all()
-    serializer_class = CompanyRegisterSerializer
 
 
 class EditCompanyView(APIView):

@@ -817,6 +817,10 @@ class EditCompanySerializer(serializers.ModelSerializer):
     def validate(self, attrs):
 
         address = attrs.get('company_address')
+
+        if address is None:
+            raise serializers.ValidationError({'company_address': 'This field is required.'})
+
         if len(address) < 15:
             raise serializers.ValidationError({'company_address': 'Address must be at least 15 characters.'})
 
@@ -837,4 +841,95 @@ class EditCompanySerializer(serializers.ModelSerializer):
         #         raise serializers.ValidationError({'address': 'Unable to retrieve coordinates from Google Maps.'})
 
         return attrs
+
+
+class EditApplicantSerializer(serializers.ModelSerializer):
+    middle_initial = serializers.CharField(write_only=True, required=False, allow_blank=True, default='')
+    class Meta:
+        model = Applicant
+        fields = [
+            'first_name',
+            'last_name',
+            'middle_initial',
+            'address',
+            'hard_skills',
+            'soft_skills',
+            'preferred_modality',
+            'quick_introduction',
+            'resume',
+            'enrollment_record'
+        ]
+
+    def validate(self, attrs):
+
+        address = attrs.get('address')
+        print(address)
+
+        if address is None:
+            raise serializers.ValidationError({'address': 'This field is required.'})
+
+        if len(address) < 15:
+            raise serializers.ValidationError({'address': 'Address must be at least 15 characters.'})
+
+        if address:
+            coordinates = get_coordinates(address)
+            if coordinates:
+                lat, lng = coordinates
+                attrs['coordinates'] = {'lat': lat, 'lng': lng}
+            else:
+                raise serializers.ValidationError({'address': 'Unable to retrieve coordinates'})
+
+        # if address:
+        #     coordinates = get_google_coordinates(address)
+        #     if coordinates:
+        #         lat, lng = coordinates
+        #         attrs['coordinates'] = {'lat': lat, 'lng': lng}
+        #     else:
+        #         raise serializers.ValidationError({'address': 'Unable to retrieve coordinates from Google Maps.'})
+        #
+        #     if errors:
+        #         raise serializers.ValidationError({'school info': errors})
+
+        return attrs
+
+    def update(self, instance, validated_data):
+        hard_skills_string = validated_data.pop('hard_skills', None)
+        soft_skills_string = validated_data.pop('soft_skills', None)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+
+        if hard_skills_string:
+            try:
+                hard_skills_json = json.loads(hard_skills_string)
+                hard_skills = []
+                for skill in hard_skills_json:
+                    skill_instance, _ = HardSkillsTagList.objects.get_or_create(
+                        lightcast_identifier=skill['id'],
+                        defaults={'name': skill['name']}
+                    )
+                    hard_skills.append(skill_instance)
+                instance.hard_skills.set(hard_skills)
+            except json.JSONDecodeError:
+                raise serializers.ValidationError("Invalid format for hard_skills")
+
+        if soft_skills_string:
+            try:
+                soft_skills_json = json.loads(soft_skills_string)
+                soft_skills = []
+                for skill in soft_skills_json:
+                    skill_instance, _ = SoftSkillsTagList.objects.get_or_create(
+                        lightcast_identifier=skill['id'],
+                        defaults={'name': skill['name']}
+                    )
+                    soft_skills.append(skill_instance)
+                instance.soft_skills.set(soft_skills)
+            except json.JSONDecodeError:
+                raise serializers.ValidationError("Invalid format for soft_skills")
+
+        return instance
+
+
 
