@@ -543,7 +543,7 @@ class GetApplicantSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(source='user.email')
     verified_at = serializers.DateTimeField(source='user.verified_at')
     school = serializers.CharField(source='school.school_name')
-    department = serializers.CharField(source='department.department_   name')
+    department = serializers.CharField(source='department.department_name')
     program = serializers.CharField(source='program.program_name')
 
     class Meta:
