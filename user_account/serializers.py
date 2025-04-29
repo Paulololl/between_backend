@@ -855,6 +855,7 @@ class EditApplicantSerializer(serializers.ModelSerializer):
     soft_skills = serializers.CharField(write_only=True, required=False)
     displayed_hard_skills = serializers.SerializerMethodField()
     displayed_soft_skills = serializers.SerializerMethodField()
+
     class Meta:
         model = Applicant
         fields = [
@@ -867,7 +868,9 @@ class EditApplicantSerializer(serializers.ModelSerializer):
             'displayed_hard_skills',
             'displayed_soft_skills',
             'resume',
-            'enrollment_record'
+            'enrollment_record',
+            'quick_introduction',
+            'preferred_modality',
         ]
 
     def get_displayed_hard_skills(self, obj):
@@ -924,6 +927,7 @@ class EditApplicantSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         hard_skills_json = validated_data.pop('hard_skills', None)
         soft_skills_json = validated_data.pop('soft_skills', None)
+        coordinates = validated_data.pop('coordinates', None)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
