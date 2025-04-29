@@ -476,6 +476,9 @@ class EmailLoginSerializer(serializers.Serializer):
         except User.DoesNotExist:
             raise serializers.ValidationError('Email not found. Please try again.')
 
+        if user.status == 'Pending':
+            raise serializers.ValidationError('Please verify your email first.')
+
         if user.status == 'Deleted':
             raise serializers.ValidationError('Email not found. Please try again.')
 
