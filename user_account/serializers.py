@@ -597,7 +597,6 @@ class SendEmailVerificationSerializer(serializers.Serializer):
 
         verification_url = f'https://localhost:8000/api/user_account/verify-email/{uid}/{token}/'
 
-
         subject = 'Verify your email'
 
         message = (f'Hi {user.email},\n\n'
@@ -750,4 +749,35 @@ class DeleteAccountSerializer(serializers.Serializer):
         return user
 
 
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True)
+    confirm_new_password = serializers.CharField(write_only=True)
 
+    def validate(self, data):
+        user = self.context['request'].user
+        old_password = data.get('old_password')
+        new_password = data.get('new_password')
+        confirm_new_password = data.get('confirm_new_password')
+
+        if not user.check_password(old_password):
+            raise serializers.ValidationError({'old_password': 'Old password is incorrect.'})
+
+        if user.check_password(new_password):
+            raise serializers.ValidationError({'new_password': 'New password cannot be the same as the old password.'})
+
+        if new_password != confirm_new_password:
+            raise serializers.ValidationError({'confirm_new_password': 'Passwords do not match.'})
+
+        try:
+            validate_password(new_password, user)
+        except ValidationError as e:
+            raise serializers.ValidationError({'new_password': e.messages})
+
+        return data
+
+    def save(self):
+        user = self.context['request'].user
+        user.set_password(self.validated_data['new_password'])
+        user.save()
+        return user

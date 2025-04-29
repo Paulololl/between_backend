@@ -25,7 +25,7 @@ from .serializers import (ApplicantRegisterSerializer, NestedSchoolDepartmentPro
                           MyTokenObtainPairSerializer, EmailLoginSerializer, SchoolEmailCheckSerializer,
                           GetApplicantSerializer, MyTokenRefreshSerializer, SendEmailVerificationSerializer,
                           GetCompanySerializer, SendForgotPasswordLinkSerializer, ResetPasswordSerializer,
-                          DeleteAccountSerializer, )
+                          DeleteAccountSerializer, ChangePasswordSerializer, )
 
 User = get_user_model()
 
@@ -271,6 +271,18 @@ class DeleteAccountView(APIView):
             serializer.save()
 
             return Response({"message": "Account deleted successfully."}, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ChangePasswordView(APIView):
+    def put(self, request):
+        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+
+        if serializer.is_valid():
+            serializer.save()
+
+            return Response({"message": "Password changed successfully."}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

@@ -3,7 +3,7 @@ from django.urls import path
 from .views import ApplicantRegisterView, NestedSchoolDepartmentProgramListView, DepartmentListView, ProgramListView, \
     SchoolListView, CompanyRegisterView, CareerEmplacementAdminRegisterView, OJTCoordinatorRegisterView, \
     MyTokenObtainPairView, EmailLoginView, SchoolEmailCheckView, GetApplicantView, MyTokenRefreshView, VerifyEmailView, \
-    GetCompanyView, ForgotPasswordLinkView, ResetPasswordView, DeleteAccountView
+    GetCompanyView, ForgotPasswordLinkView, ResetPasswordView, DeleteAccountView, ChangePasswordView
 
 urlpatterns = [
     path('applicant/', GetApplicantView.as_view()),
@@ -26,6 +26,7 @@ urlpatterns = [
     path('verify-email/', VerifyEmailView.as_view()),
     path('verify-email/<uidb64>/<token>/', VerifyEmailView.as_view()),
     path('delete-account/', DeleteAccountView.as_view()),
+    path('change-password/', ChangePasswordView.as_view()),
 
 
 ]
