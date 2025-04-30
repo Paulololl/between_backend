@@ -583,9 +583,20 @@ class SendEmailVerificationSerializer(serializers.Serializer):
 
     def validate_email(self, value):
         from user_account.models import User
+
         try:
             user = User.objects.get(email=value)
+
         except User.DoesNotExist:
+            raise serializers.ValidationError({'User': 'User with this email does not exist.'})
+
+        if user.status == 'Active':
+            raise serializers.ValidationError({'User': 'This email is already active.'})
+
+        if user.status == 'Inactive':
+            raise serializers.ValidationError({'User': 'This email is inactive.'})
+
+        if user.status == 'Deleted':
             raise serializers.ValidationError({'User': 'User with this email does not exist.'})
 
         self.user = user
