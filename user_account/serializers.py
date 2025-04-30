@@ -471,17 +471,17 @@ class MyTokenRefreshSerializer(TokenRefreshSerializer):
 class EmailLoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
 
-    def validate(self, value):
+    def validate_email(self, value):
         try:
             user = User.objects.get(email=value)
         except User.DoesNotExist:
-            raise serializers.ValidationError({'email', 'Email not found. Please try again.'})
+            raise serializers.ValidationError('Email not found. Please try again.')
 
         if user.status == 'Pending':
-            raise serializers.ValidationError({'email', 'Please verify your email first.'})
+            raise serializers.ValidationError('Please verify your email first.')
 
         if user.status == 'Deleted':
-            raise serializers.ValidationError({'email', 'Email not found. Please try again.'})
+            raise serializers.ValidationError('Email not found. Please try again.')
 
         return value
 
@@ -581,23 +581,23 @@ class SendEmailVerificationSerializer(serializers.Serializer):
     email = serializers.EmailField()
     expiration_time = serializers.DateTimeField(required=False)
 
-    def validate(self, value):
+    def validate_email(self, value):
         from user_account.models import User
 
         try:
             user = User.objects.get(email=value)
 
         except User.DoesNotExist:
-            raise serializers.ValidationError({'user': 'User with this email does not exist.'})
+            raise serializers.ValidationError('User with this email does not exist.')
 
         if user.status == 'Active':
-            raise serializers.ValidationError({'user': 'This email is already active.'})
+            raise serializers.ValidationError('This email is already active.')
 
         if user.status == 'Inactive':
-            raise serializers.ValidationError({'user': 'This email is inactive.'})
+            raise serializers.ValidationError('This email is inactive.')
 
         if user.status == 'Deleted':
-            raise serializers.ValidationError({'user': 'User with this email does not exist.'})
+            raise serializers.ValidationError('User with this email does not exist.')
 
         self.user = user
         return value
