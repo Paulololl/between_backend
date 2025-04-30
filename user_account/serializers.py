@@ -968,4 +968,10 @@ class GetUserSerializer(serializers.ModelSerializer):
         fields = ['email', 'verified_at', 'user_role', 'status']
 
 
+class GetEmailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['user_id', 'verified_at', 'user_role', 'status']
+
+
 

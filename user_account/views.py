@@ -26,7 +26,7 @@ from .serializers import (ApplicantRegisterSerializer, NestedSchoolDepartmentPro
                           GetApplicantSerializer, MyTokenRefreshSerializer, SendEmailVerificationSerializer,
                           GetCompanySerializer, SendForgotPasswordLinkSerializer, ResetPasswordSerializer,
                           DeleteAccountSerializer, ChangePasswordSerializer, GetOJTCoordinatorSerializer,
-                          EditCompanySerializer, EditApplicantSerializer, GetUserSerializer, )
+                          EditCompanySerializer, EditApplicantSerializer, GetUserSerializer, GetEmailSerializer, )
 
 User = get_user_model()
 
@@ -40,6 +40,19 @@ class GetUserView(ListAPIView):
         user_id = self.request.query_params.get('user_id')
         if user_id:
             queryset = queryset.filter(user_id=user_id)
+        print(self.request.user)
+        return queryset
+
+
+class GetEmailView(ListAPIView):
+    queryset = User.objects.all()
+    serializer_class = GetEmailSerializer
+
+    def get_queryset(self):
+        queryset = User.objects.all()
+        email = self.request.query_params.get('email')
+        if email:
+            queryset = queryset.filter(email=email)
         print(self.request.user)
         return queryset
 
@@ -251,10 +264,9 @@ class VerifyEmailView(APIView):
                     return redirect(f'https://localhost:5173/sign-up/company/account-verified'
                                     f'?status=success&uuid={user.pk}')
 
-                elif not hasattr(user, 'company') and not hasattr(user, 'coordinator') and not hasattr(user, 'cea'):
+                else:
                     return redirect(
-                        f'https://localhost:5173/sign-up/applicant/account-verified/'
-                        f'?status=invalid&uuid={user.pk}')
+                        f'https://localhost:5173/sign-up/account-reverify/?status=invalid')
             else:
                 if hasattr(user, 'applicant'):
                     return redirect(f'https://localhost:5173/sign-up/applicant/account-reverify'
@@ -264,10 +276,10 @@ class VerifyEmailView(APIView):
                     return redirect(f'https://localhost:5173/sign-up/company/account-reverify'
                                     f'?status=invalid&uuid={user.pk}')
                 else:
-                    return redirect(f'https://localhost:5173/sign-up/account-verified?status=invalid')
+                    return redirect(f'https://localhost:5173/sign-up/account-reverify/?status=invalid')
 
         except (User.DoesNotExist, ValueError, TypeError):
-            return redirect('https://localhost:5173/sign-up/account-verified?status=invalid')
+            return redirect('https://localhost:5173/sign-up/account-reverify/?status=invalid')
 
 
 class ForgotPasswordLinkView(APIView):

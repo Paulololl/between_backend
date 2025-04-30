@@ -4,10 +4,11 @@ from .views import ApplicantRegisterView, NestedSchoolDepartmentProgramListView,
     SchoolListView, CompanyRegisterView, CareerEmplacementAdminRegisterView, OJTCoordinatorRegisterView, \
     MyTokenObtainPairView, EmailLoginView, SchoolEmailCheckView, GetApplicantView, MyTokenRefreshView, VerifyEmailView, \
     GetCompanyView, ForgotPasswordLinkView, ResetPasswordView, DeleteAccountView, ChangePasswordView, \
-    GetOJTCoordinatorView, EditCompanyView, EditApplicantView, GetUserView
+    GetOJTCoordinatorView, EditCompanyView, EditApplicantView, GetUserView, GetEmailView
 
 urlpatterns = [
     path('user/', GetUserView.as_view()),
+    path('email/', GetEmailView.as_view()),
     path('applicant/', GetApplicantView.as_view()),
     path('company/', GetCompanyView.as_view()),
     path('edit-company/', EditCompanyView.as_view()),
