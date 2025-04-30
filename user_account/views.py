@@ -251,10 +251,10 @@ class VerifyEmailView(APIView):
                     return redirect(f'https://localhost:5173/sign-up/company/account-verified'
                                     f'?status=success&uuid={user.pk}')
 
-                else:
+                elif not hasattr(user, 'company') and not hasattr(user, 'coordinator') and not hasattr(user, 'cea'):
                     return redirect(
-                        f'https://localhost:5173/sign-up/account-verified/'
-                        f'?status=invalid')
+                        f'https://localhost:5173/sign-up/applicant/account-verified/'
+                        f'?status=invalid&uuid={user.pk}')
             else:
                 if hasattr(user, 'applicant'):
                     return redirect(f'https://localhost:5173/sign-up/applicant/account-reverify'

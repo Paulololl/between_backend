@@ -965,7 +965,7 @@ class EditApplicantSerializer(serializers.ModelSerializer):
 class GetUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['email', 'verified_at', 'user_role']
+        fields = ['email', 'verified_at', 'user_role', 'status']
 
 
 
