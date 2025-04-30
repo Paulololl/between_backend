@@ -290,7 +290,7 @@ class VerifyEmailView(APIView):
                     return redirect(f'https://localhost:5173/sign-up/account-reverify?status=invalid')
 
         except (User.DoesNotExist, ValueError, TypeError):
-            return redirect('https://localhost:5173/sign-up/account-reverify?status=invalid')
+            return redirect(f'https://localhost:5173/sign-up/account-reverify?status=invalid')
 
 
 class ForgotPasswordLinkView(APIView):
