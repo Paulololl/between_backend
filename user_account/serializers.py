@@ -83,7 +83,7 @@ def get_coordinates(location):
         if location:
             return {'lat': location.latitude, 'lng': location.longitude}
         else:
-            print('Error: Unable to get the location')
+            print('error: Unable to get the location')
             return None
     except Exception as e:
         print(f'Exception: {e}')
@@ -328,17 +328,17 @@ class CompanyRegisterSerializer(serializers.ModelSerializer):
 
 
 class CareerEmplacementAdminRegisterSerializer(serializers.ModelSerializer):
-    CEA_email = serializers.EmailField(write_only=True)
+    cea_email = serializers.EmailField(write_only=True)
     password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
 
     class Meta:
         model = CareerEmplacementAdmin
-        fields = ['CEA_email', 'password', 'confirm_password', 'school']
+        fields = ['cea_email', 'password', 'confirm_password', 'school']
 
     def validate_password(self, value):
         user_data = {
-            'email': self.initial_data.get('CEA_email', ''),
+            'email': self.initial_data.get('cea_email', ''),
         }
         user = User(**user_data)
 
@@ -354,12 +354,12 @@ class CareerEmplacementAdminRegisterSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        email = validated_data.pop('CEA_email')
+        email = validated_data.pop('cea_email')
         password = validated_data.pop('password')
         validated_data.pop('confirm_password')
 
         if User.objects.filter(email=email).exists():
-            raise serializers.ValidationError({'CEA_email': 'This email is already in use.'})
+            raise serializers.ValidationError({'cea_email': 'This email is already in use.'})
 
         user = User.objects.create_user(
             email=email,
@@ -372,19 +372,19 @@ class CareerEmplacementAdminRegisterSerializer(serializers.ModelSerializer):
 
 
 class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
-    OJTCoordinator_email = serializers.EmailField(write_only=True)
+    ojtcoordinator_email = serializers.EmailField(write_only=True)
     middle_initial = serializers.CharField(write_only=True, required=False, allow_blank=True, default='')
     password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
 
     class Meta:
         model = OJTCoordinator
-        fields = ['OJTCoordinator_email', 'first_name', 'last_name', 'middle_initial',
+        fields = ['ojtcoordinator_email', 'first_name', 'last_name', 'middle_initial',
                   'password', 'confirm_password', 'program']
 
     def validate_password(self, value):
         user_data = {
-            'email': self.initial_data.get('OJTCoordinator_email', ''),
+            'email': self.initial_data.get('ojtcoordinator_email', ''),
         }
         user = User(**user_data)
 
@@ -405,7 +405,7 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
         validated_data.pop('confirm_password')
 
         if User.objects.filter(email=email).exists():
-            raise serializers.ValidationError({'OJTCoordinator_email': 'This email is already in use.'})
+            raise serializers.ValidationError({'ojtcoordinator_email': 'This email is already in use.'})
 
         user = User.objects.create_user(
             email=email,
@@ -452,14 +452,14 @@ class MyTokenRefreshSerializer(TokenRefreshSerializer):
         try:
             token = RefreshToken(refresh)
         except Exception as e:
-            raise serializers.ValidationError({'Token': 'Invalid refresh token'})
+            raise serializers.ValidationError({'token': 'Invalid refresh token'})
 
         user_id = token.get('user_id')
 
         try:
             user = get_user_model().objects.get(user_id=user_id)
         except get_user_model().DoesNotExist:
-            raise serializers.ValidationError({'User': 'User does not exist.'})
+            raise serializers.ValidationError({'user': 'User does not exist.'})
 
         data = super().validate(attrs)
         data['user_id'] = user.user_id
@@ -471,17 +471,17 @@ class MyTokenRefreshSerializer(TokenRefreshSerializer):
 class EmailLoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
 
-    def validate_email(self, value):
+    def validate(self, value):
         try:
             user = User.objects.get(email=value)
         except User.DoesNotExist:
-            raise serializers.ValidationError('Email not found. Please try again.')
+            raise serializers.ValidationError({'email', 'Email not found. Please try again.'})
 
         if user.status == 'Pending':
-            raise serializers.ValidationError('Please verify your email first.')
+            raise serializers.ValidationError({'email', 'Please verify your email first.'})
 
         if user.status == 'Deleted':
-            raise serializers.ValidationError('Email not found. Please try again.')
+            raise serializers.ValidationError({'email', 'Email not found. Please try again.'})
 
         return value
 
@@ -642,7 +642,7 @@ class SendForgotPasswordLinkSerializer(serializers.Serializer):
         try:
             user = User.objects.get(email=value)
         except User.DoesNotExist:
-            raise serializers.ValidationError({'User': 'User with this email does not exist.'})
+            raise serializers.ValidationError({'user': 'User with this email does not exist.'})
 
         self.user = user
         return value
