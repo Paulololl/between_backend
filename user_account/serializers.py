@@ -588,16 +588,16 @@ class SendEmailVerificationSerializer(serializers.Serializer):
             user = User.objects.get(email=value)
 
         except User.DoesNotExist:
-            raise serializers.ValidationError({'User': 'User with this email does not exist.'})
+            raise serializers.ValidationError({'user': 'User with this email does not exist.'})
 
         if user.status == 'Active':
-            raise serializers.ValidationError({'User': 'This email is already active.'})
+            raise serializers.ValidationError({'user': 'This email is already active.'})
 
         if user.status == 'Inactive':
-            raise serializers.ValidationError({'User': 'This email is inactive.'})
+            raise serializers.ValidationError({'user': 'This email is inactive.'})
 
         if user.status == 'Deleted':
-            raise serializers.ValidationError({'User': 'User with this email does not exist.'})
+            raise serializers.ValidationError({'user': 'User with this email does not exist.'})
 
         self.user = user
         return value
