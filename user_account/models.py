@@ -40,11 +40,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     ], default='Pending')
 
     user_role = models.CharField(max_length=20, choices=[
-        ('ADMIN', 'Admin'),
-        ('APPLICANT', 'Applicant'),
-        ('COMPANY', 'Company'),
-        ('CEA', 'CEA'),
-        ('OJT_COORDINATOR', 'OJT_Coordinator'),
+        ('admin', 'admin'),
+        ('applicant', 'applicant'),
+        ('company', 'company'),
+        ('cea', 'cea'),
+        ('coordinator', 'coordinator'),
     ], default='ADMIN')
 
     is_superuser = models.BooleanField(default=False)

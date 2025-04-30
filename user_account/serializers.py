@@ -218,7 +218,7 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(
             email=email,
             password=password,
-            user_role='APPLICANT',
+            user_role='applicant',
         )
 
         applicant = Applicant.objects.create(user=user, **validated_data)
@@ -319,7 +319,7 @@ class CompanyRegisterSerializer(serializers.ModelSerializer):
             user = User.objects.create_user(
                 email=email,
                 password=password,
-                user_role='COMPANY',
+                user_role='company',
                 date_joined=timezone.now(),
             )
 
@@ -364,7 +364,7 @@ class CareerEmplacementAdminRegisterSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(
             email=email,
             password=password,
-            user_role='CEA',
+            user_role='cea',
         )
 
         cea = CareerEmplacementAdmin.objects.create(user=user, **validated_data)
@@ -410,7 +410,7 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(
             email=email,
             password=password,
-            user_role='OJT_COORDINATOR',
+            user_role='coordinator',
         )
 
         ojt_coordinator = OJTCoordinator.objects.create(user=user, **validated_data)
@@ -965,7 +965,7 @@ class EditApplicantSerializer(serializers.ModelSerializer):
 class GetUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['email', 'verified_at']
+        fields = ['email', 'verified_at', 'user_role']
 
 
 
