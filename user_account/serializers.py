@@ -470,19 +470,26 @@ class MyTokenRefreshSerializer(TokenRefreshSerializer):
 
 class EmailLoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
+    status = serializers.CharField(read_only=True, required=False)
 
     def validate_email(self, value):
         try:
-            user = User.objects.get(email=value)
+            user = User.objects.get(
+                email=value)
+
         except User.DoesNotExist:
             raise serializers.ValidationError('Email not found. Please try again.')
 
         if user.status == 'Pending':
             raise serializers.ValidationError('Please verify your email first.')
 
+        if user.status == 'Inactive':
+            raise serializers.ValidationError('Email is Inactive.')
+
         if user.status == 'Deleted':
             raise serializers.ValidationError('Email not found. Please try again.')
 
+        self.user = user
         return value
 
 

@@ -208,7 +208,18 @@ class EmailLoginView(APIView):
     def post(self, request):
         serializer = EmailLoginSerializer(data=request.data)
         if serializer.is_valid():
-            return Response({'Message': "Email is valid!"})
+            user = User.objects.get(email=serializer.validated_data['email'])
+            return Response({'Message': "Email is valid!",
+                             'status': user.status},
+                            status=status.HTTP_200_OK)
+        email = request.data.get('email')
+        if email:
+            try:
+                user = User.objects.get(email=email)
+                return Response({'status': user.status}, status=status.HTTP_400_BAD_REQUEST)
+            except User.DoesNotExist:
+                return Response({'error': 'User with this email does not exist.'}, status=status.HTTP_404_NOT_FOUND)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
