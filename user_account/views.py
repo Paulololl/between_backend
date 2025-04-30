@@ -218,7 +218,7 @@ class EmailLoginView(APIView):
                 user = User.objects.get(email=email)
                 return Response({'status': user.status}, status=status.HTTP_400_BAD_REQUEST)
             except User.DoesNotExist:
-                return Response({'email': 'User with this email does not exist.'}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'email': 'User with this email does not exist.'}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
