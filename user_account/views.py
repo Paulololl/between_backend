@@ -266,7 +266,7 @@ class VerifyEmailView(APIView):
 
                 else:
                     return redirect(
-                        f'https://localhost:5173/sign-up/account-reverify/?status=invalid')
+                        f'https://localhost:5173/sign-up/account-reverify?status=invalid')
             else:
                 if hasattr(user, 'applicant'):
                     return redirect(f'https://localhost:5173/sign-up/applicant/account-reverify'
@@ -276,10 +276,10 @@ class VerifyEmailView(APIView):
                     return redirect(f'https://localhost:5173/sign-up/company/account-reverify'
                                     f'?status=invalid&uuid={user.pk}')
                 else:
-                    return redirect(f'https://localhost:5173/sign-up/account-reverify/?status=invalid')
+                    return redirect(f'https://localhost:5173/sign-up/account-reverify?status=invalid')
 
         except (User.DoesNotExist, ValueError, TypeError):
-            return redirect('https://localhost:5173/sign-up/account-reverify/?status=invalid')
+            return redirect('https://localhost:5173/sign-up/account-reverify?status=invalid')
 
 
 class ForgotPasswordLinkView(APIView):
