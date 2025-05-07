@@ -214,9 +214,20 @@ class EmailLoginView(APIView):
                             status=status.HTTP_200_OK)
         email = request.data.get('email')
         if email:
+
             try:
                 user = User.objects.get(email=email)
+
+                if user.status == 'Deleted':
+                    return Response({'email': 'User with this email does not exist.'},
+                                    status=status.HTTP_400_BAD_REQUEST)
+
+                if user.status == 'Inactive':
+                    return Response({'email': 'User with this email does not exist.'},
+                                    status=status.HTTP_400_BAD_REQUEST)
+
                 return Response({'status': user.status}, status=status.HTTP_200_OK)
+
             except User.DoesNotExist:
                 return Response({'email': 'User with this email does not exist.'}, status=status.HTTP_400_BAD_REQUEST)
 
