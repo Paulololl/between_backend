@@ -7,7 +7,7 @@ from jwt.exceptions import ExpiredSignatureError, DecodeError, InvalidTokenError
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.exceptions import TokenError
 
-from user_account.models import User, Company
+from user_account.models import Company
 import googlemaps
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
@@ -26,7 +26,7 @@ import requests
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from between_ims import settings
 from cea_management.models import Program, Department, School
-from client_matching.models import HardSkillsTagList, SoftSkillsTagList, PersonInCharge
+from client_matching.models import PersonInCharge
 from django.core.exceptions import ValidationError
 
 load_dotenv()
