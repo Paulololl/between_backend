@@ -46,9 +46,13 @@ class CreatePersonInChargeView(CreateAPIView):
 class EditPersonInChargeView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def put(self, request, pk):
+    def put(self, request):
+        pic_id = request.query_params.get('person_in_charge_id')
+        if not pic_id:
+            return Response({'error': 'Missing person_in_charge ID.'}, status=400)
+
         try:
-            pic = PersonInCharge.objects.get(pk=pk)
+            pic = PersonInCharge.objects.get(person_in_charge_id=pic_id)
         except PersonInCharge.DoesNotExist:
             return Response({'error': 'Person in charge not found.'}, status=404)
 
@@ -62,9 +66,13 @@ class EditPersonInChargeView(APIView):
 class DeletePersonInChargeView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def delete(self, request, pk):
+    def delete(self, request):
+        pic_id = request.query_params.get('person_in_charge_id')
+        if not pic_id:
+            return Response({'error': 'Missing person_in_charge ID.'}, status=400)
+
         try:
-            pic = PersonInCharge.objects.get(pk=pk)
+            pic = PersonInCharge.objects.get(person_in_charge_id=pic_id)
         except PersonInCharge.DoesNotExist:
             return Response({'error': 'Person in charge not found.'}, status=404)
 
