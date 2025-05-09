@@ -133,7 +133,7 @@ class Company(models.Model):
         verbose_name_plural = 'Companies'
 
     def __str__(self):
-        return f"{self.user.email} | {self.user.user_id}"
+        return f"{self.company_id} | {self.company_name} | {self.user.user_id}"
 
 
 class CareerEmplacementAdmin(models.Model):
