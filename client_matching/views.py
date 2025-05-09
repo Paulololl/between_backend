@@ -19,9 +19,10 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from client_matching.models import PersonInCharge
 from client_matching.serializers import PersonInChargeListSerializer, CreatePersonInChargeSerializer, \
-    EditPersonInChargeSerializer
+    EditPersonInChargeSerializer, BulkDeletePersonInChargeSerializer
 
 User = get_user_model()
+
 
 class PersonInChargeListView(ListAPIView):
     permission_classes = [IsAuthenticated]
@@ -63,19 +64,16 @@ class EditPersonInChargeView(APIView):
         return Response(serializer.errors, status=400)
 
 
-class DeletePersonInChargeView(APIView):
+class BulkDeletePersonInChargeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def delete(self, request):
-        pic_id = request.query_params.get('person_in_charge_id')
-        if not pic_id:
-            return Response({'error': 'Missing person_in_charge ID.'}, status=400)
-
-        try:
-            pic = PersonInCharge.objects.get(person_in_charge_id=pic_id)
-        except PersonInCharge.DoesNotExist:
-            return Response({'error': 'Person in charge not found.'}, status=404)
-
-        pic.delete()
-        return Response({'message': 'Person in charge deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
+        serializer = BulkDeletePersonInChargeSerializer(data=request.data)
+        if serializer.is_valid():
+            pic_ids = serializer.validated_data['pic_ids']
+            deleted_count, _ = PersonInCharge.objects.filter(person_in_charge_id__in=pic_ids).delete()
+            return Response({
+                'message': f'Successfully deleted {deleted_count} person(s) in charge.'
+            }, status=status.HTTP_204_NO_CONTENT)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

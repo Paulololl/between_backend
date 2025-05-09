@@ -62,10 +62,19 @@ class EditPersonInChargeSerializer(serializers.ModelSerializer):
                   'mobile_number', 'landline_number']
 
 
-class DeletePersonInChargeSerializer(serializers.ModelSerializer):
-    company_id = serializers.PrimaryKeyRelatedField(source='company', queryset=Company.objects.all(), required=True)
+class BulkDeletePersonInChargeSerializer(serializers.Serializer):
+    pic_ids = serializers.ListField(
+        child=serializers.CharField(),
+        allow_empty=False,
+        write_only=True
+    )
 
-    class Meta:
-        model = PersonInCharge
-        fields = 'company_id'
+    def validate_pic_ids(self, value):
+        existing_ids = (PersonInCharge.objects.filter(person_in_charge_id__in=value).
+                        values_list('person_in_charge_id', flat=True))
+
+        missing_ids = set(value) - set(str(uuid) for uuid in existing_ids)
+        if missing_ids:
+            raise serializers.ValidationError(f"The following IDs do not exist: {list(missing_ids)}")
+        return value
 
