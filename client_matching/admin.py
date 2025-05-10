@@ -60,7 +60,10 @@ class CustomDepartment(admin.ModelAdmin):
 class CustomInternshipPosting(admin.ModelAdmin):
     model = InternshipPosting
 
-    list_display = ('internship_posting_id', 'company')
+    list_display = ('internship_posting_id', 'internship_position', 'display_company_name',
+                    'person_in_charge')
+
+    list_filter = ('company',)
 
     readonly_fields = (
         'internship_posting_id',
@@ -121,6 +124,11 @@ class CustomInternshipPosting(admin.ModelAdmin):
         return mark_safe(benefits)
 
     display_benefits.short_description = "Benefits"
+
+    def display_company_name(self, obj):
+        return obj.company.company_name if obj.company else "-"
+
+    display_company_name.short_description = "Company Name"
 
     def has_add_permission(self, request):
         return False

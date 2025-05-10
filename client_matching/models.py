@@ -41,9 +41,9 @@ class InternshipPosting(models.Model):
     date_modified = models.DateTimeField(auto_now=True)
 
     required_hard_skills = models.ManyToManyField('HardSkillsTagList', related_name="required_hard_skills",
-                                         blank=True)
+                                                  blank=True)
     required_soft_skills = models.ManyToManyField('SoftSkillsTagList', related_name="required_soft_skills",
-                                         blank=True)
+                                                  blank=True)
 
     status = models.CharField(max_length=20, choices=[
         ('Open', 'Open'),
