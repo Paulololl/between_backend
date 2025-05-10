@@ -18,6 +18,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from client_matching.models import PersonInCharge
+from client_matching.permissions import IsCompany
 from client_matching.serializers import PersonInChargeListSerializer, CreatePersonInChargeSerializer, \
     EditPersonInChargeSerializer, BulkDeletePersonInChargeSerializer
 
@@ -25,7 +26,7 @@ User = get_user_model()
 
 
 class PersonInChargeListView(ListAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsCompany]
     queryset = PersonInCharge.objects.all()
     serializer_class = PersonInChargeListSerializer
 
@@ -39,13 +40,20 @@ class PersonInChargeListView(ListAPIView):
 
 
 class CreatePersonInChargeView(CreateAPIView):
-    permission_classes = [IsAuthenticated]
-    queryset = PersonInCharge.objects.all()
+    permission_classes = [IsAuthenticated, IsCompany]
     serializer_class = CreatePersonInChargeSerializer
+
+    def get_queryset(self):
+        return PersonInCharge.objects.all()
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
 
 
 class EditPersonInChargeView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsCompany]
 
     def put(self, request):
         pic_id = request.query_params.get('person_in_charge_id')
@@ -65,7 +73,7 @@ class EditPersonInChargeView(APIView):
 
 
 class BulkDeletePersonInChargeView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsCompany]
 
     def delete(self, request):
         serializer = BulkDeletePersonInChargeSerializer(data=request.data)

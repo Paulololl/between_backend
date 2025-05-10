@@ -42,15 +42,20 @@ class PersonInChargeListSerializer(serializers.ModelSerializer):
 
 
 class CreatePersonInChargeSerializer(serializers.ModelSerializer):
-    company_id = serializers.PrimaryKeyRelatedField(source='company', queryset=Company.objects.all(), required=True)
 
     class Meta:
         model = PersonInCharge
-        fields = ['company_id', 'name', 'position', 'email',
-                  'mobile_number', 'landline_number']
+        fields = ['name', 'position', 'email', 'mobile_number', 'landline_number']
 
     def create(self, validated_data):
-        return PersonInCharge.objects.create(**validated_data)
+        request = self.context.get('request')
+        user = request.user
+
+        if not hasattr(user, 'company'):
+            raise serializers.ValidationError({'error': 'Authenticated user is not a company.'})
+
+        company = user.company
+        return PersonInCharge.objects.create(company=company, **validated_data)
 
 
 class EditPersonInChargeSerializer(serializers.ModelSerializer):
