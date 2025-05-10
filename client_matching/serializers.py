@@ -26,11 +26,43 @@ import requests
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from between_ims import settings
 from cea_management.models import Program, Department, School
-from client_matching.models import PersonInCharge
+from client_matching.models import PersonInCharge, InternshipPosting, KeyTask, MinQualification, Benefit, \
+    HardSkillsTagList, SoftSkillsTagList
 from django.core.exceptions import ValidationError
 
 load_dotenv()
 
+# Geopy
+def get_coordinates(location):
+    geolocator = Nominatim(user_agent="abcd")
+    try:
+        location = geolocator.geocode(location)
+        if location:
+            return {'lat': location.latitude, 'lng': location.longitude}
+        else:
+            print('error: Unable to get the location')
+            return None
+    except Exception as e:
+        print(f'Exception: {e}')
+        return None
+
+
+# Google Maps
+# def get_google_coordinates(location):
+#     gmaps = googlemaps.Client(key=os.getenv('GOOGLEMAPS_API_KEY'))
+#
+#     try:
+#         location = gmaps.geocode(location)  # type: ignore[attr-defined]
+#         if location:
+#             latitude = location[0]['geometry']['location']['lat']
+#             longitude = location[0]['geometry']['location']['lng']
+#             return latitude, longitude
+#         else:
+#             print('Error: Unable to get the location')
+#             return None
+#     except Exception as e:
+#         print(f'Exception: {e}')
+#         return None
 
 class PersonInChargeListSerializer(serializers.ModelSerializer):
     company_name = serializers.CharField(source='company.company_name', read_only=True)
@@ -82,4 +114,104 @@ class BulkDeletePersonInChargeSerializer(serializers.Serializer):
         if missing_ids:
             raise serializers.ValidationError(f"The following IDs do not exist: {list(missing_ids)}")
         return value
+
+
+class InternshipPostingListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InternshipPosting
+        fields = '__all__'
+
+
+class CreateInternshipPostingSerializer(serializers.ModelSerializer):
+    key_tasks = serializers.ListField(child=serializers.CharField(), write_only=True)
+    min_qualifications = serializers.ListField(child=serializers.CharField(), write_only=True)
+    benefits = serializers.ListField(child=serializers.CharField(), write_only=True)
+    required_hard_skills = serializers.CharField()
+    required_soft_skills = serializers.CharField()
+
+    class Meta:
+        model = InternshipPosting
+        fields = ['internship_position', 'address', 'modality', 'internship_date_start', 'ojt_hours',
+                  'application_deadline', 'person_in_charge', 'other_requirements',
+                  'key_tasks', 'min_qualifications', 'benefits',
+                  'required_hard_skills', 'required_soft_skills',
+                  'is_paid_internship', 'is_only_for_practicum', 'status'
+        ]
+
+    def validate(self, attrs):
+        errors = []
+
+        address = attrs.get('address')
+        if len(address) < 15:
+            raise serializers.ValidationError({'address': 'Address must be at least 15 characters.'})
+
+        coordinates = get_coordinates(address)
+        if coordinates:
+            lat, lng = coordinates
+            attrs['coordinates'] = {'lat': lat, 'lng': lng}
+        else:
+            raise serializers.ValidationError({'address': 'Unable to retrieve coordinates.'})
+
+        return attrs
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        company = getattr(user, 'company', None)
+
+        if not company:
+            raise serializers.ValidationError({'error': 'Authenticated user is not a company.'})
+
+        key_tasks_data = validated_data.pop('key_tasks')
+        min_qualifications_data = validated_data.pop('min_qualifications')
+        benefits_data = validated_data.pop('benefits')
+        required_hard_skills_json = validated_data.pop('required_hard_skills')
+        required_soft_skills_json = validated_data.pop('required_soft_skills')
+        coordinates = validated_data.pop('coordinates', None)
+
+        internship_posting = InternshipPosting.objects.create(company=company, **validated_data)
+
+        if coordinates:
+            internship_posting.latitude = coordinates['lat']
+            internship_posting.longitude = coordinates['lng']
+            internship_posting.save()
+
+        for key_task in key_tasks_data:
+            KeyTask.objects.create(internship_posting=internship_posting, key_tasks=key_task)
+
+        for min_qualification in min_qualifications_data:
+            MinQualification.objects.create(internship_posting=internship_posting, min_qualifications=min_qualification)
+
+        for benefit in benefits_data:
+            Benefit.objects.create(internship_posting=internship_posting, benefits=benefit)
+
+        if required_hard_skills_json:
+            try:
+                hard_skills_json = json.loads(required_hard_skills_json)
+                hard_skills = []
+                for skill in hard_skills_json:
+                    skill_instance, _ = HardSkillsTagList.objects.get_or_create(
+                        lightcast_identifier=skill['id'],
+                        defaults={'name': skill['name']}
+                    )
+                    hard_skills.append(skill_instance)
+                internship_posting.required_hard_skills.set(hard_skills)
+            except json.JSONDecodeError:
+                raise serializers.ValidationError("Invalid format for required_hard_skills")
+
+        if required_soft_skills_json:
+            try:
+                soft_skills_json = json.loads(required_soft_skills_json)
+                soft_skills = []
+                for skill in soft_skills_json:
+                    skill_instance, _ = SoftSkillsTagList.objects.get_or_create(
+                        lightcast_identifier=skill['id'],
+                        defaults={'name': skill['name']}
+                    )
+                    soft_skills.append(skill_instance)
+                internship_posting.required_soft_skills.set(soft_skills)
+            except json.JSONDecodeError:
+                raise serializers.ValidationError("Invalid format for required_soft_skills")
+
+        return internship_posting
+
 

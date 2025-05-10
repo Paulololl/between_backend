@@ -40,6 +40,11 @@ class InternshipPosting(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
 
+    required_hard_skills = models.ManyToManyField('HardSkillsTagList', related_name="required_hard_skills",
+                                         blank=True)
+    required_soft_skills = models.ManyToManyField('SoftSkillsTagList', related_name="required_soft_skills",
+                                         blank=True)
+
     status = models.CharField(max_length=20, choices=[
         ('Open', 'Open'),
         ('Closed', 'Closed'),
@@ -48,9 +53,9 @@ class InternshipPosting(models.Model):
 
     modality = models.CharField(max_length=20, choices=[
         ('Onsite', 'Onsite'),
-        ('Online', 'Online'),
+        ('WorkFromHome', 'WorkFromHome'),
         ('Hybrid', 'Hybrid')
-    ], default='Onsite')
+    ], default="Onsite")
 
     def __str__(self):
         return f'{self.internship_posting_id} - {self.company.company_name}'
@@ -102,7 +107,7 @@ class MinQualification(models.Model):
     min_qualifications = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
-        return f'{self.min_qualification_id} - {self.internship_posting.internship_position}'
+        return f'{self.min_qualification_id} - {self.min_qualifications}'
 
 
 class Benefit(models.Model):
@@ -113,7 +118,7 @@ class Benefit(models.Model):
     benefits = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
-        return f'{self.benefit_id} - {self.internship_posting.internship_position}'
+        return f'{self.benefit_id} - {self.benefits}'
 
 
 class Advertisement(models.Model):
@@ -133,38 +138,6 @@ class Advertisement(models.Model):
         return f'{self.advertisement_id} - {self.is_active}'
 
 
-class RequiredHardSkill(models.Model):
-
-    required_hard_skill_id = models.AutoField(primary_key=True)
-    internship_posting = models.ForeignKey('InternshipPosting', on_delete=models.CASCADE)
-
-    name = models.CharField(max_length=500)
-
-    lightcast_identifier = models.CharField(max_length=20)
-
-    class Meta:
-        unique_together = ('internship_posting', 'lightcast_identifier')
-
-    def __str__(self):
-        return f'{self.required_hard_skill_id} - {self.name} ({self.internship_posting.id})'
-
-
-class RequiredSoftSkill(models.Model):
-
-    required_soft_skill_id = models.AutoField(primary_key=True)
-    internship_posting = models.ForeignKey('InternshipPosting', on_delete=models.CASCADE)
-
-    name = models.CharField(max_length=500)
-
-    lightcast_identifier = models.CharField(max_length=20)
-
-    class Meta:
-        unique_together = ('internship_posting', 'lightcast_identifier')
-
-    def __str__(self):
-        return f'{self.required_soft_skill_id} - {self.name} ({self.internship_posting.id})'
-
-
 class KeyTask(models.Model):
 
     key_task_id = models.AutoField(primary_key=True)
@@ -173,7 +146,7 @@ class KeyTask(models.Model):
     key_tasks = models.CharField(max_length=100)
 
     def __str__(self):
-        return str(self.key_task_id)
+        return f'{self.key_task_id} - {self.key_tasks}'
 
 
 class PersonInCharge(models.Model):

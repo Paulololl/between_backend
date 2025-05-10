@@ -17,12 +17,39 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from client_matching.models import PersonInCharge
+from client_matching.models import PersonInCharge, InternshipPosting
 from client_matching.permissions import IsCompany
 from client_matching.serializers import PersonInChargeListSerializer, CreatePersonInChargeSerializer, \
-    EditPersonInChargeSerializer, BulkDeletePersonInChargeSerializer
+    EditPersonInChargeSerializer, BulkDeletePersonInChargeSerializer, InternshipPostingListSerializer, \
+    CreateInternshipPostingSerializer
 
 User = get_user_model()
+
+
+class InternshipPostingListView(ListAPIView):
+    permission_classes = [IsAuthenticated, IsCompany]
+    serializer_class = InternshipPostingListSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+
+        queryset = InternshipPosting.objects.filter(company=user.company)
+        internship_posting_id = self.request.query_params.get('internship_posting_id')
+        if internship_posting_id:
+            queryset = queryset.filter(internship_posting_id=internship_posting_id)
+        print(self.request.user)
+        return queryset
+
+
+class CreateInternshipPostingView(CreateAPIView):
+    queryset = InternshipPosting.objects.all()
+    serializer_class = CreateInternshipPostingSerializer
+    permission_classes = [IsAuthenticated, IsCompany]
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
 
 
 class PersonInChargeListView(ListAPIView):

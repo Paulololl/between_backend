@@ -1,13 +1,11 @@
 from django.contrib import admin
 
 from .models import (HardSkillsTagList, SoftSkillsTagList, InternshipPosting, InternshipRecommendation,
-                     Report, MinQualification, Benefit, Advertisement, RequiredHardSkill,
-                     RequiredSoftSkill, KeyTask, PersonInCharge)
+                     Report, MinQualification, Benefit, Advertisement, KeyTask, PersonInCharge)
 
 
 model_to_register = [InternshipPosting, InternshipRecommendation,
-                     Report, MinQualification, Benefit, Advertisement, RequiredHardSkill,
-                     RequiredSoftSkill, KeyTask, PersonInCharge]
+                     Report, MinQualification, Benefit, Advertisement, KeyTask, PersonInCharge]
 
 for model in model_to_register:
     admin.site.register(model)
