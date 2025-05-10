@@ -27,11 +27,13 @@ User = get_user_model()
 
 class PersonInChargeListView(ListAPIView):
     permission_classes = [IsAuthenticated, IsCompany]
-    queryset = PersonInCharge.objects.all()
     serializer_class = PersonInChargeListSerializer
 
     def get_queryset(self):
-        queryset = PersonInCharge.objects.all()
+        user = self.request.user
+
+        queryset = PersonInCharge.objects.filter(company=user.company)
+
         person_in_charge_id = self.request.query_params.get('person_in_charge_id')
         if person_in_charge_id:
             queryset = queryset.filter(person_in_charge_id=person_in_charge_id)
