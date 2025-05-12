@@ -234,6 +234,14 @@ class CreateInternshipPostingSerializer(serializers.ModelSerializer):
             internship_posting.longitude = coordinates['lng']
             internship_posting.save()
 
+        try:
+            key_tasks_data = json.loads(key_tasks_data) if isinstance(key_tasks_data, str) else key_tasks_data
+            min_qualifications_data = json.loads(min_qualifications_data) if (isinstance
+                                                (min_qualifications_data, str)) else min_qualifications_data
+            benefits_data = json.loads(benefits_data) if isinstance(benefits_data, str) else benefits_data
+        except json.JSONDecodeError:
+            raise serializers.ValidationError({'error': 'One of the provided fields is not valid JSON.'})
+
         for key_task in key_tasks_data:
             KeyTask.objects.create(internship_posting=internship_posting, key_tasks=key_task)
 
@@ -336,6 +344,14 @@ class EditInternshipPostingSerializer(serializers.ModelSerializer):
             instance.longitude = coordinates['lng']
 
         instance.save()
+
+        try:
+            key_tasks_data = json.loads(key_tasks_data) if isinstance(key_tasks_data, str) else key_tasks_data
+            min_qualifications_data = json.loads(min_qualifications_data) if (isinstance
+                                                (min_qualifications_data, str)) else min_qualifications_data
+            benefits_data = json.loads(benefits_data) if isinstance(benefits_data, str) else benefits_data
+        except json.JSONDecodeError:
+            raise serializers.ValidationError({'error': 'One of the provided fields is not valid JSON.'})
 
         if key_tasks_data:
             instance.key_tasks.all().delete()
