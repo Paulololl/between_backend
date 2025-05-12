@@ -33,7 +33,7 @@ class InternshipPostingListView(ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = InternshipPosting.objects.filter(company=user.company)
+        queryset = InternshipPosting.objects.filter(company=user.company).exclude(status='Deleted')
 
         internship_posting_id = self.request.query_params.get('internship_posting_id')
         if internship_posting_id:
