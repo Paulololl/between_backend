@@ -118,9 +118,67 @@ class BulkDeletePersonInChargeSerializer(serializers.Serializer):
 
 
 class InternshipPostingListSerializer(serializers.ModelSerializer):
+    company_name = serializers.CharField(source='company.company_name')
+    required_hard_skills = serializers.SerializerMethodField()
+    required_soft_skills = serializers.SerializerMethodField()
+    key_tasks = serializers.SerializerMethodField()
+    min_qualifications = serializers.SerializerMethodField()
+    benefits = serializers.SerializerMethodField()
+
     class Meta:
         model = InternshipPosting
-        fields = '__all__'
+        fields = [
+            'internship_posting_id',
+            'internship_position',
+            'address',
+            'other_requirements',
+            'is_paid_internship',
+            'is_only_for_practicum',
+            'internship_date_start',
+            'ojt_hours',
+            'application_deadline',
+            'date_created',
+            'date_modified',
+            'status',
+            'modality',
+            'company_name',
+            'person_in_charge',
+            'required_hard_skills',
+            'required_soft_skills',
+            'key_tasks',
+            'min_qualifications',
+            'benefits'
+        ]
+
+    def get_required_hard_skills(self, obj):
+        return [
+            {"id": skill.lightcast_identifier, "name": skill.name}
+            for skill in obj.required_hard_skills.all()
+        ]
+
+    def get_required_soft_skills(self, obj):
+        return [
+            {"id": skill.lightcast_identifier, "name": skill.name}
+            for skill in obj.required_soft_skills.all()
+        ]
+
+    def get_key_tasks(self, obj):
+        return [
+            key_task.key_tasks
+            for key_task in obj.key_tasks.all()
+        ]
+
+    def get_min_qualifications(self, obj):
+        return [
+            min_qualification.min_qualifications
+            for min_qualification in obj.min_qualifications.all()
+        ]
+
+    def get_benefits(self, obj):
+        return [
+            benefit.benefits
+            for benefit in obj.benefits.all()
+        ]
 
 
 class CreateInternshipPostingSerializer(serializers.ModelSerializer):
