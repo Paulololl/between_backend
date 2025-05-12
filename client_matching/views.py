@@ -32,12 +32,18 @@ class InternshipPostingListView(ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-
         queryset = InternshipPosting.objects.filter(company=user.company)
+
         internship_posting_id = self.request.query_params.get('internship_posting_id')
         if internship_posting_id:
             queryset = queryset.filter(internship_posting_id=internship_posting_id)
         print(self.request.user)
+
+        status_param = self.request.query_params.get('status')
+        if status_param:
+            statuses = [s.strip() for s in status_param.split(',')]
+            queryset = queryset.filter(status__in=statuses)
+
         return queryset
 
 
