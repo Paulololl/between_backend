@@ -119,6 +119,7 @@ class BulkDeletePersonInChargeSerializer(serializers.Serializer):
 
 class InternshipPostingListSerializer(serializers.ModelSerializer):
     company_name = serializers.CharField(source='company.company_name')
+    person_in_charge = serializers.CharField(source='person_in_charge.name')
     required_hard_skills = serializers.SerializerMethodField()
     required_soft_skills = serializers.SerializerMethodField()
     key_tasks = serializers.SerializerMethodField()
@@ -164,19 +165,28 @@ class InternshipPostingListSerializer(serializers.ModelSerializer):
 
     def get_key_tasks(self, obj):
         return [
-            key_task.key_task
+            {
+             "id": key_task.key_task_id,
+             "key_task": key_task.key_task
+            }
             for key_task in obj.key_tasks.all()
         ]
 
     def get_min_qualifications(self, obj):
         return [
-            min_qualification.min_qualification
+            {
+                "id": min_qualification.min_qualification_id,
+                "min_qualification": min_qualification.min_qualification
+            }
             for min_qualification in obj.min_qualifications.all()
         ]
 
     def get_benefits(self, obj):
         return [
-            benefit.benefit
+            {
+                "id": benefit.benefit_id,
+                "benefit": benefit.benefit
+            }
             for benefit in obj.benefits.all()
         ]
 

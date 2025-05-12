@@ -25,7 +25,7 @@ class InternshipPosting(models.Model):
 
     internship_posting_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     company = models.ForeignKey('user_account.Company', on_delete=models.CASCADE)
-    person_in_charge = models.OneToOneField("PersonInCharge", on_delete=models.CASCADE)
+    person_in_charge = models.ForeignKey("PersonInCharge", on_delete=models.CASCADE)
 
     internship_position = models.CharField(max_length=100)
     address = models.CharField(max_length=255, null=True, blank=True)
