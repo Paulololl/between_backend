@@ -21,7 +21,8 @@ from client_matching.models import PersonInCharge, InternshipPosting
 from client_matching.permissions import IsCompany
 from client_matching.serializers import PersonInChargeListSerializer, CreatePersonInChargeSerializer, \
     EditPersonInChargeSerializer, BulkDeletePersonInChargeSerializer, InternshipPostingListSerializer, \
-    CreateInternshipPostingSerializer, EditInternshipPostingSerializer, BulkDeleteInternshipPostingSerializer
+    CreateInternshipPostingSerializer, EditInternshipPostingSerializer, BulkDeleteInternshipPostingSerializer, \
+    ToggleInternshipPostingSerializer
 
 User = get_user_model()
 
@@ -180,5 +181,45 @@ class BulkDeleteInternshipPostingView(APIView):
                 status=status.HTTP_200_OK
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ToggleInternshipPostingView(APIView):
+    permission_classes = [IsAuthenticated, IsCompany]
+
+    def put(self, request):
+        internship_posting_id = request.query_params.get('internship_posting_id')
+        if not internship_posting_id:
+            return Response(
+                {"error": "Missing internship_posting_id in query parameters."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = ToggleInternshipPostingSerializer(data=request.data)
+        if serializer.is_valid():
+            new_status = serializer.validated_data.get('status')
+
+            try:
+                posting = InternshipPosting.objects.get(
+                    internship_posting_id=internship_posting_id,
+                    company=request.user.company,
+                    status__in=['Open', 'Closed']
+                )
+            except InternshipPosting.DoesNotExist:
+                return Response(
+                    {"error": "Internship posting not found."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            posting.status = new_status
+            posting.save()
+
+            return Response(
+                {"message": f"Internship posting status changed to '{new_status}'."},
+                status=status.HTTP_200_OK
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 

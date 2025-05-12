@@ -511,3 +511,11 @@ class BulkDeleteInternshipPostingSerializer(serializers.Serializer):
         if missing_ids:
             raise serializers.ValidationError(f"The following IDs do not exist: {list(missing_ids)}")
         return value
+
+
+class ToggleInternshipPostingSerializer(serializers.ModelSerializer):
+    status = serializers.ChoiceField(choices=["Open", "Closed"])
+
+    class Meta:
+        model = InternshipPosting
+        fields = ['internship_posting_id', 'status']
