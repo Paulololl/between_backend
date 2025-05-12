@@ -164,27 +164,27 @@ class InternshipPostingListSerializer(serializers.ModelSerializer):
 
     def get_key_tasks(self, obj):
         return [
-            key_task.key_tasks
+            key_task.key_task
             for key_task in obj.key_tasks.all()
         ]
 
     def get_min_qualifications(self, obj):
         return [
-            min_qualification.min_qualifications
+            min_qualification.min_qualification
             for min_qualification in obj.min_qualifications.all()
         ]
 
     def get_benefits(self, obj):
         return [
-            benefit.benefits
+            benefit.benefit
             for benefit in obj.benefits.all()
         ]
 
 
 class CreateInternshipPostingSerializer(serializers.ModelSerializer):
-    key_tasks = serializers.ListField(child=serializers.CharField(), write_only=True)
-    min_qualifications = serializers.ListField(child=serializers.CharField(), write_only=True)
-    benefits = serializers.ListField(child=serializers.CharField(), write_only=True)
+    key_tasks = serializers.CharField()
+    min_qualifications = serializers.CharField()
+    benefits = serializers.CharField()
     required_hard_skills = serializers.CharField()
     required_soft_skills = serializers.CharField()
 
@@ -220,9 +220,9 @@ class CreateInternshipPostingSerializer(serializers.ModelSerializer):
         if not company:
             raise serializers.ValidationError({'error': 'Authenticated user is not a company.'})
 
-        key_tasks_data = validated_data.pop('key_tasks')
-        min_qualifications_data = validated_data.pop('min_qualifications')
-        benefits_data = validated_data.pop('benefits')
+        key_tasks_json = validated_data.pop('key_tasks')
+        min_qualifications_json = validated_data.pop('min_qualifications')
+        benefits_json = validated_data.pop('benefits')
         required_hard_skills_json = validated_data.pop('required_hard_skills')
         required_soft_skills_json = validated_data.pop('required_soft_skills')
         coordinates = validated_data.pop('coordinates', None)
@@ -234,22 +234,65 @@ class CreateInternshipPostingSerializer(serializers.ModelSerializer):
             internship_posting.longitude = coordinates['lng']
             internship_posting.save()
 
-        try:
-            key_tasks_data = json.loads(key_tasks_data) if isinstance(key_tasks_data, str) else key_tasks_data
-            min_qualifications_data = json.loads(min_qualifications_data) if (isinstance
-                                                (min_qualifications_data, str)) else min_qualifications_data
-            benefits_data = json.loads(benefits_data) if isinstance(benefits_data, str) else benefits_data
-        except json.JSONDecodeError:
-            raise serializers.ValidationError({'error': 'One of the provided fields is not valid JSON.'})
+        if key_tasks_json:
+            try:
+                if isinstance(key_tasks_json, str):
+                    key_tasks_json = json.loads(key_tasks_json)
 
-        for key_task in key_tasks_data:
-            KeyTask.objects.create(internship_posting=internship_posting, key_tasks=key_task)
+                key_tasks = []
+                for task_json in key_tasks_json:
+                    task_instance = KeyTask.objects.create(
+                        internship_posting=internship_posting,
+                        key_task=task_json['key_task']
+                    )
+                    key_tasks.append(task_instance)
 
-        for min_qualification in min_qualifications_data:
-            MinQualification.objects.create(internship_posting=internship_posting, min_qualifications=min_qualification)
+                internship_posting.key_tasks.set(key_tasks)
 
-        for benefit in benefits_data:
-            Benefit.objects.create(internship_posting=internship_posting, benefits=benefit)
+            except json.JSONDecodeError:
+                raise serializers.ValidationError("Invalid format for key_tasks")
+            except TypeError:
+                raise serializers.ValidationError("The provided key_tasks format is not correct.")
+
+        if min_qualifications_json:
+            try:
+                if isinstance(min_qualifications_json, str):
+                    min_qualifications_json = json.loads(min_qualifications_json)
+
+                min_qualifications = []
+                for qualification_json in min_qualifications_json:
+                    qualification_instance = MinQualification.objects.create(
+                        internship_posting=internship_posting,
+                        min_qualification=qualification_json['min_qualification']
+                    )
+                    min_qualifications.append(qualification_instance)
+
+                internship_posting.min_qualifications.set(min_qualifications)
+
+            except json.JSONDecodeError:
+                raise serializers.ValidationError("Invalid format for min_qualifications")
+            except TypeError:
+                raise serializers.ValidationError("The provided min_qualifications format is not correct.")
+
+        if benefits_json:
+            try:
+                if isinstance(benefits_json, str):
+                    benefits_json = json.loads(benefits_json)
+
+                benefits = []
+                for benefit_json in benefits_json:
+                    benefit_instance = Benefit.objects.create(
+                        internship_posting=internship_posting,
+                        benefit=benefit_json['benefit']
+                    )
+                    benefits.append(benefit_instance)
+
+                internship_posting.benefits.set(benefits)
+
+            except json.JSONDecodeError:
+                raise serializers.ValidationError("Invalid format for benefits")
+            except TypeError:
+                raise serializers.ValidationError("The provided benefits format is not correct.")
 
         if required_hard_skills_json:
             try:
@@ -283,9 +326,9 @@ class CreateInternshipPostingSerializer(serializers.ModelSerializer):
 
 
 class EditInternshipPostingSerializer(serializers.ModelSerializer):
-    key_tasks = serializers.ListField(child=serializers.CharField(), write_only=True)
-    min_qualifications = serializers.ListField(child=serializers.CharField(), write_only=True)
-    benefits = serializers.ListField(child=serializers.CharField(), write_only=True)
+    key_tasks = serializers.CharField()
+    min_qualifications = serializers.CharField()
+    benefits = serializers.CharField()
     required_hard_skills = serializers.CharField()
     required_soft_skills = serializers.CharField()
     displayed_required_hard_skills = serializers.SerializerMethodField()
@@ -329,9 +372,9 @@ class EditInternshipPostingSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
 
-        key_tasks_data = validated_data.pop('key_tasks', [])
-        min_qualifications_data = validated_data.pop('min_qualifications', [])
-        benefits_data = validated_data.pop('benefits', [])
+        key_tasks_json = validated_data.pop('key_tasks', [])
+        min_qualifications_json = validated_data.pop('min_qualifications', [])
+        benefits_json = validated_data.pop('benefits', [])
         required_hard_skills_json = validated_data.pop('required_hard_skills', None)
         required_soft_skills_json = validated_data.pop('required_soft_skills', None)
         coordinates = validated_data.pop('coordinates', None)
@@ -345,28 +388,71 @@ class EditInternshipPostingSerializer(serializers.ModelSerializer):
 
         instance.save()
 
-        try:
-            key_tasks_data = json.loads(key_tasks_data) if isinstance(key_tasks_data, str) else key_tasks_data
-            min_qualifications_data = json.loads(min_qualifications_data) if (isinstance
-                                                (min_qualifications_data, str)) else min_qualifications_data
-            benefits_data = json.loads(benefits_data) if isinstance(benefits_data, str) else benefits_data
-        except json.JSONDecodeError:
-            raise serializers.ValidationError({'error': 'One of the provided fields is not valid JSON.'})
+        if key_tasks_json:
+            try:
+                instance.key_tasks.all().delete()
 
-        if key_tasks_data:
-            instance.key_tasks.all().delete()
-            for key_task in key_tasks_data:
-                KeyTask.objects.create(internship_posting=instance, key_tasks=key_task)
+                if isinstance(key_tasks_json, str):
+                    key_tasks_json = json.loads(key_tasks_json)
 
-        if min_qualifications_data:
-            instance.min_qualifications.all().delete()
-            for min_qualification in min_qualifications_data:
-                MinQualification.objects.create(internship_posting=instance, min_qualifications=min_qualification)
+                key_tasks = []
+                for task_json in key_tasks_json:
+                    task_instance = KeyTask.objects.create(
+                        internship_posting=instance,
+                        key_task=task_json['key_task']
+                    )
+                    key_tasks.append(task_instance)
 
-        if benefits_data:
-            instance.benefits.all().delete()
-            for benefit in benefits_data:
-                Benefit.objects.create(internship_posting=instance, benefits=benefit)
+                instance.key_tasks.set(key_tasks)
+
+            except json.JSONDecodeError:
+                raise serializers.ValidationError("Invalid format for key_tasks")
+            except TypeError:
+                raise serializers.ValidationError("The provided key_tasks format is not correct.")
+
+        if min_qualifications_json:
+            try:
+                instance.min_qualifications.all().delete()
+
+                if isinstance(min_qualifications_json, str):
+                    min_qualifications_json = json.loads(min_qualifications_json)
+
+                min_qualifications = []
+                for qualification_json in min_qualifications_json:
+                    qualification_instance = MinQualification.objects.create(
+                        internship_posting=instance,
+                        min_qualification=qualification_json['min_qualification']
+                    )
+                    min_qualifications.append(qualification_instance)
+
+                instance.min_qualifications.set(min_qualifications)
+
+            except json.JSONDecodeError:
+                raise serializers.ValidationError("Invalid format for min_qualifications")
+            except TypeError:
+                raise serializers.ValidationError("The provided min_qualifications format is not correct.")
+
+        if benefits_json:
+            try:
+                instance.benefits.all().delete()
+
+                if isinstance(benefits_json, str):
+                    benefits_json = json.loads(benefits_json)
+
+                benefits = []
+                for benefit_json in benefits_json:
+                    benefit_instance = Benefit.objects.create(
+                        internship_posting=instance,
+                        benefit=benefit_json['benefit']
+                    )
+                    benefits.append(benefit_instance)
+
+                instance.benefits.set(benefits)
+
+            except json.JSONDecodeError:
+                raise serializers.ValidationError("Invalid format for benefits")
+            except TypeError:
+                raise serializers.ValidationError("The provided benefits format is not correct.")
 
         if required_hard_skills_json:
             try:

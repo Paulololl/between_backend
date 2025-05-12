@@ -108,19 +108,19 @@ class CustomInternshipPosting(admin.ModelAdmin):
     display_soft_skills.short_description = "Soft Skills"
 
     def display_key_tasks(self, obj):
-        tasks = "<br>".join([task.key_tasks for task in obj.key_tasks.all()])
+        tasks = "<br>".join([task.key_task for task in obj.key_tasks.all()])
         return mark_safe(tasks)
 
     display_key_tasks.short_description = "Key Tasks"
 
     def display_min_qualifications(self, obj):
-        qualifications = "<br>".join([qual.min_qualifications for qual in obj.min_qualifications.all()])
+        qualifications = "<br>".join([qual.min_qualification for qual in obj.min_qualifications.all()])
         return mark_safe(qualifications)
 
     display_min_qualifications.short_description = "Min Qualifications"
 
     def display_benefits(self, obj):
-        benefits = "<br>".join([b.benefits for b in obj.benefits.all()])
+        benefits = "<br>".join([b.benefit for b in obj.benefits.all()])
         return mark_safe(benefits)
 
     display_benefits.short_description = "Benefits"
