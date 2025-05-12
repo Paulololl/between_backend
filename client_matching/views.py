@@ -39,10 +39,12 @@ class InternshipPostingListView(ListAPIView):
             queryset = queryset.filter(internship_posting_id=internship_posting_id)
         print(self.request.user)
 
+        allowed_statuses = {'Open', 'Closed', 'Expired'}
         status_param = self.request.query_params.get('status')
         if status_param:
-            statuses = [s.strip() for s in status_param.split(',')]
-            queryset = queryset.filter(status__in=statuses)
+            requested_statuses = [s.strip() for s in status_param.split(',')]
+            valid_statuses = [s for s in requested_statuses if s in allowed_statuses]
+            queryset = queryset.filter(status__in=valid_statuses)
 
         return queryset
 
@@ -150,7 +152,10 @@ class BulkDeletePersonInChargeView(APIView):
         serializer = BulkDeletePersonInChargeSerializer(data=request.data)
         if serializer.is_valid():
             pic_ids = serializer.validated_data['pic_ids']
-            deleted_count, _ = PersonInCharge.objects.filter(person_in_charge_id__in=pic_ids).delete()
+            deleted_count, _ = PersonInCharge.objects.filter(
+                person_in_charge_id__in=pic_ids,
+                company=request.user.company
+            ).delete()
             return Response({
                 'message': f'Successfully deleted {deleted_count} person(s) in charge.'
             }, status=status.HTTP_204_NO_CONTENT)
