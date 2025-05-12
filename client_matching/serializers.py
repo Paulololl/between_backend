@@ -32,6 +32,7 @@ from django.core.exceptions import ValidationError
 
 load_dotenv()
 
+
 # Geopy
 def get_coordinates(location):
     geolocator = Nominatim(user_agent="abcd")
@@ -215,3 +216,110 @@ class CreateInternshipPostingSerializer(serializers.ModelSerializer):
         return internship_posting
 
 
+class EditInternshipPostingSerializer(serializers.ModelSerializer):
+    key_tasks = serializers.ListField(child=serializers.CharField(), write_only=True)
+    min_qualifications = serializers.ListField(child=serializers.CharField(), write_only=True)
+    benefits = serializers.ListField(child=serializers.CharField(), write_only=True)
+    required_hard_skills = serializers.CharField()
+    required_soft_skills = serializers.CharField()
+    displayed_required_hard_skills = serializers.SerializerMethodField()
+    displayed_required_soft_skills = serializers.SerializerMethodField()
+
+    class Meta:
+        model = InternshipPosting
+        fields = ['internship_position', 'address', 'modality', 'internship_date_start', 'ojt_hours',
+                  'application_deadline', 'person_in_charge', 'other_requirements',
+                  'key_tasks', 'min_qualifications', 'benefits',
+                  'required_hard_skills', 'required_soft_skills',
+                  'displayed_required_hard_skills', 'displayed_required_soft_skills',
+                  'is_paid_internship', 'is_only_for_practicum', 'status'
+        ]
+
+    def get_displayed_required_hard_skills(self, obj):
+        return [
+            {"id": skill.lightcast_identifier, "name": skill.name}
+            for skill in obj.required_hard_skills.all()
+        ]
+
+    def get_displayed_required_soft_skills(self, obj):
+        return [
+            {"id": skill.lightcast_identifier, "name": skill.name}
+            for skill in obj.required_soft_skills.all()
+        ]
+
+    def validate(self, attrs):
+        address = attrs.get('address')
+        if address and len(address) < 15:
+            raise serializers.ValidationError({'address': 'Address must be at least 15 characters.'})
+
+        coordinates = get_coordinates(address)
+        if coordinates:
+            lat, lng = coordinates
+            attrs['coordinates'] = {'lat': lat, 'lng': lng}
+        else:
+            raise serializers.ValidationError({'address': 'Unable to retrieve coordinates.'})
+
+        return attrs
+
+    def update(self, instance, validated_data):
+
+        key_tasks_data = validated_data.pop('key_tasks', [])
+        min_qualifications_data = validated_data.pop('min_qualifications', [])
+        benefits_data = validated_data.pop('benefits', [])
+        required_hard_skills_json = validated_data.pop('required_hard_skills', None)
+        required_soft_skills_json = validated_data.pop('required_soft_skills', None)
+        coordinates = validated_data.pop('coordinates', None)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        if coordinates:
+            instance.latitude = coordinates['lat']
+            instance.longitude = coordinates['lng']
+
+        instance.save()
+
+        if key_tasks_data:
+            instance.key_tasks.all().delete()
+            for key_task in key_tasks_data:
+                KeyTask.objects.create(internship_posting=instance, key_tasks=key_task)
+
+        if min_qualifications_data:
+            instance.min_qualifications.all().delete()
+            for min_qualification in min_qualifications_data:
+                MinQualification.objects.create(internship_posting=instance, min_qualifications=min_qualification)
+
+        if benefits_data:
+            instance.benefits.all().delete()
+            for benefit in benefits_data:
+                Benefit.objects.create(internship_posting=instance, benefits=benefit)
+
+        if required_hard_skills_json:
+            try:
+                hard_skills_json = json.loads(required_hard_skills_json)
+                hard_skills = []
+                for skill in hard_skills_json:
+                    skill_instance, _ = HardSkillsTagList.objects.get_or_create(
+                        lightcast_identifier=skill['id'],
+                        defaults={'name': skill['name']}
+                    )
+                    hard_skills.append(skill_instance)
+                instance.required_hard_skills.set(hard_skills)
+            except json.JSONDecodeError:
+                raise serializers.ValidationError("Invalid format for required_hard_skills")
+
+        if required_soft_skills_json:
+            try:
+                soft_skills_json = json.loads(required_soft_skills_json)
+                soft_skills = []
+                for skill in soft_skills_json:
+                    skill_instance, _ = SoftSkillsTagList.objects.get_or_create(
+                        lightcast_identifier=skill['id'],
+                        defaults={'name': skill['name']}
+                    )
+                    soft_skills.append(skill_instance)
+                instance.required_soft_skills.set(soft_skills)
+            except json.JSONDecodeError:
+                raise serializers.ValidationError("Invalid format for required_soft_skills")
+
+        return instance

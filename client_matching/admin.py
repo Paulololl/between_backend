@@ -78,7 +78,7 @@ class CustomInternshipPosting(admin.ModelAdmin):
     fieldsets = (
         (None, {
             'fields': ('internship_posting_id', 'company', 'person_in_charge', 'internship_position',
-                       'address', 'other_requirements', 'is_paid_internship', 'is_only_for_practicum',
+                       'address', 'other_requirements', 'is_paid_internship', 'is_only_for_practicum', 'status',
                        'internship_date_start', 'application_deadline', 'date_created', 'date_modified'),
         }),
         ('Benefits', {
@@ -108,19 +108,19 @@ class CustomInternshipPosting(admin.ModelAdmin):
     display_soft_skills.short_description = "Soft Skills"
 
     def display_key_tasks(self, obj):
-        tasks = "<br>".join([task.key_tasks for task in obj.keytask_set.all()])
+        tasks = "<br>".join([task.key_tasks for task in obj.key_tasks.all()])
         return mark_safe(tasks)
 
     display_key_tasks.short_description = "Key Tasks"
 
     def display_min_qualifications(self, obj):
-        qualifications = "<br>".join([qual.min_qualifications for qual in obj.minqualification_set.all()])
+        qualifications = "<br>".join([qual.min_qualifications for qual in obj.min_qualifications.all()])
         return mark_safe(qualifications)
 
     display_min_qualifications.short_description = "Min Qualifications"
 
     def display_benefits(self, obj):
-        benefits = "<br>".join([b.benefits for b in obj.benefit_set.all()])
+        benefits = "<br>".join([b.benefits for b in obj.benefits.all()])
         return mark_safe(benefits)
 
     display_benefits.short_description = "Benefits"

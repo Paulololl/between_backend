@@ -160,6 +160,7 @@ class GetCompanyView(ListAPIView):
 
 class EditCompanyView(APIView):
     permission_classes = [IsAuthenticated]
+
     def put(self, request):
         serializer = EditCompanySerializer(instance=request.user.company, data=request.data, partial=True)
         if serializer.is_valid():

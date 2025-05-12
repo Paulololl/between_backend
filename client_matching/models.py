@@ -102,7 +102,8 @@ class Report(models.Model):
 class MinQualification(models.Model):
 
     min_qualification_id = models.AutoField(primary_key=True)
-    internship_posting = models.ForeignKey('InternshipPosting', on_delete=models.CASCADE)
+    internship_posting = models.ForeignKey('InternshipPosting', on_delete=models.CASCADE,
+                                           related_name='min_qualifications')
 
     min_qualifications = models.CharField(max_length=255, null=True, blank=True)
 
@@ -113,7 +114,8 @@ class MinQualification(models.Model):
 class Benefit(models.Model):
 
     benefit_id = models.AutoField(primary_key=True)
-    internship_posting = models.ForeignKey('InternshipPosting', on_delete=models.CASCADE)
+    internship_posting = models.ForeignKey('InternshipPosting', on_delete=models.CASCADE,
+                                           related_name='benefits')
 
     benefits = models.CharField(max_length=255, null=True, blank=True)
 
@@ -141,7 +143,8 @@ class Advertisement(models.Model):
 class KeyTask(models.Model):
 
     key_task_id = models.AutoField(primary_key=True)
-    internship_posting = models.ForeignKey('InternshipPosting', on_delete=models.CASCADE)
+    internship_posting = models.ForeignKey('InternshipPosting', on_delete=models.CASCADE,
+                                           related_name='key_tasks')
 
     key_tasks = models.CharField(max_length=100)
 

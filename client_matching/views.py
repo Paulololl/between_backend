@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
 from drf_spectacular.utils import extend_schema
-from rest_framework import status
+from rest_framework import status, generics, serializers
 from rest_framework.generics import ListAPIView, CreateAPIView, RetrieveAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -21,7 +21,7 @@ from client_matching.models import PersonInCharge, InternshipPosting
 from client_matching.permissions import IsCompany
 from client_matching.serializers import PersonInChargeListSerializer, CreatePersonInChargeSerializer, \
     EditPersonInChargeSerializer, BulkDeletePersonInChargeSerializer, InternshipPostingListSerializer, \
-    CreateInternshipPostingSerializer
+    CreateInternshipPostingSerializer, EditInternshipPostingSerializer
 
 User = get_user_model()
 
@@ -50,6 +50,42 @@ class CreateInternshipPostingView(CreateAPIView):
         context = super().get_serializer_context()
         context['request'] = self.request
         return context
+
+
+class EditInternshipPostingView(APIView):
+    permission_classes = [IsAuthenticated, IsCompany]
+
+    def put(self, request):
+        internship_posting_id = request.query_params.get('internship_posting_id')
+        if not internship_posting_id:
+            return Response({"error": "Missing 'internship_posting_id' in query parameters."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        user = request.user
+        company = getattr(user, 'company', None)
+        if not company:
+            return Response({"error": "Authenticated user does not belong to any company."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            internship_posting = InternshipPosting.objects.get(
+                internship_posting_id=internship_posting_id,
+                company=company
+            )
+        except InternshipPosting.DoesNotExist:
+            return Response({"error": "Internship posting not found or does not belong to your company."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = EditInternshipPostingSerializer(
+            instance=internship_posting,
+            data=request.data,
+            partial=True
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class PersonInChargeListView(ListAPIView):
