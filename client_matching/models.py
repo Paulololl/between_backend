@@ -169,7 +169,7 @@ class PersonInCharge(models.Model):
         verbose_name_plural = "PICs"
 
     def __str__(self):
-        return f'{self.name} - {self.position}'
+        return f'{self.name}'
 
 
 

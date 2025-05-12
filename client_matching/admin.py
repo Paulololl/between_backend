@@ -60,10 +60,10 @@ class CustomDepartment(admin.ModelAdmin):
 class CustomInternshipPosting(admin.ModelAdmin):
     model = InternshipPosting
 
-    list_display = ('internship_posting_id', 'internship_position', 'display_company_name',
+    list_display = ('internship_posting_id', 'internship_position', 'status', 'display_company_name',
                     'person_in_charge')
 
-    list_filter = ('company',)
+    list_filter = ('company', 'status')
 
     readonly_fields = (
         'internship_posting_id',
