@@ -119,7 +119,7 @@ class BulkDeletePersonInChargeSerializer(serializers.Serializer):
 
 class InternshipPostingListSerializer(serializers.ModelSerializer):
     company_name = serializers.CharField(source='company.company_name')
-    person_in_charge = serializers.CharField(source='person_in_charge.name')
+    person_in_charge_name = serializers.CharField(source='person_in_charge.name')
     required_hard_skills = serializers.SerializerMethodField()
     required_soft_skills = serializers.SerializerMethodField()
     key_tasks = serializers.SerializerMethodField()
@@ -144,6 +144,7 @@ class InternshipPostingListSerializer(serializers.ModelSerializer):
             'modality',
             'company_name',
             'person_in_charge',
+            'person_in_charge_name',
             'required_hard_skills',
             'required_soft_skills',
             'key_tasks',
@@ -493,3 +494,20 @@ class EditInternshipPostingSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Invalid format for required_soft_skills")
 
         return instance
+
+
+class BulkDeleteInternshipPostingSerializer(serializers.Serializer):
+    posting_ids = serializers.ListField(
+        child=serializers.CharField(),
+        allow_empty=False,
+        write_only=True
+    )
+
+    def validate_posting_ids(self, value):
+        existing_ids = (InternshipPosting.objects.filter(internship_posting_id__in=value).
+                        values_list('internship_posting_id', flat=True))
+
+        missing_ids = set(value) - set(str(uuid) for uuid in existing_ids)
+        if missing_ids:
+            raise serializers.ValidationError(f"The following IDs do not exist: {list(missing_ids)}")
+        return value

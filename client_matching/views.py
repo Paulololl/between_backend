@@ -21,7 +21,7 @@ from client_matching.models import PersonInCharge, InternshipPosting
 from client_matching.permissions import IsCompany
 from client_matching.serializers import PersonInChargeListSerializer, CreatePersonInChargeSerializer, \
     EditPersonInChargeSerializer, BulkDeletePersonInChargeSerializer, InternshipPostingListSerializer, \
-    CreateInternshipPostingSerializer, EditInternshipPostingSerializer
+    CreateInternshipPostingSerializer, EditInternshipPostingSerializer, BulkDeleteInternshipPostingSerializer
 
 User = get_user_model()
 
@@ -149,4 +149,25 @@ class BulkDeletePersonInChargeView(APIView):
                 'message': f'Successfully deleted {deleted_count} person(s) in charge.'
             }, status=status.HTTP_204_NO_CONTENT)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class BulkDeleteInternshipPostingView(APIView):
+    permission_classes = [IsAuthenticated, IsCompany]
+
+    def put(self, request):
+        serializer = BulkDeleteInternshipPostingSerializer(data=request.data)
+        if serializer.is_valid():
+            posting_ids = serializer.validated_data['posting_ids']
+
+            updated_count = InternshipPosting.objects.filter(
+                internship_posting_id__in=posting_ids,
+                company=request.user.company
+            ).update(status='Deleted')
+
+            return Response(
+                {"message": f"{updated_count} internship posting(s) deleted."},
+                status=status.HTTP_200_OK
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 

@@ -48,7 +48,8 @@ class InternshipPosting(models.Model):
     status = models.CharField(max_length=20, choices=[
         ('Open', 'Open'),
         ('Closed', 'Closed'),
-        ('Expired', 'Expired')
+        ('Expired', 'Expired'),
+        ('Deleted', 'Deleted')
     ], default='Open')
 
     modality = models.CharField(max_length=20, choices=[
