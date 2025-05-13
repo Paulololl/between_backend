@@ -8,6 +8,7 @@ from django.shortcuts import redirect
 from django.utils import timezone
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
+from django.utils.timezone import now
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.generics import ListAPIView, CreateAPIView, RetrieveAPIView
@@ -27,6 +28,7 @@ from .serializers import (ApplicantRegisterSerializer, NestedSchoolDepartmentPro
                           GetCompanySerializer, SendForgotPasswordLinkSerializer, ResetPasswordSerializer,
                           DeleteAccountSerializer, ChangePasswordSerializer, GetOJTCoordinatorSerializer,
                           EditCompanySerializer, EditApplicantSerializer, GetUserSerializer, GetEmailSerializer, )
+from .utils import delete_pending_users
 
 User = get_user_model()
 
@@ -36,6 +38,8 @@ class GetUserView(ListAPIView):
     serializer_class = GetUserSerializer
 
     def get_queryset(self):
+        delete_pending_users()
+
         queryset = User.objects.all()
         user_id = self.request.query_params.get('user_id')
         if user_id:
@@ -49,6 +53,8 @@ class GetEmailView(ListAPIView):
     serializer_class = GetEmailSerializer
 
     def get_queryset(self):
+        delete_pending_users()
+
         queryset = User.objects.all()
         email = self.request.query_params.get('email')
         if email:
@@ -123,6 +129,8 @@ class GetApplicantView(ListAPIView):
     serializer_class = GetApplicantSerializer
 
     def get_queryset(self):
+        delete_pending_users()
+
         queryset = Applicant.objects.all()
         user = self.request.query_params.get('user')
         if user:
@@ -151,6 +159,8 @@ class GetCompanyView(ListAPIView):
     serializer_class = GetCompanySerializer
 
     def get_queryset(self):
+        delete_pending_users()
+
         queryset = Company.objects.all()
         user = self.request.query_params.get('user')
         if user:
@@ -185,6 +195,8 @@ class GetOJTCoordinatorView(ListAPIView):
     serializer_class = GetOJTCoordinatorSerializer
 
     def get_queryset(self):
+        delete_pending_users()
+
         queryset = OJTCoordinator.objects.all()
         user = self.request.query_params.get('user')
         if user:
@@ -207,6 +219,8 @@ class EmailLoginView(APIView):
         responses={200: {'message': 'Email verified'}}
     )
     def post(self, request):
+        delete_pending_users()
+
         serializer = EmailLoginSerializer(data=request.data)
         if serializer.is_valid():
             user = User.objects.get(email=serializer.validated_data['email'])
@@ -273,7 +287,7 @@ class VerifyEmailView(APIView):
             if stored_token and default_token_generator.check_token(user, token) and token == stored_token:
                 if timezone.now() > expiration_time:
                     return redirect(
-                        'https://localhost:5173/sign-up/applicant/account-verified?status=error&reason=expired')
+                        'https://localhost:5173/sign-up/applicant/account-verified?status=invalid')
 
                 user.status = 'Active'
                 user.verified_at = timezone.now()

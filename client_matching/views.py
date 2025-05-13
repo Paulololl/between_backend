@@ -8,6 +8,7 @@ from django.shortcuts import redirect
 from django.utils import timezone
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
+from django.utils.timezone import now
 from drf_spectacular.utils import extend_schema
 from rest_framework import status, generics, serializers
 from rest_framework.generics import ListAPIView, CreateAPIView, RetrieveAPIView
@@ -23,6 +24,7 @@ from client_matching.serializers import PersonInChargeListSerializer, CreatePers
     EditPersonInChargeSerializer, BulkDeletePersonInChargeSerializer, InternshipPostingListSerializer, \
     CreateInternshipPostingSerializer, EditInternshipPostingSerializer, BulkDeleteInternshipPostingSerializer, \
     ToggleInternshipPostingSerializer
+from client_matching.utils import update_internship_posting_status
 
 User = get_user_model()
 
@@ -33,6 +35,8 @@ class InternshipPostingListView(ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
+        update_internship_posting_status(company=user.company)
+
         queryset = InternshipPosting.objects.filter(company=user.company).exclude(status='Deleted')
 
         internship_posting_id = self.request.query_params.get('internship_posting_id')
