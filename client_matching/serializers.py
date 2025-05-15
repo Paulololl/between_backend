@@ -252,6 +252,10 @@ class CreateInternshipPostingSerializer(serializers.ModelSerializer):
 
                 key_tasks = []
                 for task_json in key_tasks_json:
+                    if len(task_json['key_task']) > 255:
+                        raise serializers.ValidationError(
+                            {"key_tasks": "Each key task must be at most 255 characters."})
+
                     task_instance = KeyTask.objects.create(
                         internship_posting=internship_posting,
                         key_task=task_json['key_task']
@@ -272,6 +276,10 @@ class CreateInternshipPostingSerializer(serializers.ModelSerializer):
 
                 min_qualifications = []
                 for qualification_json in min_qualifications_json:
+                    if len(qualification_json['min_qualification']) > 255:
+                        raise serializers.ValidationError(
+                            {"min_qualifications": "Each qualification must be at most 255 characters."})
+
                     qualification_instance = MinQualification.objects.create(
                         internship_posting=internship_posting,
                         min_qualification=qualification_json['min_qualification']
@@ -292,6 +300,9 @@ class CreateInternshipPostingSerializer(serializers.ModelSerializer):
 
                 benefits = []
                 for benefit_json in benefits_json:
+                    if len(benefit_json['benefit']) > 255:
+                        raise serializers.ValidationError({"benefits": "Each benefit must be at most 255 characters."})
+
                     benefit_instance = Benefit.objects.create(
                         internship_posting=internship_posting,
                         benefit=benefit_json['benefit']
@@ -408,6 +419,10 @@ class EditInternshipPostingSerializer(serializers.ModelSerializer):
 
                 key_tasks = []
                 for task_json in key_tasks_json:
+                    if len(task_json['key_task']) > 255:
+                        raise serializers.ValidationError(
+                            {"key_tasks": "Each key task must be at most 255 characters."})
+
                     task_instance = KeyTask.objects.create(
                         internship_posting=instance,
                         key_task=task_json['key_task']
@@ -430,6 +445,10 @@ class EditInternshipPostingSerializer(serializers.ModelSerializer):
 
                 min_qualifications = []
                 for qualification_json in min_qualifications_json:
+                    if len(qualification_json['min_qualification']) > 255:
+                        raise serializers.ValidationError(
+                            {"min_qualifications": "Each qualification must be at most 255 characters."})
+
                     qualification_instance = MinQualification.objects.create(
                         internship_posting=instance,
                         min_qualification=qualification_json['min_qualification']
@@ -452,6 +471,9 @@ class EditInternshipPostingSerializer(serializers.ModelSerializer):
 
                 benefits = []
                 for benefit_json in benefits_json:
+                    if len(benefit_json['benefit']) > 255:
+                        raise serializers.ValidationError({"benefits": "Each benefit must be at most 255 characters."})
+
                     benefit_instance = Benefit.objects.create(
                         internship_posting=instance,
                         benefit=benefit_json['benefit']

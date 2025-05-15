@@ -147,7 +147,7 @@ class KeyTask(models.Model):
     internship_posting = models.ForeignKey('InternshipPosting', on_delete=models.CASCADE,
                                            related_name='key_tasks')
 
-    key_task = models.CharField(max_length=100)
+    key_task = models.CharField(max_length=255)
 
     def __str__(self):
         return f'{self.key_task_id} - {self.key_task}'
