@@ -57,7 +57,6 @@ def get_profile_embedding(profile: dict, is_applicant: bool = True):
         benefit = ", ".join(profile.get("benefits", [])) or ""
         key_task = ", ".join(profile.get("key_tasks", [])) or ""
 
-        # Encode each component separately
         hard_skills_emb = encode_text(" ".join(required_hard_skills))
         soft_skills_emb = encode_text(" ".join(required_soft_skills))
         address_emb = encode_text(address)
