@@ -1,3 +1,4 @@
+from django.contrib.admin import SimpleListFilter
 from django.utils.timezone import now
 from sentence_transformers import SentenceTransformer
 import numpy as np
@@ -130,5 +131,30 @@ def update_internship_posting_status(company):
         application_deadline__gte=current_time,
         status='Expired'
     ).update(status='Open')
+
+
+class InternshipPostingStatusFilter(SimpleListFilter):
+    title = 'Internship Posting Status'
+    parameter_name = 'posting_status'
+
+    def lookups(self, request, model_admin):
+        return [
+            ('Open', 'Open'),
+            ('Closed', 'Closed'),
+            ('Expired', 'Expired'),
+            ('Deleted', 'Deleted'),
+        ]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            if self.value() == 'Deleted':
+                posting_ids = InternshipPosting.objects.values_list('internship_posting_id', flat=True)
+                return queryset.exclude(internship_posting_id__in=posting_ids)
+            else:
+                posting_ids = InternshipPosting.objects.filter(
+                    status=self.value()
+                ).values_list('internship_posting_id', flat=True)
+                return queryset.filter(internship_posting_id__in=posting_ids)
+        return queryset
 
 

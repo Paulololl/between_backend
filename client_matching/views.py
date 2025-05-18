@@ -255,8 +255,15 @@ class InternshipRecommendationListView(ListAPIView):
 
     def get_queryset(self):
         applicant = self.request.user.applicant
-        queryset = InternshipRecommendation.objects.filter(applicant=applicant,
-                                                           status='Pending')
+
+        open_posting_ids = InternshipPosting.objects.filter(status='Open') \
+            .values_list('internship_posting_id', flat=True)
+
+        queryset = InternshipRecommendation.objects.filter(
+            applicant=applicant,
+            status='Pending',
+            internship_posting_id__in=open_posting_ids
+        )
 
         is_paid_internship = self.request.query_params.get('is_paid_internship')
         is_only_for_practicum = self.request.query_params.get('is_only_for_practicum')

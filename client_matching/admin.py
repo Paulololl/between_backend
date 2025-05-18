@@ -3,7 +3,7 @@ from django.utils.safestring import mark_safe
 
 from .models import (HardSkillsTagList, SoftSkillsTagList, InternshipPosting, InternshipRecommendation,
                      Report, MinQualification, Benefit, Advertisement, KeyTask, PersonInCharge)
-
+from .utils import InternshipPostingStatusFilter
 
 model_to_register = [Report, MinQualification, Benefit, Advertisement, KeyTask, PersonInCharge]
 
@@ -78,7 +78,7 @@ class CustomInternshipPosting(admin.ModelAdmin):
         (None, {
             'fields': ('internship_posting_id', 'company', 'person_in_charge', 'internship_position',
                        'address', 'other_requirements', 'is_paid_internship', 'is_only_for_practicum', 'status',
-                       'internship_date_start', 'application_deadline', 'date_created', 'date_modified'),
+                       'ojt_hours', 'internship_date_start', 'application_deadline', 'date_created', 'date_modified'),
         }),
         ('Benefits', {
             'fields': ('display_benefits',),
@@ -141,14 +141,22 @@ class CustomInternshipPosting(admin.ModelAdmin):
 
 @admin.register(InternshipRecommendation)
 class InternshipRecommendationAdmin(admin.ModelAdmin):
-    list_display = ('recommendation_id', 'applicant_email', 'similarity_score', 'status')
-    list_filter = ('status',)
+    list_display = ('recommendation_id', 'applicant_email', 'similarity_score', 'status', 'posting_status')
+    list_filter = ('status', InternshipPostingStatusFilter)
     search_fields = ('applicant__user__email',)
 
     def applicant_email(self, obj):
         return obj.applicant.user.email
     applicant_email.admin_order_field = 'applicant__user__email'
     applicant_email.short_description = 'Applicant Email'
+
+    def posting_status(self, obj):
+        try:
+            posting = InternshipPosting.objects.get(internship_posting_id=obj.internship_posting_id)
+            return posting.status
+        except InternshipPosting.DoesNotExist:
+            return 'Deleted or Missing'
+    posting_status.short_description = 'Internship Posting'
 
     def has_add_permission(self, request):
         return False

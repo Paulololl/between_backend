@@ -592,21 +592,24 @@ class InternshipMatchSerializer(serializers.Serializer):
             internship_posting_profiles
         )
 
-        InternshipRecommendation.objects.filter(applicant=applicant).delete()
-
-        new_recs = []
         now = timezone.now()
+
+        InternshipRecommendation.objects.filter(
+            applicant=applicant,
+            internship_posting__status='Deleted'
+        ).delete()
+
         for item in ranked_result:
             posting = InternshipPosting.objects.get(internship_posting_id=item['internship_posting_id'])
-            new_recs.append(InternshipRecommendation(
+            InternshipRecommendation.objects.update_or_create(
                 applicant=applicant,
                 internship_posting=posting,
-                similarity_score=Decimal(str(item['similarity_score'])),
-                time_stamp=now,
-                status='Pending'
-            ))
-
-        InternshipRecommendation.objects.bulk_create(new_recs)
+                defaults={
+                    'similarity_score': Decimal(str(item['similarity_score'])),
+                    'time_stamp': now,
+                    'status': 'Pending',
+                }
+            )
 
         print("Ranked result:", ranked_result)
         return ranked_result

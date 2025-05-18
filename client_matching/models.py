@@ -59,7 +59,7 @@ class InternshipPosting(models.Model):
     ], default="Onsite")
 
     def __str__(self):
-        return f'{self.internship_posting_id} - {self.company.company_name}'
+        return f'{self.internship_position} - {self.company.company_name}'
 
 
 class InternshipRecommendation(models.Model):
