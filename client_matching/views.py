@@ -273,7 +273,7 @@ class InternshipRecommendationListView(ListAPIView):
         if modality:
             queryset = queryset.filter(internship_posting__modality=modality)
 
-        return queryset
+        return queryset[:10]
 
 
 
