@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import timedelta
+from decimal import Decimal
 
 import numpy as np
 from django.core.cache import cache
@@ -29,7 +30,7 @@ from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from between_ims import settings
 from cea_management.models import Program, Department, School
 from client_matching.models import PersonInCharge, InternshipPosting, KeyTask, MinQualification, Benefit, \
-    HardSkillsTagList, SoftSkillsTagList
+    HardSkillsTagList, SoftSkillsTagList, InternshipRecommendation
 from django.core.exceptions import ValidationError
 
 load_dotenv()
@@ -565,7 +566,7 @@ class InternshipMatchSerializer(serializers.Serializer):
             'preferred_modality': applicant.preferred_modality
         }
 
-        internship_postings = InternshipPosting.objects.exclude(status='expired')
+        internship_postings = InternshipPosting.objects.filter(status='Open')
 
         internship_posting_profiles = []
         for posting in internship_postings:
@@ -597,6 +598,22 @@ class InternshipMatchSerializer(serializers.Serializer):
             internship_posting_embedding,
             internship_posting_profiles
         )
+
+        InternshipRecommendation.objects.filter(applicant=applicant).delete()
+
+        new_recs = []
+        now = timezone.now()
+        for item in ranked_result:
+            posting = InternshipPosting.objects.get(internship_posting_id=item['internship_posting_id'])
+            new_recs.append(InternshipRecommendation(
+                applicant=applicant,
+                internship_posting=posting,
+                similarity_score=Decimal(str(item['similarity_score'])),
+                time_stamp=now,
+                status='Pending'
+            ))
+
+        InternshipRecommendation.objects.bulk_create(new_recs)
 
         print("Ranked result:", ranked_result)
         return ranked_result

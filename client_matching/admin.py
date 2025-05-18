@@ -5,8 +5,7 @@ from .models import (HardSkillsTagList, SoftSkillsTagList, InternshipPosting, In
                      Report, MinQualification, Benefit, Advertisement, KeyTask, PersonInCharge)
 
 
-model_to_register = [InternshipRecommendation,
-                     Report, MinQualification, Benefit, Advertisement, KeyTask, PersonInCharge]
+model_to_register = [Report, MinQualification, Benefit, Advertisement, KeyTask, PersonInCharge]
 
 for model in model_to_register:
     admin.site.register(model)
@@ -138,3 +137,24 @@ class CustomInternshipPosting(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return True
+
+
+@admin.register(InternshipRecommendation)
+class InternshipRecommendationAdmin(admin.ModelAdmin):
+    list_display = ('recommendation_id', 'applicant_email', 'similarity_score', 'status')
+    list_filter = ('status',)
+    search_fields = ('applicant__user__email',)
+
+    def applicant_email(self, obj):
+        return obj.applicant.user.email
+    applicant_email.admin_order_field = 'applicant__user__email'
+    applicant_email.short_description = 'Applicant Email'
+
+
+class InternshipRecommendationInline(admin.TabularInline):
+    model = InternshipRecommendation
+    extra = 0
+    readonly_fields = ('internship_posting', 'similarity_score', 'status', 'time_stamp')
+    can_delete = False
+
+

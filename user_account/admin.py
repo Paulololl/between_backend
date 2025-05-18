@@ -3,6 +3,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
+from client_matching.admin import InternshipRecommendationInline
 from .forms import DateJoinedFilter
 from .models import (User, Applicant, Company, CareerEmplacementAdmin, OJTCoordinator)
 
@@ -50,6 +51,7 @@ class UserAdmin(BaseUserAdmin):
 @admin.register(Applicant)
 class ApplicantAdmin(admin.ModelAdmin):
     list_display = ('get_email', 'preferred_modality', 'in_practicum', 'get_date_joined')
+    inlines = [InternshipRecommendationInline]
 
     list_filter = ('preferred_modality', 'in_practicum', DateJoinedFilter)
 
