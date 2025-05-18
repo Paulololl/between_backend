@@ -19,14 +19,20 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from client_matching.models import PersonInCharge, InternshipPosting
-from client_matching.permissions import IsCompany
+from client_matching.permissions import IsCompany, IsApplicant
 from client_matching.serializers import PersonInChargeListSerializer, CreatePersonInChargeSerializer, \
     EditPersonInChargeSerializer, BulkDeletePersonInChargeSerializer, InternshipPostingListSerializer, \
     CreateInternshipPostingSerializer, EditInternshipPostingSerializer, BulkDeleteInternshipPostingSerializer, \
-    ToggleInternshipPostingSerializer
+    ToggleInternshipPostingSerializer, InternshipMatchSerializer
 from client_matching.utils import update_internship_posting_status
 
 User = get_user_model()
+
+
+class GetInternshipPostingsView(ListAPIView):
+    permission_classes = [IsAuthenticated, IsApplicant]
+    serializer_class = InternshipPostingListSerializer
+    queryset = InternshipPosting.objects.all()
 
 
 class InternshipPostingListView(ListAPIView):
@@ -222,6 +228,15 @@ class ToggleInternshipPostingView(APIView):
                 status=status.HTTP_200_OK
             )
 
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class InternshipMatchView(APIView):
+    def post(self, request, *args, **kwargs):
+        serializer = InternshipMatchSerializer(data=request.data)
+        if serializer.is_valid():
+            matches = serializer.save()
+            return Response(matches, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 

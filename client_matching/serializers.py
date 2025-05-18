@@ -2,12 +2,14 @@ import json
 import os
 from datetime import timedelta
 
+import numpy as np
 from django.core.cache import cache
 from jwt.exceptions import ExpiredSignatureError, DecodeError, InvalidTokenError
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.exceptions import TokenError
 
-from user_account.models import Company
+from client_matching.utils import get_profile_embedding, cosine_compare
+from user_account.models import Company, Applicant
 import googlemaps
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
@@ -541,3 +543,60 @@ class ToggleInternshipPostingSerializer(serializers.ModelSerializer):
     class Meta:
         model = InternshipPosting
         fields = ['internship_posting_id', 'status']
+
+
+class InternshipMatchSerializer(serializers.Serializer):
+    applicant_uuid = serializers.UUIDField(write_only=True)
+
+    def validate_applicant_uuid(self, value):
+        if not Applicant.objects.filter(user_id=value).exists():
+            raise serializers.ValidationError({'error': 'Applicant does not exist.'})
+        return value
+
+    def create(self, validated_data):
+        applicant_uuid = validated_data['applicant_uuid']
+        applicant = Applicant.objects.get(user_id=applicant_uuid)
+
+        applicant_profile = {
+            'uuid': applicant_uuid,
+            'hard_skills': applicant.hard_skills,
+            'soft_skills': applicant.soft_skills,
+            'address': applicant.address,
+            'preferred_modality': applicant.preferred_modality
+        }
+
+        internship_postings = InternshipPosting.objects.exclude(status='expired')
+
+        internship_posting_profiles = []
+        for posting in internship_postings:
+            internship_posting_profiles.append({
+                'uuid': posting.internship_posting_id,
+                'required_hard_skills': [skill.name for skill in
+                                         posting.required_hard_skills.all()] if posting.required_hard_skills else [],
+                'required_soft_skills': [skill.name for skill in
+                                         posting.required_soft_skills.all()] if posting.required_soft_skills else [],
+                'address': posting.address,
+                'modality': posting.modality,
+                'min_qualifications': [mq.min_qualification for mq in posting.min_qualifications.all()] if posting.min_qualifications else [],
+                'benefits': [b.benefit for b in posting.benefits.all()] if posting.benefits else [],
+                'key_tasks': [kt.key_task for kt in posting.key_tasks.all()] if posting.key_tasks else []
+            })
+
+        applicant_embedding = get_profile_embedding(applicant_profile)
+
+        internship_posting_embedding = [
+            get_profile_embedding(profile, is_applicant=False)
+            for profile in internship_posting_profiles
+        ]
+
+        internship_posting_embedding = np.vstack(internship_posting_embedding)
+
+        ranked_result = cosine_compare(
+            applicant_embedding,
+            applicant_profile,
+            internship_posting_embedding,
+            internship_posting_profiles
+        )
+
+        print("Ranked result:", ranked_result)
+        return ranked_result
