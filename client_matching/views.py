@@ -18,12 +18,12 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from client_matching.models import PersonInCharge, InternshipPosting
+from client_matching.models import PersonInCharge, InternshipPosting, InternshipRecommendation
 from client_matching.permissions import IsCompany, IsApplicant
 from client_matching.serializers import PersonInChargeListSerializer, CreatePersonInChargeSerializer, \
     EditPersonInChargeSerializer, BulkDeletePersonInChargeSerializer, InternshipPostingListSerializer, \
     CreateInternshipPostingSerializer, EditInternshipPostingSerializer, BulkDeleteInternshipPostingSerializer, \
-    ToggleInternshipPostingSerializer, InternshipMatchSerializer
+    ToggleInternshipPostingSerializer, InternshipMatchSerializer, InternshipRecommendationListSerializer
 from client_matching.utils import update_internship_posting_status
 
 User = get_user_model()
@@ -238,6 +238,43 @@ class InternshipMatchView(APIView):
             matches = serializer.save()
             return Response(matches, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class InternshipRecommendationListView(ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = InternshipRecommendationListSerializer
+
+    def get_queryset(self):
+        queryset = InternshipRecommendation.objects.all()
+        user_id = self.request.query_params.get('user_id')
+        status = self.request.query_params.get('status')
+        is_paid_internship = self.request.query_params.get('is_paid_internship')
+        is_only_for_practicum = self.request.query_params.get('is_only_for_practicum')
+        modality = self.request.query_params.get('modality')
+
+        if user_id:
+            queryset = queryset.filter(applicant__user_id=user_id)
+
+        if status:
+            queryset = queryset.filter(status=status)
+
+        if is_paid_internship is not None:
+            if is_paid_internship.lower() in ['true', '1', 'yes']:
+                queryset = queryset.filter(internship_posting__is_paid_internship=True)
+            elif is_paid_internship.lower() in ['false', '0', 'no']:
+                queryset = queryset.filter(internship_posting__is_paid_internship=False)
+
+        if is_only_for_practicum is not None:
+            if is_only_for_practicum.lower() in ['true', '1', 'yes']:
+                queryset = queryset.filter(internship_posting__is_only_for_practicum=True)
+            elif is_only_for_practicum.lower() in ['false', '0', 'no']:
+                queryset = queryset.filter(internship_posting__is_only_for_practicum=False)
+
+        if modality:
+            queryset = queryset.filter(internship_posting__modality=modality)
+
+        return queryset
+
 
 
 

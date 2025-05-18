@@ -617,3 +617,16 @@ class InternshipMatchSerializer(serializers.Serializer):
 
         print("Ranked result:", ranked_result)
         return ranked_result
+
+
+class InternshipRecommendationListSerializer(serializers.ModelSerializer):
+    is_paid_internship = serializers.BooleanField(source='internship_posting.is_paid_internship')
+    is_only_for_practicum = serializers.BooleanField(source='internship_posting.is_only_for_practicum')
+    modality = serializers.CharField(source='internship_posting.modality')
+    position = serializers.CharField(source='internship_posting.internship_position')
+
+    class Meta:
+        model = InternshipRecommendation
+        fields = ['recommendation_id', 'similarity_score', 'status', 'internship_posting',
+                  'is_paid_internship', 'is_only_for_practicum', 'modality',
+                  'position']

@@ -2,7 +2,8 @@ from django.urls import path
 
 from client_matching.views import PersonInChargeListView, CreatePersonInChargeView, EditPersonInChargeView, \
     BulkDeletePersonInChargeView, InternshipPostingListView, CreateInternshipPostingView, EditInternshipPostingView, \
-    BulkDeleteInternshipPostingView, ToggleInternshipPostingView, GetInternshipPostingsView, InternshipMatchView
+    BulkDeleteInternshipPostingView, ToggleInternshipPostingView, GetInternshipPostingsView, InternshipMatchView, \
+    InternshipRecommendationListView
 
 urlpatterns = [
     path('internship_posting/', InternshipPostingListView.as_view()),
@@ -15,5 +16,6 @@ urlpatterns = [
     path('create/person_in_charge/', CreatePersonInChargeView.as_view()),
     path('edit/person_in_charge/', EditPersonInChargeView.as_view()),
     path('bulk-delete/person_in_charge/', BulkDeletePersonInChargeView.as_view()),
-    path('internship_matching/', InternshipMatchView.as_view())
+    path('internship_matching/', InternshipMatchView.as_view()),
+    path('internship_recommendations/', InternshipRecommendationListView.as_view())
 ]
