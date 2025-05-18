@@ -613,13 +613,94 @@ class InternshipMatchSerializer(serializers.Serializer):
 
 
 class InternshipRecommendationListSerializer(serializers.ModelSerializer):
+    company_name = serializers.CharField(source='internship_posting.company.company_name')
     is_paid_internship = serializers.BooleanField(source='internship_posting.is_paid_internship')
     is_only_for_practicum = serializers.BooleanField(source='internship_posting.is_only_for_practicum')
     modality = serializers.CharField(source='internship_posting.modality')
     position = serializers.CharField(source='internship_posting.internship_position')
+    address = serializers.CharField(source='internship_posting.address')
+    ojt_hours = serializers.IntegerField(source='internship_posting.ojt_hours')
+    background_image = serializers.SerializerMethodField()
+    profile_picture = serializers.SerializerMethodField()
+    required_hard_skills = serializers.SerializerMethodField()
+    required_soft_skills = serializers.SerializerMethodField()
+    key_tasks = serializers.SerializerMethodField()
+    min_qualifications = serializers.SerializerMethodField()
+    benefits = serializers.SerializerMethodField()
+    other_requirements = serializers.CharField(source='internship_posting.other_requirements')
+    application_deadline = serializers.DateTimeField(source='internship_posting.application_deadline')
+    date_created = serializers.DateTimeField(source='internship_posting.date_created')
+    internship_date_start = serializers.DateTimeField(source='internship_posting.internship_date_start')
+    person_in_charge = serializers.CharField(source='internship_posting.person_in_charge.name')
 
     class Meta:
         model = InternshipRecommendation
-        fields = ['recommendation_id', 'similarity_score', 'status', 'internship_posting',
-                  'is_paid_internship', 'is_only_for_practicum', 'modality',
-                  'position']
+        fields = [
+            'company_name',
+            'background_image',
+            'profile_picture',
+            'position',
+            'address',
+            'modality',
+            'ojt_hours',
+            'key_tasks',
+            'min_qualifications',
+            'benefits',
+            'required_hard_skills',
+            'required_soft_skills',
+            'other_requirements',
+            'application_deadline',
+            'date_created',
+            'internship_date_start',
+            'person_in_charge',
+            'recommendation_id',
+            'similarity_score',
+            'status',
+            'internship_posting',
+            'is_paid_internship',
+            'is_only_for_practicum',
+        ]
+
+    def get_required_hard_skills(self, obj):
+        return [
+            skill.name
+            for skill in obj.internship_posting.required_hard_skills.all()
+        ]
+
+    def get_required_soft_skills(self, obj):
+        return [
+            skill.name
+            for skill in obj.internship_posting.required_soft_skills.all()
+        ]
+
+    def get_key_tasks(self, obj):
+        return [
+            key_task.key_task
+            for key_task in obj.internship_posting.key_tasks.all()
+        ]
+
+    def get_min_qualifications(self, obj):
+        return [
+            min_qualification.min_qualification
+            for min_qualification in obj.internship_posting.min_qualifications.all()
+        ]
+
+    def get_benefits(self, obj):
+        return [
+            benefit.benefit
+            for benefit in obj.internship_posting.benefits.all()
+        ]
+
+    def get_background_image(self, obj):
+        image = obj.internship_posting.company.background_image
+        return self._build_url(image)
+
+    def get_profile_picture(self, obj):
+        image = obj.internship_posting.company.profile_picture
+        return self._build_url(image)
+
+    def _build_url(self, image):
+        if image and hasattr(image, 'url'):
+            return self.context['request'].build_absolute_uri(image.url)
+        return None
+

@@ -255,15 +255,12 @@ class InternshipRecommendationListView(ListAPIView):
 
     def get_queryset(self):
         applicant = self.request.user.applicant
-        queryset = InternshipRecommendation.objects.filter(applicant=applicant)
+        queryset = InternshipRecommendation.objects.filter(applicant=applicant,
+                                                           status='Pending')
 
-        status = self.request.query_params.get('status')
         is_paid_internship = self.request.query_params.get('is_paid_internship')
         is_only_for_practicum = self.request.query_params.get('is_only_for_practicum')
         modality = self.request.query_params.get('modality')
-
-        if status:
-            queryset = queryset.filter(status=status)
 
         if is_paid_internship is not None:
             if is_paid_internship.lower() in ['true', '1', 'yes']:
@@ -280,7 +277,7 @@ class InternshipRecommendationListView(ListAPIView):
         if modality:
             queryset = queryset.filter(internship_posting__modality=modality)
 
-        return queryset[:10]
+        return queryset[:1]
 
 
 

@@ -23,6 +23,7 @@ def get_profile_embedding(profile: dict, is_applicant: bool = True):
         else:
             return []
 
+    # label for each weight
     if is_applicant:
         weights = np.array([0.4, 0.4, 0.1, 0.1])
     else:
