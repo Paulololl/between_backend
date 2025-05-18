@@ -150,6 +150,15 @@ class InternshipRecommendationAdmin(admin.ModelAdmin):
     applicant_email.admin_order_field = 'applicant__user__email'
     applicant_email.short_description = 'Applicant Email'
 
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return True
+
 
 class InternshipRecommendationInline(admin.TabularInline):
     model = InternshipRecommendation
