@@ -547,19 +547,12 @@ class ToggleInternshipPostingSerializer(serializers.ModelSerializer):
 
 
 class InternshipMatchSerializer(serializers.Serializer):
-    applicant_uuid = serializers.UUIDField(write_only=True)
-
-    def validate_applicant_uuid(self, value):
-        if not Applicant.objects.filter(user_id=value).exists():
-            raise serializers.ValidationError({'error': 'Applicant does not exist.'})
-        return value
 
     def create(self, validated_data):
-        applicant_uuid = validated_data['applicant_uuid']
-        applicant = Applicant.objects.get(user_id=applicant_uuid)
+        applicant = self.context['applicant']
 
         applicant_profile = {
-            'uuid': applicant_uuid,
+            'uuid': applicant.user_id,
             'hard_skills': applicant.hard_skills,
             'soft_skills': applicant.soft_skills,
             'address': applicant.address,

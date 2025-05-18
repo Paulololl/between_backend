@@ -232,8 +232,17 @@ class ToggleInternshipPostingView(APIView):
 
 
 class InternshipMatchView(APIView):
+    permission_classes = [IsAuthenticated, IsApplicant]
+
     def post(self, request, *args, **kwargs):
-        serializer = InternshipMatchSerializer(data=request.data)
+        user = request.user
+
+        try:
+            applicant = user.applicant
+        except AttributeError:
+            raise serializers.ValidationError({'error': 'Applicant profile not found for the current user.'})
+
+        serializer = InternshipMatchSerializer(data=request.data, context={'applicant': applicant})
         if serializer.is_valid():
             matches = serializer.save()
             return Response(matches, status=status.HTTP_200_OK)
@@ -241,19 +250,17 @@ class InternshipMatchView(APIView):
 
 
 class InternshipRecommendationListView(ListAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsApplicant]
     serializer_class = InternshipRecommendationListSerializer
 
     def get_queryset(self):
-        queryset = InternshipRecommendation.objects.all()
-        user_id = self.request.query_params.get('user_id')
+        applicant = self.request.user.applicant
+        queryset = InternshipRecommendation.objects.filter(applicant=applicant)
+
         status = self.request.query_params.get('status')
         is_paid_internship = self.request.query_params.get('is_paid_internship')
         is_only_for_practicum = self.request.query_params.get('is_only_for_practicum')
         modality = self.request.query_params.get('modality')
-
-        if user_id:
-            queryset = queryset.filter(applicant__user_id=user_id)
 
         if status:
             queryset = queryset.filter(status=status)
