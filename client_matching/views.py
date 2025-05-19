@@ -279,6 +279,12 @@ class InternshipRecommendationListView(ListAPIView):
     permission_classes = [IsAuthenticated, IsApplicant]
     serializer_class = InternshipRecommendationListSerializer
 
+    def parse_bool(self, value):
+        try:
+            return value.lower() in ['true', '1', 'yes']
+        except AttributeError:
+            return False
+
     def get_queryset(self):
         applicant = self.request.user.applicant
         run_internship_matching(applicant)
@@ -292,6 +298,21 @@ class InternshipRecommendationListView(ListAPIView):
             internship_posting_id__in=open_posting_ids
         )
 
+        is_paid_internship = self.request.query_params.get('is_paid_internship')
+        is_only_for_practicum = self.request.query_params.get('is_only_for_practicum')
+        modality = self.request.query_params.get('modality')
+
+        if is_paid_internship is not None:
+            bool_val = self.parse_bool(is_paid_internship)
+            base_queryset = base_queryset.filter(internship_posting__is_paid_internship=bool_val)
+
+        if is_only_for_practicum is not None:
+            bool_val = self.parse_bool(is_only_for_practicum)
+            base_queryset = base_queryset.filter(internship_posting__is_only_for_practicum=bool_val)
+
+        if modality:
+            base_queryset = base_queryset.filter(internship_posting__modality=modality)
+
         current_pending = base_queryset.filter(is_current=True).first()
 
         if not current_pending and base_queryset.exists():
@@ -302,27 +323,6 @@ class InternshipRecommendationListView(ListAPIView):
 
         rest_queryset = base_queryset.exclude(pk=current_pending.pk) if current_pending else base_queryset
 
-        is_paid_internship = self.request.query_params.get('is_paid_internship')
-        is_only_for_practicum = self.request.query_params.get('is_only_for_practicum')
-        modality = self.request.query_params.get('modality')
-
-        if is_paid_internship is not None:
-            val = is_paid_internship.lower()
-            if val in ['true', '1', 'yes']:
-                rest_queryset = rest_queryset.filter(internship_posting__is_paid_internship=True)
-            elif val in ['false', '0', 'no']:
-                rest_queryset = rest_queryset.filter(internship_posting__is_paid_internship=False)
-
-        if is_only_for_practicum is not None:
-            val = is_only_for_practicum.lower()
-            if val in ['true', '1', 'yes']:
-                rest_queryset = rest_queryset.filter(internship_posting__is_only_for_practicum=True)
-            elif val in ['false', '0', 'no']:
-                rest_queryset = rest_queryset.filter(internship_posting__is_only_for_practicum=False)
-
-        if modality:
-            rest_queryset = rest_queryset.filter(internship_posting__modality=modality)
-
         avg_score = base_queryset.aggregate(avg=Avg('similarity_score'))['avg'] or 0
         rest_queryset = rest_queryset.filter(similarity_score__gte=avg_score).distinct()
 
@@ -330,16 +330,13 @@ class InternshipRecommendationListView(ListAPIView):
         random.shuffle(rest_list)
 
         final_list = [current_pending] + rest_list if current_pending else rest_list
-
         return final_list
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
-
         if queryset:
             serializer = self.get_serializer(queryset[:1], many=True)
             return Response(serializer.data)
-
         return Response([], status=status.HTTP_200_OK)
 
 
@@ -379,13 +376,16 @@ class InternshipRecommendationTapView(APIView):
         except InternshipRecommendation.DoesNotExist:
             return Response(
                 {'error': 'Recommendation not found, not pending, or not for an open internship posting.'},
-                status=drf_status.HTTP_404_NOT_FOUND
+                status=drf_status.HTTP_400_BAD_REQUEST
             )
 
         recommendation.status = normalized_status
         recommendation.time_stamp = timezone.now()
         recommendation.is_current = False
         recommendation.save()
+
+        applicant.tap_count = (applicant.tap_count or 0) + 1
+        applicant.save()
 
         if normalized_status == 'Submitted':
             Application.objects.get_or_create(
