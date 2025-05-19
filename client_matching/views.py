@@ -13,6 +13,7 @@ from django.utils.encoding import force_str
 from django.utils.timezone import now
 from drf_spectacular.utils import extend_schema
 from rest_framework import status, generics, serializers
+from rest_framework.exceptions import ValidationError
 from rest_framework.generics import ListAPIView, CreateAPIView, RetrieveAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -279,11 +280,17 @@ class InternshipRecommendationListView(ListAPIView):
     permission_classes = [IsAuthenticated, IsApplicant]
     serializer_class = InternshipRecommendationListSerializer
 
-    def parse_bool(self, value):
-        try:
-            return value.lower() in ['true', '1', 'yes']
-        except AttributeError:
+    def parse_bool(self, value, field_name):
+        true_vals = ['true', 'yes']
+        false_vals = ['false', 'no']
+        value_lower = value.lower()
+
+        if value_lower in true_vals:
+            return True
+        elif value_lower in false_vals:
             return False
+        else:
+            raise ValidationError({field_name: f"Invalid value '{value}'. Use 'yes'/'no' or 'true'/'false'."})
 
     def get_queryset(self):
         applicant = self.request.user.applicant
@@ -303,11 +310,11 @@ class InternshipRecommendationListView(ListAPIView):
         modality = self.request.query_params.get('modality')
 
         if is_paid_internship is not None:
-            bool_val = self.parse_bool(is_paid_internship)
+            bool_val = self.parse_bool(is_paid_internship, 'is_paid_internship')
             base_queryset = base_queryset.filter(internship_posting__is_paid_internship=bool_val)
 
         if is_only_for_practicum is not None:
-            bool_val = self.parse_bool(is_only_for_practicum)
+            bool_val = self.parse_bool(is_only_for_practicum, 'is_only_for_practicum')
             base_queryset = base_queryset.filter(internship_posting__is_only_for_practicum=bool_val)
 
         if modality:
