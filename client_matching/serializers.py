@@ -5,10 +5,12 @@ from decimal import Decimal
 
 import numpy as np
 from django.core.cache import cache
+from django.utils.timezone import now
 from jwt.exceptions import ExpiredSignatureError, DecodeError, InvalidTokenError
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.exceptions import TokenError
 
+from client_application.models import Application
 from client_matching.utils import get_profile_embedding, cosine_compare
 from user_account.models import Company, Applicant
 import googlemaps
@@ -592,7 +594,8 @@ class InternshipMatchSerializer(serializers.Serializer):
             internship_posting_profiles
         )
 
-        now = timezone.now()
+        applicant.last_matched = now()
+        applicant.save(update_fields=['last_matched'])
 
         InternshipRecommendation.objects.filter(
             applicant=applicant,
@@ -606,7 +609,6 @@ class InternshipMatchSerializer(serializers.Serializer):
                 internship_posting=posting,
                 defaults={
                     'similarity_score': Decimal(str(item['similarity_score'])),
-                    'time_stamp': now,
                     'status': 'Pending',
                 }
             )
@@ -706,4 +708,11 @@ class InternshipRecommendationListSerializer(serializers.ModelSerializer):
         if image and hasattr(image, 'url'):
             return self.context['request'].build_absolute_uri(image.url)
         return None
+
+
+class InternshipRecommendationTapSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InternshipRecommendation
+        fields = ['recommendation_id', 'status']
+
 

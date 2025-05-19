@@ -78,6 +78,8 @@ class InternshipRecommendation(models.Model):
         ('Skipped', 'Skipped')
     ], default='Pending')
 
+    is_current = models.BooleanField(default=False)
+
     def __str__(self):
         return (f'{self.recommendation_id} - {self.applicant.first_name} {self.applicant.last_name}'
                 f' - {self.status}')

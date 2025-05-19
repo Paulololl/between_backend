@@ -1,5 +1,6 @@
 import uuid
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from .filepaths import applicant_resume, applicant_enrollment_record, company_profile_picture, company_background_image
 from storages.backends.s3boto3 import S3Boto3Storage
@@ -105,6 +106,16 @@ class Applicant(models.Model):
     resume = models.FileField(storage=S3Boto3Storage, upload_to=applicant_resume)
     enrollment_record = models.FileField(storage=S3Boto3Storage,upload_to=applicant_enrollment_record,
                                          null=True, blank=True)
+
+    last_matched = models.DateTimeField(null=True, blank=True)
+
+    tap_count = models.IntegerField(
+        default=0,
+        validators=[
+            MinValueValidator(0),
+            MaxValueValidator(10)
+        ]
+    )
 
     def __str__(self):
         return f"{self.user.email}"

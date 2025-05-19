@@ -11,6 +11,7 @@ from django.utils.encoding import force_str
 from django.utils.timezone import now
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.generics import ListAPIView, CreateAPIView, RetrieveAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -19,6 +20,8 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from cea_management.models import Department, Program, School
+from client_matching.functions import run_internship_matching
+from client_matching.serializers import InternshipMatchSerializer
 from .models import Applicant, Company, CareerEmplacementAdmin, OJTCoordinator
 from .serializers import (ApplicantRegisterSerializer, NestedSchoolDepartmentProgramSerializer,
                           DepartmentSerializer, ProgramNestedSerializer, SchoolSerializer, CompanyRegisterSerializer,
@@ -206,6 +209,24 @@ class GetOJTCoordinatorView(ListAPIView):
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        user = None
+        try:
+            serializer.is_valid(raise_exception=True)
+            user = serializer.user
+        except ValidationError:
+            pass
+
+        response = super().post(request, *args, **kwargs)
+
+        if response.status_code == 200 and user and hasattr(user, 'applicant'):
+            serializer = InternshipMatchSerializer(context={'applicant': user.applicant})
+            serializer.create(validated_data={})
+            run_internship_matching(user.applicant)
+
+        return response
 
 
 class MyTokenRefreshView(TokenRefreshView):

@@ -72,6 +72,9 @@ class ApplicantAdmin(admin.ModelAdmin):
         ('Documents', {
             'fields': ('resume', 'enrollment_record'),
         }),
+        ('Internship Matching', {
+            'fields': ('last_matched', 'tap_count'),
+        }),
     )
 
     def get_email(self, obj):

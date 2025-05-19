@@ -1,10 +1,12 @@
+import random
 from datetime import timedelta
-
+from django.db import models
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core.cache import cache
+from django.db.models import Max, Avg
 from django.http import HttpResponseRedirect
-from django.shortcuts import redirect
+from django.shortcuts import redirect, get_object_or_404
 from django.utils import timezone
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
@@ -15,16 +17,21 @@ from rest_framework.generics import ListAPIView, CreateAPIView, RetrieveAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework import status as drf_status
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+from client_application.models import Application
+from client_matching.functions import run_internship_matching, fisher_yates_shuffle
 from client_matching.models import PersonInCharge, InternshipPosting, InternshipRecommendation
 from client_matching.permissions import IsCompany, IsApplicant
 from client_matching.serializers import PersonInChargeListSerializer, CreatePersonInChargeSerializer, \
     EditPersonInChargeSerializer, BulkDeletePersonInChargeSerializer, InternshipPostingListSerializer, \
     CreateInternshipPostingSerializer, EditInternshipPostingSerializer, BulkDeleteInternshipPostingSerializer, \
-    ToggleInternshipPostingSerializer, InternshipMatchSerializer, InternshipRecommendationListSerializer
+    ToggleInternshipPostingSerializer, InternshipMatchSerializer, InternshipRecommendationListSerializer, \
+    InternshipRecommendationTapSerializer
 from client_matching.utils import update_internship_posting_status
+
 
 User = get_user_model()
 
@@ -245,7 +252,26 @@ class InternshipMatchView(APIView):
         serializer = InternshipMatchSerializer(data=request.data, context={'applicant': applicant})
         if serializer.is_valid():
             matches = serializer.save()
-            return Response(matches, status=status.HTTP_200_OK)
+
+            open_posting_ids = InternshipPosting.objects.filter(status='Open') \
+                .values_list('internship_posting_id', flat=True)
+
+            queryset = InternshipRecommendation.objects.filter(
+                applicant=applicant,
+                status='Pending',
+                internship_posting_id__in=open_posting_ids
+            )
+
+            shuffled_recommendations = fisher_yates_shuffle(queryset)
+
+            serialized = InternshipRecommendationListSerializer(
+                shuffled_recommendations,
+                many=True,
+                context={'request': request}
+            )
+
+            return Response(serialized.data, status=status.HTTP_200_OK)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -255,36 +281,126 @@ class InternshipRecommendationListView(ListAPIView):
 
     def get_queryset(self):
         applicant = self.request.user.applicant
+        run_internship_matching(applicant)
 
         open_posting_ids = InternshipPosting.objects.filter(status='Open') \
             .values_list('internship_posting_id', flat=True)
 
-        queryset = InternshipRecommendation.objects.filter(
+        base_queryset = InternshipRecommendation.objects.filter(
             applicant=applicant,
             status='Pending',
             internship_posting_id__in=open_posting_ids
         )
+
+        current_pending = base_queryset.filter(is_current=True).first()
+
+        if not current_pending and base_queryset.exists():
+            current_pending = random.choice(list(base_queryset))
+            InternshipRecommendation.objects.filter(applicant=applicant, is_current=True).update(is_current=False)
+            current_pending.is_current = True
+            current_pending.save()
+
+        rest_queryset = base_queryset.exclude(pk=current_pending.pk) if current_pending else base_queryset
 
         is_paid_internship = self.request.query_params.get('is_paid_internship')
         is_only_for_practicum = self.request.query_params.get('is_only_for_practicum')
         modality = self.request.query_params.get('modality')
 
         if is_paid_internship is not None:
-            if is_paid_internship.lower() in ['true', '1', 'yes']:
-                queryset = queryset.filter(internship_posting__is_paid_internship=True)
-            elif is_paid_internship.lower() in ['false', '0', 'no']:
-                queryset = queryset.filter(internship_posting__is_paid_internship=False)
+            val = is_paid_internship.lower()
+            if val in ['true', '1', 'yes']:
+                rest_queryset = rest_queryset.filter(internship_posting__is_paid_internship=True)
+            elif val in ['false', '0', 'no']:
+                rest_queryset = rest_queryset.filter(internship_posting__is_paid_internship=False)
 
         if is_only_for_practicum is not None:
-            if is_only_for_practicum.lower() in ['true', '1', 'yes']:
-                queryset = queryset.filter(internship_posting__is_only_for_practicum=True)
-            elif is_only_for_practicum.lower() in ['false', '0', 'no']:
-                queryset = queryset.filter(internship_posting__is_only_for_practicum=False)
+            val = is_only_for_practicum.lower()
+            if val in ['true', '1', 'yes']:
+                rest_queryset = rest_queryset.filter(internship_posting__is_only_for_practicum=True)
+            elif val in ['false', '0', 'no']:
+                rest_queryset = rest_queryset.filter(internship_posting__is_only_for_practicum=False)
 
         if modality:
-            queryset = queryset.filter(internship_posting__modality=modality)
+            rest_queryset = rest_queryset.filter(internship_posting__modality=modality)
 
-        return queryset[:1]
+        avg_score = base_queryset.aggregate(avg=Avg('similarity_score'))['avg'] or 0
+        rest_queryset = rest_queryset.filter(similarity_score__gte=avg_score).distinct()
+
+        rest_list = list(rest_queryset)
+        random.shuffle(rest_list)
+
+        final_list = [current_pending] + rest_list if current_pending else rest_list
+
+        return final_list
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+
+        if queryset:
+            serializer = self.get_serializer(queryset[:1], many=True)
+            return Response(serializer.data)
+
+        return Response([], status=status.HTTP_200_OK)
+
+
+class InternshipRecommendationTapView(APIView):
+    permission_classes = [IsAuthenticated, IsApplicant]
+
+    def put(self, request):
+        recommendation_id = request.query_params.get('recommendation_id')
+        status_param = request.query_params.get('status')
+        normalized_status = status_param.capitalize() if status_param else None
+
+        if not recommendation_id:
+            return Response(
+                {'error': 'Missing "recommendation_id" parameter.'},
+                status=drf_status.HTTP_400_BAD_REQUEST
+            )
+
+        if normalized_status not in ['Skipped', 'Submitted']:
+            return Response(
+                {'error': 'Invalid or missing "status" parameter. Must be either "Skipped" or "Submitted".'},
+                status=drf_status.HTTP_400_BAD_REQUEST
+            )
+
+        applicant = request.user.applicant
+        run_internship_matching(applicant)
+
+        open_posting_ids = InternshipPosting.objects.filter(status='Open') \
+            .values_list('internship_posting_id', flat=True)
+
+        try:
+            recommendation = InternshipRecommendation.objects.get(
+                pk=recommendation_id,
+                applicant=applicant,
+                status='Pending',
+                internship_posting_id__in=open_posting_ids
+            )
+        except InternshipRecommendation.DoesNotExist:
+            return Response(
+                {'error': 'Recommendation not found, not pending, or not for an open internship posting.'},
+                status=drf_status.HTTP_404_NOT_FOUND
+            )
+
+        recommendation.status = normalized_status
+        recommendation.time_stamp = timezone.now()
+        recommendation.is_current = False
+        recommendation.save()
+
+        if normalized_status == 'Submitted':
+            Application.objects.get_or_create(
+                applicant=applicant,
+                internship_posting=recommendation.internship_posting,
+                defaults={'status': 'Pending', 'is_bookmarked': True}
+            )
+
+        return Response(
+            {
+                'recommendation_id': recommendation.recommendation_id,
+                'updated_status': recommendation.status
+            },
+            status=drf_status.HTTP_200_OK
+        )
 
 
 
