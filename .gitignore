@@ -47,6 +47,7 @@ ehthumbs.db
 minio-data
 minio-mkcert
 mkcert
+mkcert-wsl
 minio-data/.minio.sys/
 minio-data/.minio.sys/buckets/*.meta
 minio-data/.minio.sys/buckets/.heal/
