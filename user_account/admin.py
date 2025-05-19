@@ -73,7 +73,7 @@ class ApplicantAdmin(admin.ModelAdmin):
             'fields': ('resume', 'enrollment_record'),
         }),
         ('Internship Matching', {
-            'fields': ('last_matched', 'tap_count'),
+            'fields': ('last_matched', 'tap_count', 'last_recommendation_filter_state'),
         }),
     )
 

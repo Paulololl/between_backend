@@ -1,3 +1,4 @@
+import json
 import random
 from datetime import timedelta
 from django.db import models
@@ -292,9 +293,29 @@ class InternshipRecommendationListView(ListAPIView):
         else:
             raise ValidationError({field_name: f"Invalid value '{value}'. Use 'yes'/'no' or 'true'/'false'."})
 
+    def get_filter_state(self):
+        is_paid_internship = self.request.query_params.get('is_paid_internship')
+        is_only_for_practicum = self.request.query_params.get('is_only_for_practicum')
+        modality = self.request.query_params.get('modality')
+
+        if is_paid_internship is not None:
+            is_paid_internship = self.parse_bool(is_paid_internship, 'is_paid_internship')
+        if is_only_for_practicum is not None:
+            is_only_for_practicum = self.parse_bool(is_only_for_practicum, 'is_only_for_practicum')
+
+        return {
+            'is_paid_internship': is_paid_internship,
+            'is_only_for_practicum': is_only_for_practicum,
+            'modality': modality or None
+        }
+
     def get_queryset(self):
         applicant = self.request.user.applicant
         run_internship_matching(applicant)
+
+        filter_state = self.get_filter_state()
+        json.dumps(filter_state, sort_keys=True)
+        self.filter_state = filter_state
 
         open_posting_ids = InternshipPosting.objects.filter(status='Open') \
             .values_list('internship_posting_id', flat=True)
@@ -305,28 +326,30 @@ class InternshipRecommendationListView(ListAPIView):
             internship_posting_id__in=open_posting_ids
         )
 
-        is_paid_internship = self.request.query_params.get('is_paid_internship')
-        is_only_for_practicum = self.request.query_params.get('is_only_for_practicum')
-        modality = self.request.query_params.get('modality')
+        if filter_state['is_paid_internship'] is not None:
+            base_queryset = base_queryset.filter(
+                internship_posting__is_paid_internship=filter_state['is_paid_internship'])
 
-        if is_paid_internship is not None:
-            bool_val = self.parse_bool(is_paid_internship, 'is_paid_internship')
-            base_queryset = base_queryset.filter(internship_posting__is_paid_internship=bool_val)
+        if filter_state['is_only_for_practicum'] is not None:
+            base_queryset = base_queryset.filter(
+                internship_posting__is_only_for_practicum=filter_state['is_only_for_practicum'])
 
-        if is_only_for_practicum is not None:
-            bool_val = self.parse_bool(is_only_for_practicum, 'is_only_for_practicum')
-            base_queryset = base_queryset.filter(internship_posting__is_only_for_practicum=bool_val)
+        if filter_state['modality']:
+            base_queryset = base_queryset.filter(internship_posting__modality=filter_state['modality'])
 
-        if modality:
-            base_queryset = base_queryset.filter(internship_posting__modality=modality)
+        current_pending = InternshipRecommendation.objects.filter(applicant=applicant, is_current=True).first()
 
-        current_pending = base_queryset.filter(is_current=True).first()
+        if current_pending:
+            return [current_pending]
 
-        if not current_pending and base_queryset.exists():
-            current_pending = random.choice(list(base_queryset))
+        if base_queryset.exists():
             InternshipRecommendation.objects.filter(applicant=applicant, is_current=True).update(is_current=False)
+            current_pending = random.choice(list(base_queryset))
             current_pending.is_current = True
             current_pending.save()
+
+            applicant.last_recommendation_filter_state = filter_state
+            applicant.save(update_fields=['last_recommendation_filter_state'])
 
         rest_queryset = base_queryset.exclude(pk=current_pending.pk) if current_pending else base_queryset
 
@@ -340,10 +363,29 @@ class InternshipRecommendationListView(ListAPIView):
         return final_list
 
     def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
+        try:
+            queryset = self.get_queryset()
+        except ValidationError as e:
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+
+        is_only_for_practicum = self.filter_state.get('is_only_for_practicum')
+
+        if not queryset and is_only_for_practicum is not None:
+            if is_only_for_practicum is True:
+                return Response(
+                    {'message': 'You have viewed all internship recommendations with "Only for Practicum" enabled.'},
+                    status=status.HTTP_200_OK
+                )
+            elif is_only_for_practicum is False:
+                return Response(
+                    {'message': 'You have viewed all internship recommendations with "Only for Practicum" disabled.'},
+                    status=status.HTTP_200_OK
+                )
+
         if queryset:
             serializer = self.get_serializer(queryset[:1], many=True)
             return Response(serializer.data)
+
         return Response([], status=status.HTTP_200_OK)
 
 
