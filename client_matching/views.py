@@ -25,13 +25,13 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from client_application.models import Application
 from client_matching.functions import run_internship_matching, fisher_yates_shuffle
-from client_matching.models import PersonInCharge, InternshipPosting, InternshipRecommendation
+from client_matching.models import PersonInCharge, InternshipPosting, InternshipRecommendation, Report
 from client_matching.permissions import IsCompany, IsApplicant
 from client_matching.serializers import PersonInChargeListSerializer, CreatePersonInChargeSerializer, \
     EditPersonInChargeSerializer, BulkDeletePersonInChargeSerializer, InternshipPostingListSerializer, \
     CreateInternshipPostingSerializer, EditInternshipPostingSerializer, BulkDeleteInternshipPostingSerializer, \
     ToggleInternshipPostingSerializer, InternshipMatchSerializer, InternshipRecommendationListSerializer, \
-    InternshipRecommendationTapSerializer, UploadDocumentSerializer
+    InternshipRecommendationTapSerializer, UploadDocumentSerializer, ReportPostingSerializer
 from client_matching.utils import update_internship_posting_status, delete_old_deleted_postings
 
 User = get_user_model()
@@ -470,6 +470,25 @@ class UploadDocumentView(APIView):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
+
+    def get(self, request):
+        serializer = UploadDocumentSerializer(instance=request.user.applicant, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
+
+class ReportPostingView(CreateAPIView):
+    permission_classes = [IsAuthenticated, IsApplicant]
+    serializer_class = ReportPostingSerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
+
 
 
 

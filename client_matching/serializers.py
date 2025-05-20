@@ -32,7 +32,7 @@ from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from between_ims import settings
 from cea_management.models import Program, Department, School
 from client_matching.models import PersonInCharge, InternshipPosting, KeyTask, MinQualification, Benefit, \
-    HardSkillsTagList, SoftSkillsTagList, InternshipRecommendation
+    HardSkillsTagList, SoftSkillsTagList, InternshipRecommendation, Report
 from django.core.exceptions import ValidationError
 
 load_dotenv()
@@ -720,5 +720,46 @@ class UploadDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Applicant
         fields = ['resume']
+
+
+class ReportPostingSerializer(serializers.ModelSerializer):
+    internship_posting_id = serializers.UUIDField(write_only=True)
+    internship_posting = serializers.UUIDField(source='internship_posting.internship_posting_id', read_only=True)
+
+    class Meta:
+        model = Report
+        fields = ['internship_posting_id', 'internship_posting', 'description']
+
+    def validate_internship_posting_id(self, value):
+        request = self.context['request']
+        user = request.user
+
+        if not InternshipPosting.objects.filter(pk=value).exists():
+            raise serializers.ValidationError("Internship posting not found.")
+
+        has_active_report = Report.objects.filter(
+            internship_posting_id=value,
+            user=user,
+        ).exclude(status__in=['Solved', 'Deleted']).exists()
+
+        if has_active_report:
+            raise serializers.ValidationError(
+                "You have already reported this posting. Wait until your previous report is resolved."
+            )
+
+        return value
+
+    def create(self, validated_data):
+        request = self.context['request']
+        user = request.user
+
+        posting_id = validated_data.pop('internship_posting_id')
+        posting = InternshipPosting.objects.get(pk=posting_id)
+        report = Report.objects.create(
+            internship_posting=posting,
+            user=user,
+            **validated_data
+        )
+        return report
 
 

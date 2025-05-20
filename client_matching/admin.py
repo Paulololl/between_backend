@@ -5,7 +5,7 @@ from .models import (HardSkillsTagList, SoftSkillsTagList, InternshipPosting, In
                      Report, MinQualification, Benefit, Advertisement, KeyTask, PersonInCharge)
 from .utils import InternshipPostingStatusFilter
 
-model_to_register = [Report, MinQualification, Benefit, Advertisement, KeyTask, PersonInCharge]
+model_to_register = [MinQualification, Benefit, Advertisement, KeyTask, PersonInCharge]
 
 for model in model_to_register:
     admin.site.register(model)
@@ -163,6 +163,41 @@ class InternshipRecommendationAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False
+
+    def has_delete_permission(self, request, obj=None):
+        return True
+
+
+@admin.register(Report)
+class ReportAdmin(admin.ModelAdmin):
+    model = Report
+
+    list_display = ('report_id', 'display_position', 'display_company_name', 'status')
+
+    list_filter = ('status',)
+
+    readonly_fields = ('description', 'internship_posting')
+
+    fieldsets = (
+        (None, {
+            'fields': ('internship_posting', 'description', 'status')
+        }),
+    )
+
+    def display_position(self, obj):
+        return obj.internship_posting.internship_position if obj.internship_posting else '-'
+    display_position.short_description = 'Internship Posting'
+
+    def display_company_name(self, obj):
+        return obj.internship_posting.company.company_name\
+            if (obj.internship_posting and obj.internship_posting.company) else "-"
+    display_company_name.short_description = "Company"
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return True
 
     def has_delete_permission(self, request, obj=None):
         return True

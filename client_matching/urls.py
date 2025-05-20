@@ -3,7 +3,7 @@ from django.urls import path
 from client_matching.views import PersonInChargeListView, CreatePersonInChargeView, EditPersonInChargeView, \
     BulkDeletePersonInChargeView, InternshipPostingListView, CreateInternshipPostingView, EditInternshipPostingView, \
     BulkDeleteInternshipPostingView, ToggleInternshipPostingView, GetInternshipPostingsView, InternshipMatchView, \
-    InternshipRecommendationListView, InternshipRecommendationTapView, UploadDocumentView
+    InternshipRecommendationListView, InternshipRecommendationTapView, UploadDocumentView, ReportPostingView
 
 urlpatterns = [
     path('internship_posting/', InternshipPostingListView.as_view()),
@@ -20,4 +20,5 @@ urlpatterns = [
     path('internship_recommendations/', InternshipRecommendationListView.as_view()),
     path('internship_recommendations/current/tap/', InternshipRecommendationTapView.as_view()),
     path('edit/applicant_document/', UploadDocumentView.as_view()),
+    path('report/posting/', ReportPostingView.as_view()),
 ]

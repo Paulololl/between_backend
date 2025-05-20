@@ -88,6 +88,7 @@ class InternshipRecommendation(models.Model):
 class Report(models.Model):
 
     report_id = models.AutoField(primary_key=True)
+    user = models.ForeignKey('user_account.User', on_delete=models.CASCADE, editable=False, default='')
     internship_posting = models.ForeignKey('InternshipPosting', on_delete=models.CASCADE)
 
     description = models.CharField(max_length=500)
@@ -99,7 +100,7 @@ class Report(models.Model):
     ], default='Pending')
 
     def __str__(self):
-        return f'{self.report_id} - {self.status}'
+        return f'{self.internship_posting.company.company_name} - {self.status}'
 
 
 class MinQualification(models.Model):
