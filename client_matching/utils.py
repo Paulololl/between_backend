@@ -1,10 +1,16 @@
+from datetime import timedelta
+from functools import lru_cache
+
 from django.contrib.admin import SimpleListFilter
 from django.utils.timezone import now
 from sentence_transformers import SentenceTransformer
 import numpy as np
 from client_matching.models import InternshipPosting
 
-model = SentenceTransformer('all-MiniLM-L6-v2')
+
+@lru_cache(maxsize=1)
+def get_sentence_model():
+    return SentenceTransformer('all-MiniLM-L6-v2')
 
 
 def get_profile_embedding(profile: dict, is_applicant: bool = True):
@@ -31,6 +37,7 @@ def get_profile_embedding(profile: dict, is_applicant: bool = True):
         weights = np.array([0.3, 0.3, 0.05, 0.05, 0.1, 0.1, 0.1])
 
     def encode_text(text):
+        model = get_sentence_model()
         emb = model.encode(text)
         if isinstance(emb, tuple):
             emb = emb[0]
@@ -131,6 +138,11 @@ def update_internship_posting_status(company):
         application_deadline__gte=current_time,
         status='Expired'
     ).update(status='Open')
+
+
+def delete_old_deleted_postings():
+    threshold = now() - timedelta(days=3)
+    InternshipPosting.objects.filter(status='Deleted', date_modified__lt=threshold).delete()
 
 
 class InternshipPostingStatusFilter(SimpleListFilter):

@@ -32,8 +32,7 @@ from client_matching.serializers import PersonInChargeListSerializer, CreatePers
     CreateInternshipPostingSerializer, EditInternshipPostingSerializer, BulkDeleteInternshipPostingSerializer, \
     ToggleInternshipPostingSerializer, InternshipMatchSerializer, InternshipRecommendationListSerializer, \
     InternshipRecommendationTapSerializer
-from client_matching.utils import update_internship_posting_status
-
+from client_matching.utils import update_internship_posting_status, delete_old_deleted_postings
 
 User = get_user_model()
 
@@ -51,6 +50,7 @@ class InternshipPostingListView(ListAPIView):
     def get_queryset(self):
         user = self.request.user
         update_internship_posting_status(company=user.company)
+        delete_old_deleted_postings()
 
         queryset = InternshipPosting.objects.filter(company=user.company).exclude(status='Deleted')
 
@@ -79,11 +79,17 @@ class CreateInternshipPostingView(CreateAPIView):
         context['request'] = self.request
         return context
 
+    def perform_create(self, serializer):
+        delete_old_deleted_postings()
+        serializer.save()
+
 
 class EditInternshipPostingView(APIView):
     permission_classes = [IsAuthenticated, IsCompany]
 
     def put(self, request):
+        delete_old_deleted_postings()
+
         internship_posting_id = request.query_params.get('internship_posting_id')
         if not internship_posting_id:
             return Response({"error": "Missing 'internship_posting_id' in query parameters."},
@@ -174,7 +180,7 @@ class BulkDeletePersonInChargeView(APIView):
             pic_ids = serializer.validated_data['pic_ids']
             deleted_count, _ = PersonInCharge.objects.filter(
                 person_in_charge_id__in=pic_ids,
-                company=request.user.company
+                company=request.user.company,
             ).delete()
             return Response({
                 'message': f'Successfully deleted {deleted_count} person(s) in charge.'
@@ -193,7 +199,10 @@ class BulkDeleteInternshipPostingView(APIView):
             updated_count = InternshipPosting.objects.filter(
                 internship_posting_id__in=posting_ids,
                 company=request.user.company
-            ).update(status='Deleted')
+            ).update(
+                status='Deleted',
+                date_modified=now()
+            )
 
             return Response(
                 {"message": f"{updated_count} internship posting(s) deleted."},
@@ -337,6 +346,8 @@ class InternshipRecommendationListView(ListAPIView):
         if filter_state['modality']:
             base_queryset = base_queryset.filter(internship_posting__modality=filter_state['modality'])
 
+        avg_score = base_queryset.aggregate(avg=Avg('similarity_score'))['avg'] or 0
+
         current_pending = InternshipRecommendation.objects.filter(applicant=applicant, is_current=True).first()
 
         if current_pending:
@@ -352,8 +363,6 @@ class InternshipRecommendationListView(ListAPIView):
             applicant.save(update_fields=['last_recommendation_filter_state'])
 
         rest_queryset = base_queryset.exclude(pk=current_pending.pk) if current_pending else base_queryset
-
-        avg_score = base_queryset.aggregate(avg=Avg('similarity_score'))['avg'] or 0
         rest_queryset = rest_queryset.filter(similarity_score__gte=avg_score).distinct()
 
         rest_list = list(rest_queryset)
