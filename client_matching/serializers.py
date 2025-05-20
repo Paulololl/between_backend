@@ -716,3 +716,9 @@ class InternshipRecommendationTapSerializer(serializers.ModelSerializer):
         fields = ['recommendation_id', 'status']
 
 
+class UploadDocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Applicant
+        fields = ['resume']
+
+

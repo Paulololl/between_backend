@@ -31,7 +31,7 @@ from client_matching.serializers import PersonInChargeListSerializer, CreatePers
     EditPersonInChargeSerializer, BulkDeletePersonInChargeSerializer, InternshipPostingListSerializer, \
     CreateInternshipPostingSerializer, EditInternshipPostingSerializer, BulkDeleteInternshipPostingSerializer, \
     ToggleInternshipPostingSerializer, InternshipMatchSerializer, InternshipRecommendationListSerializer, \
-    InternshipRecommendationTapSerializer
+    InternshipRecommendationTapSerializer, UploadDocumentSerializer
 from client_matching.utils import update_internship_posting_status, delete_old_deleted_postings
 
 User = get_user_model()
@@ -459,6 +459,17 @@ class InternshipRecommendationTapView(APIView):
             },
             status=drf_status.HTTP_200_OK
         )
+
+
+class UploadDocumentView(APIView):
+    permission_classes = [IsAuthenticated, IsApplicant]
+
+    def put(self, request):
+        serializer = UploadDocumentSerializer(instance=request.user.applicant, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
 
 
 

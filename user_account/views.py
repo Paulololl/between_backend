@@ -143,6 +143,7 @@ class GetApplicantView(ListAPIView):
 
 class EditApplicantView(APIView):
     permission_classes = [IsAuthenticated]
+
     def put(self, request):
         serializer = EditApplicantSerializer(instance=request.user.applicant, data=request.data, partial=True)
         if serializer.is_valid():
