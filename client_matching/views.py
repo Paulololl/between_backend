@@ -382,7 +382,7 @@ class InternshipRecommendationListView(ListAPIView):
 
         if applicant.tap_count >= 10:
             return Response(
-                {'message': 'You have already reached 10 swipes. Come back again tomorrow!'},
+                {'message': 'You have already reached your daily limit. Come back again tomorrow!'},
                 status=status.HTTP_200_OK
             )
 
