@@ -217,4 +217,11 @@ class InternshipRecommendationInline(admin.TabularInline):
             return 'Deleted or Missing'
     posting_status.short_description = 'Internship Posting'
 
+    def has_add_permission(self, request, obj=None):
+        return False
 
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return True

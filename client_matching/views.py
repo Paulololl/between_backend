@@ -1,7 +1,7 @@
 import json
 import random
 from datetime import timedelta
-from django.db import models
+from django.db import models, transaction
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core.cache import cache
@@ -378,6 +378,14 @@ class InternshipRecommendationListView(ListAPIView):
         return final_list
 
     def list(self, request, *args, **kwargs):
+        applicant = request.user.applicant
+
+        if applicant.tap_count >= 10:
+            return Response(
+                {'message': 'You have already reached 10 swipes. Come back again tomorrow!'},
+                status=status.HTTP_200_OK
+            )
+
         try:
             queryset = self.get_queryset()
         except ValidationError as e:
@@ -451,20 +459,21 @@ class InternshipRecommendationTapView(APIView):
         applicant.tap_count = (applicant.tap_count or 0) + 1
         applicant.save()
 
-        if normalized_status == 'Submitted':
-            Application.objects.get_or_create(
-                applicant=applicant,
-                internship_posting=recommendation.internship_posting,
-                defaults={'status': 'Pending', 'is_bookmarked': True}
-            )
+        with transaction.atomic():
+            if normalized_status == 'Submitted':
+                Application.objects.get_or_create(
+                    applicant=applicant,
+                    internship_posting=recommendation.internship_posting,
+                    defaults={'status': 'Pending', 'is_bookmarked': True}
+                )
 
-        return Response(
-            {
-                'recommendation_id': recommendation.recommendation_id,
-                'updated_status': recommendation.status
-            },
-            status=drf_status.HTTP_200_OK
-        )
+            return Response(
+                {
+                    'recommendation_id': recommendation.recommendation_id,
+                    'updated_status': recommendation.status
+                },
+                status=drf_status.HTTP_200_OK
+            )
 
 
 class UploadDocumentView(APIView):
