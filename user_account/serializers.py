@@ -321,16 +321,20 @@ class CompanyRegisterSerializer(serializers.ModelSerializer):
         if User.objects.filter(email=email).exists():
             raise serializers.ValidationError({'company_email': 'This email is already in use.'})
 
-        else:
-            user = User.objects.create_user(
-                email=email,
-                password=password,
-                user_role='company',
-                date_joined=timezone.now(),
-            )
+        try:
+            with transaction.atomic():
+                user = User.objects.create_user(
+                    email=email,
+                    password=password,
+                    user_role='company',
+                    date_joined=timezone.now(),
+                )
 
-            company = Company.objects.create(user=user, **validated_data)
-            return company
+                company = Company.objects.create(user=user, **validated_data)
+                return company
+
+        except Exception:
+            raise serializers.ValidationError({'non_field_errors': 'Something went wrong with the server.'})
 
 
 class CareerEmplacementAdminRegisterSerializer(serializers.ModelSerializer):
