@@ -26,7 +26,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from client_application.models import Application
 from client_matching.functions import run_internship_matching, fisher_yates_shuffle
 from client_matching.models import PersonInCharge, InternshipPosting, InternshipRecommendation, Report
-from client_matching.permissions import IsCompany, IsApplicant
+from client_matching.permissions import IsCompany, IsApplicant, IsCoordinator
 from client_matching.serializers import PersonInChargeListSerializer, CreatePersonInChargeSerializer, \
     EditPersonInChargeSerializer, BulkDeletePersonInChargeSerializer, InternshipPostingListSerializer, \
     CreateInternshipPostingSerializer, EditInternshipPostingSerializer, BulkDeleteInternshipPostingSerializer, \
@@ -335,6 +335,8 @@ class InternshipRecommendationListView(ListAPIView):
             internship_posting_id__in=open_posting_ids
         )
 
+        print("Open posting IDs:", list(open_posting_ids))
+
         if filter_state['is_paid_internship'] is not None:
             base_queryset = base_queryset.filter(
                 internship_posting__is_paid_internship=filter_state['is_paid_internship'])
@@ -348,7 +350,11 @@ class InternshipRecommendationListView(ListAPIView):
 
         avg_score = base_queryset.aggregate(avg=Avg('similarity_score'))['avg'] or 0
 
-        current_pending = InternshipRecommendation.objects.filter(applicant=applicant, is_current=True).first()
+        current_pending = InternshipRecommendation.objects.filter(
+            applicant=applicant,
+            is_current=True,
+            internship_posting__status='Open'
+        ).first()
 
         if current_pending:
             return [current_pending]
@@ -382,12 +388,12 @@ class InternshipRecommendationListView(ListAPIView):
         if not queryset and is_only_for_practicum is not None:
             if is_only_for_practicum is True:
                 return Response(
-                    {'message': 'You have viewed all internship recommendations with "Only for Practicum" enabled.'},
+                    {'message': 'You have viewed all internship recommendations with Practicum Filtering set to "Yes".'},
                     status=status.HTTP_200_OK
                 )
             elif is_only_for_practicum is False:
                 return Response(
-                    {'message': 'You have viewed all internship recommendations with "Only for Practicum" disabled.'},
+                    {'message': 'You have viewed all internship recommendations with Practicum Filtering set to "No".'},
                     status=status.HTTP_200_OK
                 )
 

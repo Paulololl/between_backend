@@ -81,8 +81,7 @@ class InternshipRecommendation(models.Model):
     is_current = models.BooleanField(default=False)
 
     def __str__(self):
-        return (f'{self.recommendation_id} - {self.applicant.first_name} {self.applicant.last_name}'
-                f' - {self.status}')
+        return f'{self.recommendation_id} - {self.internship_posting}'
 
 
 class Report(models.Model):

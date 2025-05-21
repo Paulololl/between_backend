@@ -585,7 +585,10 @@ class InternshipMatchSerializer(serializers.Serializer):
             for profile in internship_posting_profiles
         ]
 
-        internship_posting_embedding = np.vstack(internship_posting_embedding)
+        if internship_posting_embedding:
+            internship_posting_embedding = np.vstack(internship_posting_embedding)
+        else:
+            internship_posting_embedding = None
 
         ranked_result = cosine_compare(
             applicant_embedding,
@@ -604,12 +607,27 @@ class InternshipMatchSerializer(serializers.Serializer):
 
         for item in ranked_result:
             posting = InternshipPosting.objects.get(internship_posting_id=item['internship_posting_id'])
+            similarity_score = Decimal(str(item['similarity_score']))
+
+            try:
+                existing = InternshipRecommendation.objects.get(
+                    applicant=applicant,
+                    internship_posting=posting
+                )
+                if existing.status in ['Submitted', 'Skipped']:
+                    status_to_set = existing.status
+                else:
+                    status_to_set = 'Pending'
+
+            except InternshipRecommendation.DoesNotExist:
+                status_to_set = 'Pending'
+
             InternshipRecommendation.objects.update_or_create(
                 applicant=applicant,
                 internship_posting=posting,
                 defaults={
-                    'similarity_score': Decimal(str(item['similarity_score'])),
-                    'status': 'Pending',
+                    'similarity_score': similarity_score,
+                    'status': status_to_set,
                 }
             )
 

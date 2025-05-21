@@ -96,6 +96,10 @@ def cosine_similarity(a: np.ndarray, b: np.ndarray):
 
 def cosine_compare(applicant_embedding: np.ndarray, applicant_profile: dict,
                    internship_posting_embedding: np.ndarray, internship_posting_profiles: list):
+
+    if internship_posting_embedding is None or len(internship_posting_embedding) == 0:
+        return []
+
     applicant_embedding = np.array(applicant_embedding).flatten()
 
     similarities = []

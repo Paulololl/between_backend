@@ -3,6 +3,7 @@ import os
 from datetime import timedelta
 
 from django.core.cache import cache
+from django.db import transaction
 from jwt.exceptions import ExpiredSignatureError, DecodeError, InvalidTokenError
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.exceptions import TokenError
@@ -215,43 +216,48 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
         if User.objects.filter(email=email).exists():
             raise serializers.ValidationError({'applicant_email': 'This email is already in use.'})
 
-        user = User.objects.create_user(
-            email=email,
-            password=password,
-            user_role='applicant',
-        )
+        try:
+            with transaction.atomic():
+                user = User.objects.create_user(
+                    email=email,
+                    password=password,
+                    user_role='applicant',
+                )
 
-        applicant = Applicant.objects.create(user=user, **validated_data)
+                applicant = Applicant.objects.create(user=user, **validated_data)
 
-        if hard_skills_string:
-            try:
-                hard_skills_json = json.loads(hard_skills_string)
-                hard_skills = []
-                for skill in hard_skills_json:
-                    skill_instance, _ = HardSkillsTagList.objects.get_or_create(
-                        lightcast_identifier=skill['id'],
-                        defaults={'name': skill['name']}
-                    )
-                    hard_skills.append(skill_instance)
-                applicant.hard_skills.set(hard_skills)
-            except json.JSONDecodeError:
-                raise serializers.ValidationError("Invalid format for hard_skills")
+                if hard_skills_string:
+                    try:
+                        hard_skills_json = json.loads(hard_skills_string)
+                        hard_skills = []
+                        for skill in hard_skills_json:
+                            skill_instance, _ = HardSkillsTagList.objects.get_or_create(
+                                lightcast_identifier=skill['id'],
+                                defaults={'name': skill['name']}
+                            )
+                            hard_skills.append(skill_instance)
+                        applicant.hard_skills.set(hard_skills)
+                    except json.JSONDecodeError:
+                        raise serializers.ValidationError("Invalid format for hard_skills")
 
-        if soft_skills_string:
-            try:
-                soft_skills_json = json.loads(soft_skills_string)
-                soft_skills = []
-                for skill in soft_skills_json:
-                    skill_instance, _ = SoftSkillsTagList.objects.get_or_create(
-                        lightcast_identifier=skill['id'],
-                        defaults={'name': skill['name']}
-                    )
-                    soft_skills.append(skill_instance)
-                applicant.soft_skills.set(soft_skills)
-            except json.JSONDecodeError:
-                raise serializers.ValidationError("Invalid format for soft_skills")
+                if soft_skills_string:
+                    try:
+                        soft_skills_json = json.loads(soft_skills_string)
+                        soft_skills = []
+                        for skill in soft_skills_json:
+                            skill_instance, _ = SoftSkillsTagList.objects.get_or_create(
+                                lightcast_identifier=skill['id'],
+                                defaults={'name': skill['name']}
+                            )
+                            soft_skills.append(skill_instance)
+                        applicant.soft_skills.set(soft_skills)
+                    except json.JSONDecodeError:
+                        raise serializers.ValidationError("Invalid format for soft_skills")
 
-        return applicant
+                return applicant
+
+        except Exception:
+            raise serializers.ValidationError({'non_field_errors': 'Something went wrong with the server.'})
 
 
 class CompanyRegisterSerializer(serializers.ModelSerializer):
