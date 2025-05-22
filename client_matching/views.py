@@ -337,18 +337,24 @@ class InternshipRecommendationListView(ListAPIView):
             internship_posting_id__in=open_posting_ids
         )
 
-        print("Open posting IDs:", list(open_posting_ids))
+        if applicant.in_practicum == 'Yes':
+            if filter_state['is_paid_internship'] is not None:
+                base_queryset = base_queryset.filter(
+                    internship_posting__is_paid_internship=filter_state['is_paid_internship'])
 
-        if filter_state['is_paid_internship'] is not None:
-            base_queryset = base_queryset.filter(
-                internship_posting__is_paid_internship=filter_state['is_paid_internship'])
+            if filter_state['is_only_for_practicum'] is not None:
+                base_queryset = base_queryset.filter(
+                    internship_posting__is_only_for_practicum=filter_state['is_only_for_practicum'])
 
-        if filter_state['is_only_for_practicum'] is not None:
-            base_queryset = base_queryset.filter(
-                internship_posting__is_only_for_practicum=filter_state['is_only_for_practicum'])
-
-        if filter_state['modality']:
-            base_queryset = base_queryset.filter(internship_posting__modality=filter_state['modality'])
+            if filter_state['modality']:
+                base_queryset = base_queryset.filter(internship_posting__modality=filter_state['modality'])
+        else:
+            if any([
+                filter_state['is_paid_internship'] is not None,
+                filter_state['is_only_for_practicum'] is not None,
+                filter_state['modality']
+            ]):
+                raise ValidationError({'error': 'You must be in practicum to apply internship filters.'})
 
         avg_score = base_queryset.aggregate(avg=Avg('similarity_score'))['avg'] or 0
 

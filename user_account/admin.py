@@ -61,7 +61,7 @@ class ApplicantAdmin(admin.ModelAdmin):
         'user', 'first_name', 'last_name', 'middle_initial',
         'school', 'department', 'program',
         'academic_program', 'address', 'preferred_modality',
-        'quick_introduction', 'in_practicum', 'display_hard_skills', 'display_soft_skills',
+        'quick_introduction', 'display_hard_skills', 'display_soft_skills',
         'resume', 'enrollment_record', 'last_matched', 'last_recommendation_filter_state',
     )
 
