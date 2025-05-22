@@ -32,7 +32,8 @@ from client_matching.serializers import PersonInChargeListSerializer, CreatePers
     CreateInternshipPostingSerializer, EditInternshipPostingSerializer, BulkDeleteInternshipPostingSerializer, \
     ToggleInternshipPostingSerializer, InternshipMatchSerializer, InternshipRecommendationListSerializer, \
     InternshipRecommendationTapSerializer, UploadDocumentSerializer, ReportPostingSerializer
-from client_matching.utils import update_internship_posting_status, delete_old_deleted_postings
+from client_matching.utils import update_internship_posting_status, delete_old_deleted_postings, \
+    reset_recommendations_and_tap_count
 
 User = get_user_model()
 
@@ -320,6 +321,7 @@ class InternshipRecommendationListView(ListAPIView):
 
     def get_queryset(self):
         applicant = self.request.user.applicant
+        reset_recommendations_and_tap_count()
         run_internship_matching(applicant)
 
         filter_state = self.get_filter_state()
@@ -433,6 +435,7 @@ class InternshipRecommendationTapView(APIView):
             )
 
         applicant = request.user.applicant
+        reset_recommendations_and_tap_count()
         run_internship_matching(applicant)
 
         open_posting_ids = InternshipPosting.objects.filter(status='Open') \

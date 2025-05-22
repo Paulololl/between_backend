@@ -22,6 +22,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from cea_management.models import Department, Program, School
 from client_matching.functions import run_internship_matching
 from client_matching.serializers import InternshipMatchSerializer
+from client_matching.utils import reset_recommendations_and_tap_count
 from .models import Applicant, Company, CareerEmplacementAdmin, OJTCoordinator
 from .serializers import (ApplicantRegisterSerializer, NestedSchoolDepartmentProgramSerializer,
                           DepartmentSerializer, ProgramNestedSerializer, SchoolSerializer, CompanyRegisterSerializer,
@@ -225,6 +226,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
         if response.status_code == 200 and user and hasattr(user, 'applicant'):
             serializer = InternshipMatchSerializer(context={'applicant': user.applicant})
             serializer.create(validated_data={})
+            reset_recommendations_and_tap_count()
             run_internship_matching(user.applicant)
 
         return response
