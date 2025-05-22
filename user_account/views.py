@@ -21,6 +21,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from cea_management.models import Department, Program, School
 from client_matching.functions import run_internship_matching
+from client_matching.permissions import IsApplicant
 from client_matching.serializers import InternshipMatchSerializer
 from client_matching.utils import reset_recommendations_and_tap_count
 from .models import Applicant, Company, CareerEmplacementAdmin, OJTCoordinator
@@ -143,14 +144,20 @@ class GetApplicantView(ListAPIView):
 
 
 class EditApplicantView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsApplicant]
 
     def put(self, request):
-        serializer = EditApplicantSerializer(instance=request.user.applicant, data=request.data, partial=True)
+        applicant = request.user.applicant
+        serializer = EditApplicantSerializer(instance=applicant, data=request.data, partial=True)
+
         if serializer.is_valid():
+            applicant.user.date_modified = now()
+            applicant.user.save(update_fields=['date_modified'])
             serializer.save()
+            run_internship_matching(applicant)
             return Response(serializer.data)
-        return Response(serializer.errors, status=400)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CompanyRegisterView(CreateAPIView):

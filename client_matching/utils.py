@@ -153,7 +153,7 @@ def delete_old_deleted_postings():
 def reset_recommendations_and_tap_count():
     current_time = now()
     midnight_today = current_time.replace(hour=0, minute=0, second=0, microsecond=0)
-    # threshold_time = current_time - timedelta(seconds=10)
+    # threshold_time = current_time - timedelta(seconds=20)
 
     skipped_recommendations = InternshipRecommendation.objects.filter(
         status='Skipped',
