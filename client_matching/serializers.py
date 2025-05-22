@@ -740,6 +740,12 @@ class UploadDocumentSerializer(serializers.ModelSerializer):
         fields = ['resume']
 
 
+class InPracticumSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Applicant
+        fields = ['in_practicum']
+
+
 class ReportPostingSerializer(serializers.ModelSerializer):
     internship_posting_id = serializers.UUIDField(write_only=True)
     internship_posting = serializers.UUIDField(source='internship_posting.internship_posting_id', read_only=True)
