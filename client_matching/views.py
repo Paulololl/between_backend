@@ -385,7 +385,7 @@ class InternshipRecommendationListView(ListAPIView):
                         "caption_text": ad.caption_text,
                         "created_at": ad.created_at.isoformat()
                     }
-                    return Response(ad_data)
+                    return Response([ad_data])
 
         try:
             queryset = self.get_queryset()
