@@ -32,7 +32,7 @@ from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from between_ims import settings
 from cea_management.models import Program, Department, School
 from client_matching.models import PersonInCharge, InternshipPosting, KeyTask, MinQualification, Benefit, \
-    HardSkillsTagList, SoftSkillsTagList, InternshipRecommendation, Report
+    HardSkillsTagList, SoftSkillsTagList, InternshipRecommendation, Report, Advertisement
 from django.core.exceptions import ValidationError
 
 load_dotenv()
@@ -631,7 +631,6 @@ class InternshipMatchSerializer(serializers.Serializer):
                 }
             )
 
-        print("Ranked result:", ranked_result)
         return ranked_result
 
 

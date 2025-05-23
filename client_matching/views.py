@@ -15,7 +15,7 @@ from rest_framework import status as drf_status
 
 from client_application.models import Application
 from client_matching.functions import run_internship_matching, fisher_yates_shuffle
-from client_matching.models import PersonInCharge, InternshipPosting, InternshipRecommendation
+from client_matching.models import PersonInCharge, InternshipPosting, InternshipRecommendation, Advertisement
 from user_account.permissions import IsCompany, IsApplicant
 from client_matching.serializers import PersonInChargeListSerializer, CreatePersonInChargeSerializer, \
     EditPersonInChargeSerializer, BulkDeletePersonInChargeSerializer, InternshipPostingListSerializer, \
@@ -366,6 +366,26 @@ class InternshipRecommendationListView(ListAPIView):
                 {'message': 'You have already reached your daily limit. Come back again tomorrow!'},
                 status=status.HTTP_200_OK
             )
+
+        filter_state = self.get_filter_state()
+        last_filter_state = applicant.last_recommendation_filter_state or {}
+        filters_changed = (filter_state != last_filter_state)
+        apply_ad_chance = not filters_changed
+
+        if apply_ad_chance:
+            advertisement_chance = 0.25
+            show_ad = random.random() < advertisement_chance
+            if show_ad:
+                ad = Advertisement.objects.order_by('?').first()
+                if ad:
+                    ad_data = {
+                        "advertisement_id": str(ad.advertisement_id),
+                        "image_url": ad.image_url.url if ad.image_url else None,
+                        "redirect_url": ad.redirect_url,
+                        "caption_text": ad.caption_text,
+                        "created_at": ad.created_at.isoformat()
+                    }
+                    return Response(ad_data)
 
         try:
             queryset = self.get_queryset()
