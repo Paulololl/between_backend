@@ -1,37 +1,27 @@
 import json
 import random
-from datetime import timedelta
-from django.db import models, transaction
+from django.db import transaction
 from django.contrib.auth import get_user_model
-from django.contrib.auth.tokens import default_token_generator
-from django.core.cache import cache
-from django.db.models import Max, Avg
-from django.http import HttpResponseRedirect
-from django.shortcuts import redirect, get_object_or_404
+from django.db.models import Avg
 from django.utils import timezone
-from django.utils.http import urlsafe_base64_decode
-from django.utils.encoding import force_str
 from django.utils.timezone import now
-from drf_spectacular.utils import extend_schema
-from rest_framework import status, generics, serializers
+from rest_framework import status, serializers
 from rest_framework.exceptions import ValidationError
-from rest_framework.generics import ListAPIView, CreateAPIView, RetrieveAPIView
+from rest_framework.generics import ListAPIView, CreateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status as drf_status
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from client_application.models import Application
 from client_matching.functions import run_internship_matching, fisher_yates_shuffle
-from client_matching.models import PersonInCharge, InternshipPosting, InternshipRecommendation, Report
-from client_matching.permissions import IsCompany, IsApplicant, IsCoordinator
+from client_matching.models import PersonInCharge, InternshipPosting, InternshipRecommendation
+from user_account.permissions import IsCompany, IsApplicant
 from client_matching.serializers import PersonInChargeListSerializer, CreatePersonInChargeSerializer, \
     EditPersonInChargeSerializer, BulkDeletePersonInChargeSerializer, InternshipPostingListSerializer, \
     CreateInternshipPostingSerializer, EditInternshipPostingSerializer, BulkDeleteInternshipPostingSerializer, \
     ToggleInternshipPostingSerializer, InternshipMatchSerializer, InternshipRecommendationListSerializer, \
-    InternshipRecommendationTapSerializer, UploadDocumentSerializer, ReportPostingSerializer, InPracticumSerializer
+    UploadDocumentSerializer, ReportPostingSerializer, InPracticumSerializer
 from client_matching.utils import update_internship_posting_status, delete_old_deleted_postings, \
     reset_recommendations_and_tap_count
 
@@ -263,26 +253,9 @@ class InternshipMatchView(APIView):
 
         serializer = InternshipMatchSerializer(data=request.data, context={'applicant': applicant})
         if serializer.is_valid():
-            matches = serializer.save()
+            ranked_result = serializer.save()
 
-            open_posting_ids = InternshipPosting.objects.filter(status='Open') \
-                .values_list('internship_posting_id', flat=True)
-
-            queryset = InternshipRecommendation.objects.filter(
-                applicant=applicant,
-                status='Pending',
-                internship_posting_id__in=open_posting_ids
-            )
-
-            shuffled_recommendations = fisher_yates_shuffle(queryset)
-
-            serialized = InternshipRecommendationListSerializer(
-                shuffled_recommendations,
-                many=True,
-                context={'request': request}
-            )
-
-            return Response(serialized.data, status=status.HTTP_200_OK)
+            return Response(ranked_result, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -380,7 +353,7 @@ class InternshipRecommendationListView(ListAPIView):
         rest_queryset = rest_queryset.filter(similarity_score__gte=avg_score).distinct()
 
         rest_list = list(rest_queryset)
-        random.shuffle(rest_list)
+        rest_list = fisher_yates_shuffle(rest_list)
 
         final_list = [current_pending] + rest_list if current_pending else rest_list
         return final_list
