@@ -15,7 +15,7 @@ class ApplicationListSerializer(serializers.ModelSerializer):
         model = Application
         fields = ['company_name', 'internship_position', 'company_address', 'profile_picture',
                   'applicant_name', 'internship_position', 'applicant_address',
-                  'status']
+                  'application_id', 'status']
 
     def get_applicant_name(self, obj):
         first_name = obj.applicant.first_name or ''
@@ -41,10 +41,11 @@ class ApplicationListSerializer(serializers.ModelSerializer):
         if user and hasattr(user, 'user_role'):
             if user.user_role == 'applicant':
                 allowed_fields = ['company_name', 'internship_position', 'company_address', 'profile_picture',
-                                  'status']
+                                  'application_id', 'status']
 
             elif user.user_role == 'company':
-                allowed_fields = ['applicant_name', 'internship_position', 'applicant_address', 'status']
+                allowed_fields = ['applicant_name', 'internship_position', 'applicant_address',
+                                  'application_id', 'status']
 
             else:
                 allowed_fields = []
