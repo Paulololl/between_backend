@@ -47,7 +47,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         ('company', 'company'),
         ('cea', 'cea'),
         ('coordinator', 'coordinator'),
-    ], default='ADMIN')
+    ], default='admin')
 
     is_superuser = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
