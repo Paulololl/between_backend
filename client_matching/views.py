@@ -277,6 +277,15 @@ class InternshipRecommendationListView(ListAPIView):
             raise ValidationError({field_name: f"Invalid value '{value}'. Use 'yes'/'no' or 'true'/'false'."})
 
     def get_filter_state(self):
+        applicant = self.request.user.applicant
+
+        if applicant.in_practicum != 'Yes':
+            return {
+                'is_paid_internship': None,
+                'is_only_for_practicum': None,
+                'modality': None
+            }
+
         is_paid_internship = self.request.query_params.get('is_paid_internship')
         is_only_for_practicum = self.request.query_params.get('is_only_for_practicum')
         modality = self.request.query_params.get('modality')
@@ -321,13 +330,18 @@ class InternshipRecommendationListView(ListAPIView):
 
             if filter_state['modality']:
                 base_queryset = base_queryset.filter(internship_posting__modality=filter_state['modality'])
-        else:
-            if any([
-                filter_state['is_paid_internship'] is not None,
-                filter_state['is_only_for_practicum'] is not None,
-                filter_state['modality']
-            ]):
-                raise ValidationError({'error': 'You must be in practicum to apply internship filters.'})
+
+        elif any([
+            filter_state['is_paid_internship'] is not None,
+            filter_state['is_only_for_practicum'] is not None,
+            filter_state['modality']
+        ]):
+            self.filter_state = {
+                'is_paid_internship': None,
+                'is_only_for_practicum': None,
+                'modality': None
+            }
+            raise ValidationError({'error': 'You must be in practicum to apply internship filters.'})
 
         avg_score = base_queryset.aggregate(avg=Avg('similarity_score'))['avg'] or 0
 
