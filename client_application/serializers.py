@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from client_application.models import Application
+from client_application.models import Application, Notification
 
 
 class ApplicationListSerializer(serializers.ModelSerializer):
@@ -79,9 +79,11 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
     applicant_email = serializers.SerializerMethodField()
     applicant_address = serializers.SerializerMethodField()
     applicant_modality = serializers.SerializerMethodField()
-    applicant_program = serializers.SerializerMethodField()
+    applicant_program = serializers.SerializerMethodField(required=False)
+    applicant_academic_program = serializers.SerializerMethodField(required=False)
     applicant_resume = serializers.SerializerMethodField()
     application_status = serializers.CharField(source='status')
+
 
     class Meta:
         model = Application
@@ -91,8 +93,12 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
                   'company_website_url', 'linkedin_url', 'facebook_url', 'instagram_url', 'x_url', 'other_url',
                   'profile_picture',
                   'applicant_name', 'applicant_email', 'applicant_address', 'applicant_modality', 'applicant_program',
-                  'applicant_resume',
+                  'applicant_academic_program', 'applicant_resume',
                   'application_id', 'application_status']
+
+    def get_applicant_academic_program(self, obj):
+        academic_program = obj.applicant.academic_program
+        return academic_program
 
     def get_applicant_resume(self, obj):
         image = obj.applicant.resume
@@ -165,7 +171,42 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
             elif user.user_role == 'company':
                 allowed_fields = ['application_id', 'applicant_name', 'applicant_email', 'internship_position',
                                   'applicant_address', 'applicant_modality', 'applicant_program',
-                                  'applicant_resume', 'application_id', 'application_status']
+                                  'applicant_academic_program', 'applicant_resume', 'application_id',
+                                  'application_status']
+
+            else:
+                allowed_fields = []
+
+            return {field: representation[field] for field in allowed_fields if field in representation}
+
+        return representation
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    internship_position = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Notification
+        fields = ['notification_id', 'application', 'created_at', 'notification_text', 'notification_type',
+                  'internship_position']
+
+    def get_internship_position(self, obj):
+        position = obj.application.internship_posting.internship_position
+        return position
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+
+        if user and hasattr(user, 'user_role'):
+            if user.user_role == 'applicant':
+                allowed_fields = ['notification_id', 'application', 'internship_position', 'created_at',
+                                  'notification_text']
+
+            elif user.user_role == 'company':
+                allowed_fields = ['notification_id', 'application', 'internship_position', 'created_at',
+                                  'notification_text']
 
             else:
                 allowed_fields = []

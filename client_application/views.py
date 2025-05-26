@@ -2,8 +2,9 @@ from django.shortcuts import render
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 
-from client_application.models import Application
-from client_application.serializers import ApplicationListSerializer, ApplicationDetailSerializer
+from client_application.models import Application, Notification
+from client_application.serializers import ApplicationListSerializer, ApplicationDetailSerializer, \
+    NotificationSerializer
 
 
 class ApplicationListView(ListAPIView):
@@ -45,5 +46,29 @@ class ApplicationDetailView(ListAPIView):
 
         else:
             return Application.objects.none()
+
+
+class NotificationView(ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = NotificationSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        # application_id = self.request.query_params.get('application_id')
+
+        if user.user_role == 'applicant':
+            return Notification.objects.filter(
+                # application_id=application_id,
+                notification_type='Applicant'
+            )
+
+        elif user.user_role == 'company':
+            return Notification.objects.filter(
+                # application_id=application_id,
+                notification_type='Company'
+            )
+
+        else:
+            return Notification.objects.none()
 
 
