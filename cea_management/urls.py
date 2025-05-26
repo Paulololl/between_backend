@@ -1,4 +1,3 @@
-from django.http import JsonResponse
 from django.urls import path
 from . import views
 
@@ -10,5 +9,5 @@ urlpatterns = [
     path('partnerships/', views.SchoolPartnershipListView.as_view(), name="partnerships-list"),
     path('partnerships/create/', views.CreateSchoolPartnershipView.as_view(), name="partnerships-create"),
     path('partnerships/delete/<int:company_id>/', views.DeleteSchoolPartnershipView.as_view(), name="partnerships-delete"),
-    #path('partnerships/', lambda r: JsonResponse({'working': True})),
+    path('students/', views.ApplicantListView.as_view(), name="students-list")
 ]

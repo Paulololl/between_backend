@@ -4,9 +4,9 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from user_account.models import CareerEmplacementAdmin, OJTCoordinator
-from user_account.serializers import GetOJTCoordinatorSerializer, OJTCoordinatorRegisterSerializer
-from .models import SchoolPartnershipList, Program
+from user_account.models import CareerEmplacementAdmin, OJTCoordinator, Applicant
+from user_account.serializers import GetOJTCoordinatorSerializer, OJTCoordinatorRegisterSerializer, GetApplicantSerializer
+from .models import SchoolPartnershipList, Program, Department
 from .permissions import IsCEA
 from . import serializers as cea_serializers
 
@@ -165,4 +165,29 @@ class RemoveOJTCoordinatorView(CEAMixin, generics.UpdateAPIView):
         coordinator.user.save()
 
         return Response({'message': 'The OJT Coordinator has been removed.'})
+#endregion
+
+# view for student list
+#region
+class ApplicantListView(CEAMixin, generics.ListAPIView):
+    serializer_class = GetApplicantSerializer
+
+    def get_queryset(self):
+        cea = self.get_cea_or_403(self.request.user)
+        return Applicant.objects.filter(program__department__school=cea.school, user__status__in=['Active', 'Inactive'])
+
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+
+        modified_data = []
+        for item in serializer.data:
+            user = item.pop('user', None)
+            if user and isinstance(user, dict):
+                user.pop('user_id', None)
+
+            modified_data.append(item)
+
+        return Response(modified_data)
 #endregion
