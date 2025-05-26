@@ -376,11 +376,13 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
     middle_initial = serializers.CharField(write_only=True, required=False, allow_blank=True, default='')
     password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
+    program = serializers.PrimaryKeyRelatedField(queryset=Program.objects.all())
+    status = serializers.CharField(source='user.status', default='Active')
 
     class Meta:
         model = OJTCoordinator
         fields = ['ojtcoordinator_email', 'first_name', 'last_name', 'middle_initial',
-                  'password', 'confirm_password', 'program']
+                  'password', 'confirm_password', 'program', 'status']
 
     def validate_password(self, value):
         user_data = {
@@ -399,8 +401,13 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'confirm_password': 'Passwords do not match.'})
         return attrs
 
+    def validate_ojtcoordinator_email(self, value):
+        if User.objects.filter(email=value, status__in=["Active", "Inactive"]).exists():
+            raise ValidationError('This email is already in use.')
+        return value
+
     def create(self, validated_data):
-        email = validated_data.pop('OJTCoordinator_email')
+        email = validated_data.pop('ojtcoordinator_email')
         password = validated_data.pop('password')
         validated_data.pop('confirm_password')
 
@@ -411,10 +418,39 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
             email=email,
             password=password,
             user_role='coordinator',
+            status='Active',
         )
+
+        validated_data.pop('user', None)
 
         ojt_coordinator = OJTCoordinator.objects.create(user=user, **validated_data)
         return ojt_coordinator
+
+    def update(self, instance, validated_data):
+        email = validated_data.pop('ojtcoordinator_email')
+        password = validated_data.pop('password')
+        validated_data.pop('confirm_password')
+
+        user_data = validated_data.get('user', {})
+
+        if email:
+            instance.user.email = email
+        if password:
+            instance.user.set_password(password)
+        if 'status' in user_data:
+            new_status = user_data['status']
+            if new_status not in ['Active', 'Inactive']:
+                raise serializers.ValidationError('Invalid status.')
+            instance.user.status = new_status
+
+        instance.user.save()
+
+        for attr, value in validated_data.items():
+            if attr != 'user': 
+                setattr(instance, attr, value)
+
+        return instance
+
 
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
