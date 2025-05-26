@@ -1,5 +1,5 @@
-from django.db import transaction
-from rest_framework.exceptions import  PermissionDenied
+from django.db import transaction, IntegrityError
+from rest_framework.exceptions import  PermissionDenied, ValidationError
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -102,7 +102,12 @@ class CreateOJTCoordinatorView(CEAMixin, generics.CreateAPIView):
         if program.department.school != cea.school:
             raise PermissionDenied("You can only assign coordinators to programs belonging to your school.")
 
-        serializer.save()
+        try:
+            serializer.save()
+        except IntegrityError as e:
+            if "Duplicate entry" in str(e):
+                raise ValidationError({"program": ["An OJT Coordinator is already assigned to this program."]})
+            raise e
 
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
