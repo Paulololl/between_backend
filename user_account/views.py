@@ -229,7 +229,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
         if response.status_code == 200 and user and hasattr(user, 'applicant'):
             serializer = InternshipMatchSerializer(context={'applicant': user.applicant})
             serializer.create(validated_data={})
-            reset_recommendations_and_tap_count()
+            reset_recommendations_and_tap_count(user.applicant)
             run_internship_matching(user.applicant)
 
         return response

@@ -111,6 +111,8 @@ class Applicant(models.Model):
 
     last_recommendation_filter_state = models.JSONField(null=True, blank=True)
 
+    tap_count_reset = models.DateTimeField(null=True, blank=True)
+
     tap_count = models.IntegerField(
         default=0,
         validators=[

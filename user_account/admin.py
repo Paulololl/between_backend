@@ -62,7 +62,7 @@ class ApplicantAdmin(admin.ModelAdmin):
         'school', 'department', 'program',
         'academic_program', 'address', 'preferred_modality',
         'quick_introduction', 'display_hard_skills', 'display_soft_skills',
-        'resume', 'enrollment_record', 'last_matched', 'last_recommendation_filter_state',
+        'resume', 'enrollment_record', 'last_matched', 'last_recommendation_filter_state'
     )
 
     fieldsets = (
@@ -81,7 +81,7 @@ class ApplicantAdmin(admin.ModelAdmin):
             'fields': ('resume', 'enrollment_record'),
         }),
         ('Internship Matching', {
-            'fields': ('last_matched', 'tap_count', 'last_recommendation_filter_state'),
+            'fields': ('last_matched', 'tap_count', 'last_recommendation_filter_state', 'tap_count_reset'),
         }),
     )
 

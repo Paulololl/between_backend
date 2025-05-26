@@ -303,7 +303,7 @@ class InternshipRecommendationListView(ListAPIView):
 
     def get_queryset(self):
         applicant = self.request.user.applicant
-        reset_recommendations_and_tap_count()
+        reset_recommendations_and_tap_count(applicant)
         run_internship_matching(applicant)
 
         filter_state = self.get_filter_state()
@@ -450,7 +450,7 @@ class InternshipRecommendationTapView(APIView):
             )
 
         applicant = request.user.applicant
-        reset_recommendations_and_tap_count()
+        reset_recommendations_and_tap_count(applicant)
         run_internship_matching(applicant)
 
         open_posting_ids = InternshipPosting.objects.filter(status='Open') \

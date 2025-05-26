@@ -150,19 +150,23 @@ def delete_old_deleted_postings():
     InternshipPosting.objects.filter(status='Deleted', date_modified__lt=threshold).delete()
 
 
-def reset_recommendations_and_tap_count():
+def reset_recommendations_and_tap_count(applicant):
     current_time = now()
+    today = current_time.date()
     midnight_today = current_time.replace(hour=0, minute=0, second=0, microsecond=0)
-    # threshold_time = current_time - timedelta(seconds=20)
+    # threshold = now() - timedelta(seconds=20)
 
     skipped_recommendations = InternshipRecommendation.objects.filter(
         status='Skipped',
         time_stamp__lt=midnight_today,
     )
 
-    affected_applicants = set(skipped_recommendations.values_list('applicant_id', flat=True))
     skipped_recommendations.update(status='Pending', time_stamp=now())
-    Applicant.objects.filter(applicant_id__in=affected_applicants).update(tap_count=0)
+
+    if not applicant.tap_count_reset or applicant.tap_count_reset.date() < today:
+        applicant.tap_count = 0
+        applicant.tap_count_reset = current_time
+        applicant.save(update_fields=['tap_count', 'tap_count_reset'])
 
 
 class InternshipPostingStatusFilter(SimpleListFilter):
