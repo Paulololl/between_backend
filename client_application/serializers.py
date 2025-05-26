@@ -84,7 +84,6 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
     applicant_resume = serializers.SerializerMethodField()
     application_status = serializers.CharField(source='status')
 
-
     class Meta:
         model = Application
         fields = ['company_name', 'internship_position', 'company_address', 'application_modality',
