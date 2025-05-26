@@ -19,6 +19,8 @@ class Application(models.Model):
     ], default='Pending')
 
     is_bookmarked = models.BooleanField(default=True)
+    is_viewed_applicant = models.BooleanField(default=False)
+    is_viewed_company = models.BooleanField(default=False)
 
     def __str__(self):
         return f'{self.application_id} - {self.applicant.first_name} {self.applicant.last_name} - {self.status}'
