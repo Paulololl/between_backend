@@ -96,57 +96,72 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
                   'application_id', 'application_status']
 
     def get_applicant_academic_program(self, obj):
-        academic_program = obj.applicant.academic_program
-        return academic_program
+        if obj.applicant and obj.applicant.academic_program:
+            return obj.applicant.academic_program
+        return None
 
     def get_applicant_resume(self, obj):
-        image = obj.applicant.resume
-        return self._build_url(image)
+        if obj.applicant and obj.applicant.resume:
+            return self._build_url(obj.applicant.resume)
+        return None
 
     def get_applicant_program(self, obj):
-        applicant_program = obj.applicant.program.program_name
-        return applicant_program
+        if obj.applicant and obj.applicant.program and obj.applicant.program.program:
+            return obj.applicant.program.program
+        return None
 
     def get_applicant_modality(self, obj):
-        applicant_modality = obj.applicant.preferred_modality
-        return applicant_modality
+        if obj.applicant and obj.applicant.preferred_modality:
+            return obj.applicant.preferred_modality
+        return None
 
     def get_applicant_address(self, obj):
-        applicant_address = obj.applicant.address
-        return applicant_address
+        if obj.applicant and obj.applicant.address:
+            return obj.applicant.address
+        return None
 
     def get_applicant_email(self, obj):
-        applicant_user_email = obj.applicant.user.email
-        return applicant_user_email
+        if obj.applicant and obj.applicant.user and obj.applicant.user.email:
+            return obj.applicant.user.email
+        return None
 
     def get_applicant_name(self, obj):
-        first_name = obj.applicant.first_name or ''
-        last_name = obj.applicant.last_name or ''
-        middle_initial = obj.applicant.middle_initial or ''
-
-        return f"{last_name}, {first_name} {middle_initial}".strip()
+        if obj.applicant:
+            first_name = obj.applicant.first_name or ''
+            last_name = obj.applicant.last_name or ''
+            middle_initial = obj.applicant.middle_initial or ''
+            full_name = f"{last_name}, {first_name} {middle_initial}".strip()
+            return full_name if full_name.strip(', ') else None
+        return None
 
     def get_key_tasks(self, obj):
-        return [
-            key_task.key_task
-            for key_task in obj.internship_posting.key_tasks.all()
-        ]
+        if obj.internship_posting:
+            return [
+                key_task.key_task
+                for key_task in obj.internship_posting.key_tasks.all()
+            ]
+        return None
 
     def get_min_qualifications(self, obj):
-        return [
-            min_qualification.min_qualification
-            for min_qualification in obj.internship_posting.min_qualifications.all()
-        ]
+        if obj.internship_posting:
+            return [
+                min_qualification.min_qualification
+                for min_qualification in obj.internship_posting.min_qualifications.all()
+            ]
+        return None
 
     def get_benefits(self, obj):
-        return [
-            benefit.benefit
-            for benefit in obj.internship_posting.benefits.all()
-        ]
+        if obj.internship_posting:
+            return [
+                benefit.benefit
+                for benefit in obj.internship_posting.benefits.all()
+            ]
+        return None
 
     def get_profile_picture(self, obj):
-        image = obj.internship_posting.company.profile_picture
-        return self._build_url(image)
+        if obj.internship_posting and obj.internship_posting.company and obj.internship_posting.company.profile_picture:
+            return self._build_url(obj.internship_posting.company.profile_picture)
+        return None
 
     def _build_url(self, image):
         if image and hasattr(image, 'url'):
