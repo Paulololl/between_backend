@@ -107,8 +107,8 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
         return None
 
     def get_applicant_program(self, obj):
-        if obj.applicant and obj.applicant.program and obj.applicant.program.program:
-            return obj.applicant.program.program
+        if obj.applicant and obj.applicant.program and obj.applicant.program.program_name:
+            return obj.applicant.program.program_name
         return None
 
     def get_applicant_modality(self, obj):
