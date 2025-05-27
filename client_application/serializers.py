@@ -56,6 +56,7 @@ class ApplicationListSerializer(serializers.ModelSerializer):
 
 
 class ApplicationDetailSerializer(serializers.ModelSerializer):
+    company_email = serializers.CharField(source='internship_posting.company.user.email')
     company_name = serializers.CharField(source='internship_posting.company.company_name')
     internship_position = serializers.CharField(source='internship_posting.internship_position')
     company_address = serializers.CharField(source='internship_posting.company.company_address')
@@ -86,7 +87,7 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Application
-        fields = ['company_name', 'internship_position', 'company_address', 'application_modality',
+        fields = ['company_email', 'company_name', 'internship_position', 'company_address', 'application_modality',
                   'internship_date_start', 'application_deadline', 'date_created', 'other_requirements',
                   'key_tasks', 'min_qualifications', 'benefits', 'company_information',
                   'company_website_url', 'linkedin_url', 'facebook_url', 'instagram_url', 'x_url', 'other_url',
@@ -175,8 +176,8 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
 
         if user and hasattr(user, 'user_role'):
             if user.user_role == 'applicant':
-                allowed_fields = ['application_id', 'company_name', 'internship_position', 'company_address',
-                                  'application_modality',
+                allowed_fields = ['application_id', 'company_email', 'company_name', 'internship_position',
+                                  'company_address', 'application_modality',
                                   'internship_date_start', 'application_deadline', 'date_created', 'other_requirements',
                                   'key_tasks', 'min_qualifications', 'benefits', 'company_information',
                                   'company_website_url', 'linkedin_url', 'facebook_url', 'instagram_url', 'x_url',
