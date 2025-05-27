@@ -23,7 +23,8 @@ class Application(models.Model):
     is_viewed_company = models.BooleanField(default=False)
 
     def __str__(self):
-        return f'{self.application_id} - {self.applicant.first_name} {self.applicant.last_name} - {self.status}'
+        return (f'{self.internship_posting.internship_position} - {self.applicant.first_name}'
+                f' {self.applicant.last_name} - {self.status}')
 
 
 class Endorsement(models.Model):

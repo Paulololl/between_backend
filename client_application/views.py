@@ -75,20 +75,27 @@ class ApplicationDetailView(ListAPIView):
         user = self.request.user
         application_id = self.request.query_params.get('application_id')
 
-        if user.user_role == 'applicant':
-            return Application.objects.filter(
-                applicant__user=user,
-                application_id=application_id
-            )
-
-        elif user.user_role == 'company':
-            return Application.objects.filter(
-                internship_posting__company__user=user,
-                application_id=application_id
-            )
-
-        else:
+        if not application_id:
             return Application.objects.none()
+
+        try:
+            application = Application.objects.get(application_id=application_id)
+        except Application.DoesNotExist:
+            return Application.objects.none()
+
+        if user.user_role == 'applicant' and application.applicant.user == user:
+            if not application.is_viewed_applicant:
+                application.is_viewed_applicant = True
+                application.save(update_fields=['is_viewed_applicant'])
+            return Application.objects.filter(application_id=application_id)
+
+        if user.user_role == 'company' and application.internship_posting.company.user == user:
+            if not application.is_viewed_company:
+                application.is_viewed_company = True
+                application.save(update_fields=['is_viewed_company'])
+            return Application.objects.filter(application_id=application_id)
+
+        return Application.objects.none()
 
 
 class NotificationView(ListAPIView):
