@@ -235,6 +235,12 @@ class NotificationSerializer(serializers.ModelSerializer):
         return representation
 
 
+class ClearNotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = []
+
+
 class UpdateApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application

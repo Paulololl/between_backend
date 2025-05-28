@@ -122,6 +122,29 @@ class NotificationView(ListAPIView):
             return Notification.objects.none()
 
 
+class ClearNotificationView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, *args, **kwargs):
+        user = request.user
+
+        try:
+            if hasattr(user, 'applicant'):
+                notifications = Notification.objects.filter(application__applicant=user.applicant)
+            elif hasattr(user, 'company'):
+                notifications = Notification.objects.filter(application__internship_posting__company=user.company)
+            else:
+                return Response({'error': 'You are not authorized to clear notifications.'},
+                                status=status.HTTP_403_FORBIDDEN)
+
+            deleted_count, _ = notifications.delete()
+
+            return Response({'message': f'{deleted_count} notifications cleared.'}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
 class UpdateApplicationView(APIView):
     permission_classes = [IsAuthenticated, IsCompany]
     serializer_class = UpdateApplicationSerializer
