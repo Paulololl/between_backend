@@ -33,6 +33,4 @@ urlpatterns = [
     path('verify-email/<uidb64>/<token>/', VerifyEmailView.as_view()),
     path('delete-account/', DeleteAccountView.as_view()),
     path('change-password/', ChangePasswordView.as_view()),
-
-
 ]
