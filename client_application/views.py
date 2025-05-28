@@ -104,17 +104,17 @@ class NotificationView(ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        # application_id = self.request.query_params.get('application_id')
+        application = self.request.query_params.get('application')
 
         if user.user_role == 'applicant':
             return Notification.objects.filter(
-                # application_id=application_id,
+                application=application,
                 notification_type='Applicant'
             )
 
         elif user.user_role == 'company':
             return Notification.objects.filter(
-                # application_id=application_id,
+                application=application,
                 notification_type='Company'
             )
 
@@ -144,13 +144,24 @@ class UpdateApplicationView(APIView):
 
         new_status = request.data.get('status')
 
-        if new_status not in ['Confirmed', 'Rejected']:
-            return Response({'error': 'Invalid status. You can only set status to Confirmed or Rejected.'},
+        if new_status not in ['Confirmed', 'Rejected', 'Pending']:
+            return Response({'error': 'Invalid status. You can only set status to'
+                                      ' Pending, Confirmed, or Rejected.'},
                             status=status.HTTP_400_BAD_REQUEST)
+
+        application.is_viewed_applicant = False
+        application.save(update_fields=['is_viewed_applicant'])
 
         serializer = self.serializer_class(application, data={'status': new_status}, partial=True)
         if serializer.is_valid():
             serializer.save()
+
+            Notification.objects.create(
+                application=application,
+                notification_text=f'Your application has been set to {new_status}.',
+                notification_type='Applicant'
+            )
+
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
