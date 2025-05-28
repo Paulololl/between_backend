@@ -1,3 +1,6 @@
+from email.utils import formataddr
+
+from django.core.mail import send_mail, EmailMessage
 from rest_framework import serializers
 
 from client_application.models import Application, Notification
@@ -236,3 +239,37 @@ class UpdateApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
         fields = ['application_id', 'status']
+
+
+class RequestDocumentSerializer(serializers.Serializer):
+    application_id = serializers.UUIDField()
+    message = serializers.CharField()
+
+    def validate_application_id(self, value):
+        try:
+            application = Application.objects.get(application_id=value)
+        except Application.DoesNotExist:
+            raise serializers.ValidationError({'error': 'Application not found.'})
+
+        self.application = application
+        return value
+
+    def send_request_email(self):
+        applicant_email = self.application.applicant.user.email
+        company_name = self.application.internship_posting.company.company_name
+
+        subject = f"{company_name} - Request Document"
+        message_body = f"""{self.validated_data['message']}
+        
+        Best regards,
+        {company_name}
+        """
+
+        email = EmailMessage(
+            subject=subject,
+            body=message_body,
+            from_email=formataddr((company_name, 'between.internships@gmail.com')),
+            to=[applicant_email],
+            reply_to=['no-reply@betweeninternships.com']
+        )
+        email.send(fail_silently=False)

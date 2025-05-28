@@ -1,13 +1,13 @@
 from django.shortcuts import render
 from rest_framework import serializers, status
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import ListAPIView, CreateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from client_application.models import Application, Notification
 from client_application.serializers import ApplicationListSerializer, ApplicationDetailSerializer, \
-    NotificationSerializer, UpdateApplicationSerializer
+    NotificationSerializer, UpdateApplicationSerializer, RequestDocumentSerializer
 from user_account.permissions import IsCompany
 
 
@@ -132,7 +132,7 @@ class UpdateApplicationView(APIView):
         try:
             application = Application.objects.get(application_id=application_id)
         except Application.DoesNotExist:
-            return Response({'error': 'Application not found.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'Application not found.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if not application_id:
             return Response({'error': 'application_id query parameter is required.'},
@@ -165,3 +165,39 @@ class UpdateApplicationView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class RequestDocumentView(CreateAPIView):
+    permission_classes = [IsAuthenticated, IsCompany]
+    serializer_class = RequestDocumentSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            application = serializer.application
+            company_user = application.internship_posting.company.user
+            company_name = application.internship_posting.company.company_name
+
+            if company_user != request.user:
+                return Response(
+                    {'error': 'You do not have permission to request documents for this application.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            try:
+                serializer.send_request_email()
+
+                Notification.objects.create(
+                    application=application,
+                    notification_text=f'You have a new email from {company_name}.',
+                    notification_type='Applicant'
+                )
+
+                application.is_viewed_applicant = False
+                application.save(update_fields=['is_viewed_applicant'])
+
+                return Response({'message': 'Document request sent successfully.'}, status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
