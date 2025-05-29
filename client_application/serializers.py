@@ -1,6 +1,7 @@
+import textwrap
 from email.utils import formataddr
 
-from django.core.mail import send_mail, EmailMessage
+from django.core.mail import EmailMessage
 from rest_framework import serializers
 
 from client_application.models import Application, Notification
@@ -249,7 +250,14 @@ class UpdateApplicationSerializer(serializers.ModelSerializer):
 
 class RequestDocumentSerializer(serializers.Serializer):
     application_id = serializers.UUIDField()
-    message = serializers.CharField()
+    document_list = serializers.CharField(
+        max_length=500,
+        error_messages={'error': 'The message must not exceed 500 characters.'}
+    )
+    message = serializers.CharField(
+        max_length=500,
+        error_messages={'error': 'The message must not exceed 500 characters.'}
+    )
 
     def validate_application_id(self, value):
         try:
@@ -264,12 +272,25 @@ class RequestDocumentSerializer(serializers.Serializer):
         applicant_email = self.application.applicant.user.email
         company_name = self.application.internship_posting.company.company_name
 
-        subject = f"{company_name} - Request Document"
-        message_body = f"""{self.validated_data['message']}
-        
-        Best regards,
-        {company_name}
-        """
+        subject = 'Request Additional Document/s'
+
+        documents = self.validated_data['document_list']
+        doc_lines = "\n".join([f"  • {doc.strip()}" for doc in documents.split(",") if doc.strip()])
+
+        message_lines = [
+            "Dear Applicant,",
+            "",
+            f"{company_name} is requesting the following additional document(s):",
+            "",
+            doc_lines,
+            "",
+            "Additional message:",
+            self.validated_data['message'],
+            "",
+            "Best regards,",
+            company_name,
+        ]
+        message_body = "\n".join(message_lines)
 
         email = EmailMessage(
             subject=subject,
