@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status as drf_status
 
-from client_application.models import Application
+from client_application.models import Application, Notification
 from client_matching.functions import run_internship_matching, fisher_yates_shuffle
 from client_matching.models import PersonInCharge, InternshipPosting, InternshipRecommendation, Advertisement
 from user_account.permissions import IsCompany, IsApplicant
@@ -109,6 +109,17 @@ class EditInternshipPostingView(APIView):
 
         if serializer.is_valid():
             serializer.save()
+
+            related_applications = internship_posting.application_set.all()
+            for application in related_applications:
+                Notification.objects.create(
+                    application=application,
+                    notification_text=f"{company.company_name} has updated the internship information.",
+                    notification_type='Applicant'
+                )
+                application.is_viewed_applicant = False
+                application.save(update_fields=['is_viewed_applicant'])
+
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

@@ -127,22 +127,29 @@ class ClearNotificationView(APIView):
 
     def delete(self, request, *args, **kwargs):
         user = request.user
+        application_id = request.query_params.get('application_id')
+
+        if not application_id:
+            return Response({'error': 'Missing application_id in query parameters.'},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            if hasattr(user, 'applicant'):
-                notifications = Notification.objects.filter(application__applicant=user.applicant)
-            elif hasattr(user, 'company'):
-                notifications = Notification.objects.filter(application__internship_posting__company=user.company)
-            else:
-                return Response({'error': 'You are not authorized to clear notifications.'},
-                                status=status.HTTP_403_FORBIDDEN)
+            application = Application.objects.get(application_id=application_id)
+        except Application.DoesNotExist:
+            return Response({'error': 'Application not found.'},
+                            status=status.HTTP_400_BAD_REQUEST)
 
-            deleted_count, _ = notifications.delete()
+        if hasattr(user, 'applicant') and application.applicant == user.applicant:
+            notifications = Notification.objects.filter(application=application)
+        elif hasattr(user, 'company') and application.internship_posting.company == user.company:
+            notifications = Notification.objects.filter(application=application)
+        else:
+            return Response({'error': 'You are not authorized to clear notifications for this application.'},
+                            status=status.HTTP_403_FORBIDDEN)
 
-            return Response({'message': f'{deleted_count} notifications cleared.'}, status=status.HTTP_200_OK)
+        deleted_count, _ = notifications.delete()
 
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'message': f'{deleted_count} notifications cleared.'}, status=status.HTTP_200_OK)
 
 
 class UpdateApplicationView(APIView):
