@@ -558,7 +558,8 @@ class InternshipMatchSerializer(serializers.Serializer):
             'hard_skills': applicant.hard_skills,
             'soft_skills': applicant.soft_skills,
             'address': applicant.address,
-            'preferred_modality': applicant.preferred_modality
+            'preferred_modality': applicant.preferred_modality,
+            'quick_introduction': applicant.quick_introduction
         }
 
         internship_postings = InternshipPosting.objects.filter(status='Open')

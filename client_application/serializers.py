@@ -256,6 +256,8 @@ class RequestDocumentSerializer(serializers.Serializer):
     )
     message = serializers.CharField(
         max_length=500,
+        allow_blank=True,
+        allow_null=True,
         error_messages={'error': 'The message must not exceed 500 characters.'}
     )
 

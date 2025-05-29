@@ -33,7 +33,7 @@ def get_profile_embedding(profile: dict, is_applicant: bool = True):
 
     # label for each weight
     if is_applicant:
-        weights = np.array([0.4, 0.4, 0.1, 0.1])
+        weights = np.array([0.35, 0.35, 0.1, 0.1, 0.1])
     else:
         weights = np.array([0.3, 0.3, 0.05, 0.05, 0.1, 0.1, 0.1])
 
@@ -49,13 +49,23 @@ def get_profile_embedding(profile: dict, is_applicant: bool = True):
         soft_skills = extract_skill_names(profile.get("soft_skills", []))
         address = profile.get("address", "")
         modality = profile.get("preferred_modality", "")
+        quick_introduction = profile.get("quick_introduction", "")
 
         hard_skills_emb = encode_text(" ".join(hard_skills))
         soft_skills_emb = encode_text(" ".join(soft_skills))
         address_emb = encode_text(address)
         modality_emb = encode_text(modality)
+        quick_introduction_emb = encode_text(quick_introduction)
 
-        embeddings = np.vstack([hard_skills_emb, soft_skills_emb, address_emb, modality_emb])
+        embeddings = np.vstack(
+            [
+             hard_skills_emb,
+             soft_skills_emb,
+             address_emb,
+             modality_emb,
+             quick_introduction_emb
+            ]
+        )
         weighted_embedding = np.average(embeddings, axis=0, weights=weights)
 
     else:
