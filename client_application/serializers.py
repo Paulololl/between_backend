@@ -94,11 +94,11 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
         model = Application
         fields = ['company_email', 'company_name', 'internship_position', 'company_address', 'application_modality',
                   'internship_date_start', 'application_deadline', 'date_created', 'other_requirements',
-                  'key_tasks', 'min_qualifications', 'benefits', 'company_information',
+                  'key_tasks', 'min_qualifications', 'benefits', 'company_information', 'company_status',
                   'company_website_url', 'linkedin_url', 'facebook_url', 'instagram_url', 'x_url', 'other_url',
                   'profile_picture',
                   'applicant_name', 'applicant_email', 'applicant_address', 'applicant_modality', 'applicant_program',
-                  'applicant_academic_program', 'applicant_resume',
+                  'applicant_academic_program', 'applicant_resume', 'applicant_status',
                   'application_id', 'application_status']
 
     def get_applicant_academic_program(self, obj):
@@ -186,12 +186,12 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
                                   'internship_date_start', 'application_deadline', 'date_created', 'other_requirements',
                                   'key_tasks', 'min_qualifications', 'benefits', 'company_information',
                                   'company_website_url', 'linkedin_url', 'facebook_url', 'instagram_url', 'x_url',
-                                  'other_url', 'profile_picture', 'application_status']
+                                  'other_url', 'profile_picture', 'application_status', 'applicant_status']
 
             elif user.user_role == 'company':
                 allowed_fields = ['application_id', 'applicant_name', 'applicant_email', 'internship_position',
                                   'applicant_address', 'applicant_modality', 'applicant_program',
-                                  'applicant_academic_program', 'applicant_resume', 'application_id',
+                                  'applicant_academic_program', 'applicant_resume', 'application_id', 'company_status',
                                   'application_status']
 
             else:
