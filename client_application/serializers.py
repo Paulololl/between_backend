@@ -20,7 +20,7 @@ class ApplicationListSerializer(serializers.ModelSerializer):
         model = Application
         fields = ['company_name', 'internship_position', 'company_address', 'profile_picture',
                   'applicant_name', 'internship_position', 'applicant_address',
-                  'application_id', 'status', 'application_date', 'is_viewed_applicant', 'is_viewed_company']
+                  'application_id', 'status', 'application_date', 'applicant_status', 'company_status']
 
     def get_applicant_name(self, obj):
         first_name = obj.applicant.first_name or ''
@@ -46,11 +46,11 @@ class ApplicationListSerializer(serializers.ModelSerializer):
         if user and hasattr(user, 'user_role'):
             if user.user_role == 'applicant':
                 allowed_fields = ['company_name', 'internship_position', 'company_address', 'profile_picture',
-                                  'application_id', 'status', 'is_viewed_applicant', 'application_date']
+                                  'application_id', 'status', 'applicant_status', 'application_date']
 
             elif user.user_role == 'company':
                 allowed_fields = ['applicant_name', 'internship_position', 'applicant_address',
-                                  'application_id', 'status', 'is_viewed_company', 'application_date']
+                                  'application_id', 'status', 'company_status', 'application_date']
 
             else:
                 allowed_fields = []
@@ -302,3 +302,9 @@ class RequestDocumentSerializer(serializers.Serializer):
         )
         email.content_subtype = 'html'
         email.send(fail_silently=False)
+
+
+class DropApplicationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Application
+        fields = ['application_id', 'status']

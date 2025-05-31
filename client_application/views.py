@@ -7,8 +7,8 @@ from rest_framework.views import APIView
 
 from client_application.models import Application, Notification
 from client_application.serializers import ApplicationListSerializer, ApplicationDetailSerializer, \
-    NotificationSerializer, UpdateApplicationSerializer, RequestDocumentSerializer
-from user_account.permissions import IsCompany
+    NotificationSerializer, UpdateApplicationSerializer, RequestDocumentSerializer, DropApplicationSerializer
+from user_account.permissions import IsCompany, IsApplicant
 
 
 class ApplicationListView(ListAPIView):
@@ -39,14 +39,14 @@ class ApplicationListView(ListAPIView):
                 raise serializers.ValidationError({'error': 'Invalid view status'})
             if view_status == 'Read':
                 if user.user_role == 'applicant':
-                    queryset = queryset.filter(is_viewed_applicant=True)
+                    queryset = queryset.filter(applicant_status='Read')
                 elif user.user_role == 'company':
-                    queryset = queryset.filter(is_viewed_company=True)
+                    queryset = queryset.filter(company_status='Read')
             elif view_status == 'Unread':
                 if user.user_role == 'applicant':
-                    queryset = queryset.filter(is_viewed_applicant=False)
+                    queryset = queryset.filter(applicant_status='Unread')
                 elif user.user_role == 'company':
-                    queryset = queryset.filter(is_viewed_company=False)
+                    queryset = queryset.filter(company_status='Unread')
 
         date_order = self.request.query_params.get('date_order')
         allowed_date_order = ['Newest', 'Oldest']
@@ -84,15 +84,15 @@ class ApplicationDetailView(ListAPIView):
             return Application.objects.none()
 
         if user.user_role == 'applicant' and application.applicant.user == user:
-            if not application.is_viewed_applicant:
-                application.is_viewed_applicant = True
-                application.save(update_fields=['is_viewed_applicant'])
+            if application.applicant_status == 'Unread':
+                application.applicant_status = 'Read'
+                application.save(update_fields=['applicant_status'])
             return Application.objects.filter(application_id=application_id)
 
         if user.user_role == 'company' and application.internship_posting.company.user == user:
-            if not application.is_viewed_company:
-                application.is_viewed_company = True
-                application.save(update_fields=['is_viewed_company'])
+            if application.company_status == 'Unread':
+                application.company_status = 'Read'
+                application.save(update_fields=['company_status'])
             return Application.objects.filter(application_id=application_id)
 
         return Application.objects.none()
@@ -179,8 +179,11 @@ class UpdateApplicationView(APIView):
                                       ' Pending, Confirmed, or Rejected.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        application.is_viewed_applicant = False
-        application.save(update_fields=['is_viewed_applicant'])
+        if new_status == 'Dropped':
+            return Response({'error': 'This application has been dropped. '})
+
+        application.applicant_status = 'Unread'
+        application.save(update_fields=['applicant_status'])
 
         serializer = self.serializer_class(application, data={'status': new_status}, partial=True)
         if serializer.is_valid():
@@ -192,7 +195,7 @@ class UpdateApplicationView(APIView):
                 notification_type='Applicant'
             )
 
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response({'message': f'Application has been set to {new_status}.'}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -223,11 +226,56 @@ class RequestDocumentView(CreateAPIView):
                     notification_type='Applicant'
                 )
 
-                application.is_viewed_applicant = False
-                application.save(update_fields=['is_viewed_applicant'])
+                application.applicant_status = 'Unread'
+                application.save(update_fields=['applicant_status'])
 
                 return Response({'message': 'Document request sent successfully.'}, status=status.HTTP_200_OK)
             except Exception as e:
                 return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class DropApplicationView(APIView):
+    permission_classes = [IsAuthenticated, IsApplicant]
+    serializer_class = DropApplicationSerializer
+
+    def put(self, request):
+        application_id = request.query_params.get('application_id')
+
+        try:
+            application = Application.objects.get(application_id=application_id)
+        except Application.DoesNotExist:
+            return Response({'error': 'Application not found.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not application_id:
+            return Response({'error': 'application_id query parameter is required.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        if application.applicant.user != request.user:
+            return Response({'error': 'You do not have permission to modify this application.'},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        new_status = request.data.get('status')
+
+        if new_status not in ['Dropped']:
+            return Response({'error': 'Invalid status. You can only set status to'
+                                      ' Dropped.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        application.company_status = 'Unread'
+        application.save(update_fields=['company_status'])
+
+        serializer = self.serializer_class(application, data={'status': new_status}, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+
+            Notification.objects.create(
+                application=application,
+                notification_text=f'The application has been dropped by the applicant.',
+                notification_type='Company'
+            )
+
+            return Response({'message': 'Application dropped successfully.'}, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

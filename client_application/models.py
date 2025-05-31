@@ -19,8 +19,16 @@ class Application(models.Model):
     ], default='Pending')
 
     is_bookmarked = models.BooleanField(default=True)
-    is_viewed_applicant = models.BooleanField(default=False)
-    is_viewed_company = models.BooleanField(default=False)
+    applicant_status = models.CharField(max_length=20, choices=[
+        ('Read', 'Read'),
+        ('Unread', 'Unread'),
+        ('Deleted', 'Deleted'),
+    ], default='Unread')
+    company_status = models.CharField(max_length=20, choices=[
+        ('Read', 'Read'),
+        ('Unread', 'Unread'),
+        ('Deleted', 'Deleted'),
+    ], default='Unread')
 
     def __str__(self):
         return (f'{self.internship_posting.internship_position} - {self.applicant.first_name}'
