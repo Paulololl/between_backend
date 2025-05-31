@@ -31,7 +31,7 @@ class Application(models.Model):
     ], default='Unread')
 
     def __str__(self):
-        return (f'{self.internship_posting.internship_position} - {self.applicant.first_name}'
+        return (f'{self.application_id} - {self.internship_posting.internship_position} - {self.applicant.first_name}'
                 f' {self.applicant.last_name} - {self.status}')
 
 

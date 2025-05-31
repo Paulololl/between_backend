@@ -490,10 +490,11 @@ class InternshipRecommendationTapView(APIView):
 
         with transaction.atomic():
             if normalized_status == 'Submitted':
-                Application.objects.get_or_create(
+                Application.objects.create(
                     applicant=applicant,
                     internship_posting=recommendation.internship_posting,
-                    defaults={'status': 'Pending', 'is_bookmarked': True}
+                    status='Pending',
+                    is_bookmarked=True
                 )
 
             return Response(

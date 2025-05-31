@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 from client_application.models import Application, Notification
 from client_application.serializers import ApplicationListSerializer, ApplicationDetailSerializer, \
     NotificationSerializer, UpdateApplicationSerializer, RequestDocumentSerializer, DropApplicationSerializer
+from client_matching.models import InternshipRecommendation
 from user_account.permissions import IsCompany, IsApplicant
 
 
@@ -310,6 +311,12 @@ class RemoveFromBookmarksView(APIView):
         if user.user_role == 'applicant' and application.applicant.user == user:
             application.applicant_status = 'Deleted'
             application.save(update_fields=['applicant_status'])
+
+            InternshipRecommendation.objects.filter(
+                applicant=application.applicant,
+                internship_posting=application.internship_posting
+            ).delete()
+
             return Response({'message': 'Application removed from bookmarks (applicant).'}, status=status.HTTP_200_OK)
 
         if user.user_role == 'company' and application.internship_posting.company.user == user:
