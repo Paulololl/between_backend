@@ -388,9 +388,15 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
         super().__init__(*args, **kwargs)
 
         request = self.context.get('request')
-        if request:
-            cea = request.user.cea
-            self.fields['program'].queryset = Program.objects.filter(department__school=cea.school)
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            try:
+                cea = CareerEmplacementAdmin.objects.get(user=request.user)
+                self.fields['program'].queryset = Program.objects.filter(department__school=cea.school)
+                self.cea =cea
+            except CareerEmplacementAdmin.DoesNotExist:
+                raise serializers.ValidationError("User is not a Career Emplacement Admin. Access denied.")
+        else:
+            self.cea = None
 
     def validate_password(self, value):
         user_data = {
