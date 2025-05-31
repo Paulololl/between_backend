@@ -308,3 +308,29 @@ class DropApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
         fields = ['application_id', 'status']
+
+
+class RemoveFromBookmarksSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Application
+        fields = ['application_id', 'applicant_status', 'company_status']
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+
+        if user and hasattr(user, 'user_role'):
+            if user.user_role == 'applicant':
+                allowed_fields = ['application_id', 'applicant_status']
+
+            elif user.user_role == 'company':
+                allowed_fields = ['application_id', 'company_status']
+
+            else:
+                allowed_fields = []
+
+            return {field: representation[field] for field in allowed_fields if field in representation}
+
+        return representation
+

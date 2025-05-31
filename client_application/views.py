@@ -179,8 +179,9 @@ class UpdateApplicationView(APIView):
                                       ' Pending, Confirmed, or Rejected.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        if new_status == 'Dropped':
-            return Response({'error': 'This application has been dropped. '})
+        if application.status == 'Dropped':
+            return Response({'error': 'This application has been dropped. Cannot change status.'},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         application.applicant_status = 'Unread'
         application.save(update_fields=['applicant_status'])
@@ -279,3 +280,38 @@ class DropApplicationView(APIView):
             return Response({'message': 'Application dropped successfully.'}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class RemoveFromBookmarksView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        user = request.user
+        application_id = request.query_params.get('application_id')
+
+        if not application_id:
+            return Response({'error': 'Missing application_id in query parameters.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            application = Application.objects.get(application_id=application_id)
+        except Application.DoesNotExist:
+            return Response({'error': 'Application not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if application.status not in ['Dropped', 'Rejected']:
+            return Response({'error': 'Only applications with status "Dropped" and "Rejected"'
+                                      ' can be removed from bookmarks.'},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        if user.user_role == 'applicant' and application.applicant.user == user:
+            application.applicant_status = 'Deleted'
+            application.save(update_fields=['applicant_status'])
+            return Response({'message': 'Application removed from bookmarks (applicant).'}, status=status.HTTP_200_OK)
+
+        if user.user_role == 'company' and application.internship_posting.company.user == user:
+            application.company_status = 'Deleted'
+            application.save(update_fields=['company_status'])
+            return Response({'message': 'Application removed from bookmarks (company).'}, status=status.HTTP_200_OK)
+
+        return Response({'error': 'You are not authorized to modify this application.'},
+                        status=status.HTTP_403_FORBIDDEN)
