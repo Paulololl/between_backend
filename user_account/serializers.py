@@ -845,9 +845,11 @@ class ChangePasswordSerializer(serializers.Serializer):
 
 
 class GetOJTCoordinatorSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(source='user.email', read_only=True)
+
     class Meta:
         model = OJTCoordinator
-        fields = ['user', 'program', 'first_name', 'last_name', 'middle_initial']
+        fields = ['user', 'program', 'first_name', 'last_name', 'middle_initial', 'email']
 
 
 class EditCompanySerializer(serializers.ModelSerializer):

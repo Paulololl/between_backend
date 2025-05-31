@@ -75,9 +75,6 @@ class OJTCoordinatorListView(CEAMixin, generics.ListAPIView):
 
         modified_data = []
         for item in serializer.data:
-            user = item.pop('user', None)
-            if user and isinstance(user, dict):
-                user.pop('user_id', None)
 
             program_id = item.pop('program', None)
             program_name = None
@@ -85,6 +82,16 @@ class OJTCoordinatorListView(CEAMixin, generics.ListAPIView):
                 program = Program.objects.get(program_id=program_id)
                 program_name = program.program_name if program else None
             item['program_name'] = program_name
+
+            """
+                        ojt_coordinator_id = item.get('ojt_coordinator_id')
+            if ojt_coordinator_id:
+                try:
+                    ojt_coordinator = OJTCoordinator.objects.get(ojt_coordinator_id=ojt_coordinator_id)
+                    item['user_email'] = ojt_coordinator.user.email
+                except OJTCoordinator.DoesNotExist:
+                    item['user_email'] = None
+            """
 
             modified_data.append(item)
 
