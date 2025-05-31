@@ -334,5 +334,58 @@ class RemoveFromBookmarksSerializer(serializers.ModelSerializer):
         return representation
 
 
+class SendDocumentSerializer(serializers.Serializer):
+    application_id = serializers.UUIDField()
+    message = serializers.CharField(
+        max_length=500,
+        allow_blank=True,
+        allow_null=True,
+        error_messages={'error': 'The message must not exceed 500 characters.'}
+    )
+
+    def validate_application_id(self, value):
+        try:
+            application = Application.objects.get(application_id=value)
+        except Application.DoesNotExist:
+            raise serializers.ValidationError({'error': 'Application not found.'})
+        self.application = application
+        return value
+
+    def send_document_email(self, files):
+        company_email = self.application.internship_posting.company.user.email
+        applicant = self.application.applicant
+
+        subject = (f"Applicant {applicant.first_name} {applicant.middle_initial} {applicant.last_name}"
+                   f" submitted additional documents")
+        message = self.validated_data.get("message", "")
+
+        message_html = f"""
+            <div>
+                <p>Dear {self.application.internship_posting.company.company_name},</p>
+                <p><strong>{applicant.first_name} {applicant.middle_initial} {applicant.last_name}
+                 has submitted additional document(s).</strong></p>
+                <p><strong>Message:</strong><br>{message}</p>
+                <p>Best regards,<br><strong>{applicant.first_name} {applicant.middle_initial} {applicant.last_name}
+                </strong></p>
+            </div>
+        """
+
+        email = EmailMessage(
+            subject=subject,
+            body=message_html,
+            from_email=formataddr((f'{applicant.first_name} {applicant.middle_initial} {applicant.last_name}',
+                                   'between.internships@gmail.com')),
+            to=[company_email],
+            reply_to=['no-reply@betweeninternships.com']
+        )
+        email.content_subtype = 'html'
+
+        for f in files:
+            email.attach(f.name, f.read(), f.content_type)
+
+        email.send(fail_silently=False)
+
+
+
 
 

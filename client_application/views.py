@@ -1,3 +1,6 @@
+from email.utils import formataddr
+
+from django.core.mail import EmailMessage
 from django.shortcuts import render
 from rest_framework import serializers, status
 from rest_framework.generics import ListAPIView, CreateAPIView
@@ -7,7 +10,8 @@ from rest_framework.views import APIView
 
 from client_application.models import Application, Notification
 from client_application.serializers import ApplicationListSerializer, ApplicationDetailSerializer, \
-    NotificationSerializer, UpdateApplicationSerializer, RequestDocumentSerializer, DropApplicationSerializer
+    NotificationSerializer, UpdateApplicationSerializer, RequestDocumentSerializer, DropApplicationSerializer, \
+    SendDocumentSerializer
 from client_matching.models import InternshipRecommendation
 from user_account.permissions import IsCompany, IsApplicant
 
@@ -326,3 +330,20 @@ class RemoveFromBookmarksView(APIView):
 
         return Response({'error': 'You are not authorized to modify this application.'},
                         status=status.HTTP_403_FORBIDDEN)
+
+
+class SendDocumentView(APIView):
+    permission_classes = [IsAuthenticated, IsApplicant]
+
+    def post(self, request):
+        serializer = SendDocumentSerializer(data=request.data)
+        if serializer.is_valid():
+            files = request.FILES.getlist('files')
+            if not files:
+                return Response({'error': 'At least one file is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            serializer.send_document_email(files)
+            return Response({'message': 'Documents sent successfully.'}, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
