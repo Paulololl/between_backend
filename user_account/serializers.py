@@ -384,6 +384,14 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
         fields = ['ojtcoordinator_email', 'first_name', 'last_name', 'middle_initial',
                   'password', 'confirm_password', 'program', 'status']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        request = self.context.get('request')
+        if request:
+            cea = request.user.cea
+            self.fields['program'].queryset = Program.objects.filter(department__school=cea.school)
+
     def validate_password(self, value):
         user_data = {
             'email': self.initial_data.get('ojtcoordinator_email', ''),
