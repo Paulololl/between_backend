@@ -274,7 +274,6 @@ class RequestDocumentSerializer(serializers.Serializer):
         applicant_email = self.application.applicant.user.email
         company_name = self.application.internship_posting.company.company_name
 
-        # subject = 'Request Additional Document/s'
 
         documents = self.validated_data.get("document_list")
         doc_lines = "\n".join(f"<li>{doc.strip()}</li>" for doc in documents.split(",") if doc.strip())
@@ -333,4 +332,7 @@ class RemoveFromBookmarksSerializer(serializers.ModelSerializer):
             return {field: representation[field] for field in allowed_fields if field in representation}
 
         return representation
+
+
+
 

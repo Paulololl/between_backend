@@ -19,9 +19,9 @@ class ApplicationListView(ListAPIView):
         user = self.request.user
 
         if user.user_role == 'applicant':
-            queryset = Application.objects.filter(applicant__user=user)
+            queryset = Application.objects.filter(applicant__user=user).exclude(applicant_status='Deleted')
         elif user.user_role == 'company':
-            queryset = Application.objects.filter(internship_posting__company__user=user)
+            queryset = Application.objects.filter(internship_posting__company__user=user).exclude(company_status='Deleted')
         else:
             return Application.objects.none()
 
@@ -84,12 +84,16 @@ class ApplicationDetailView(ListAPIView):
             return Application.objects.none()
 
         if user.user_role == 'applicant' and application.applicant.user == user:
+            if application.applicant_status == 'Deleted':
+                return Application.objects.none()
             if application.applicant_status == 'Unread':
                 application.applicant_status = 'Read'
                 application.save(update_fields=['applicant_status'])
             return Application.objects.filter(application_id=application_id)
 
         if user.user_role == 'company' and application.internship_posting.company.user == user:
+            if application.company_status == 'Deleted':
+                return Application.objects.none()
             if application.company_status == 'Unread':
                 application.company_status = 'Read'
                 application.save(update_fields=['company_status'])
