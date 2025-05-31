@@ -66,7 +66,13 @@ class OJTCoordinatorListView(CEAMixin, generics.ListAPIView):
 
     def get_queryset(self):
         cea = self.get_cea_or_403(self.request.user)
-        return OJTCoordinator.objects.filter(program__department__school=cea.school, user__status__in=['Active', 'Inactive'])
+        queryset = OJTCoordinator.objects.filter(program__department__school=cea.school, user__status__in=['Active', 'Inactive'])
+
+        user = self.request.query_params.get('user')
+        if user:
+            queryset = queryset.filter(user=user)
+
+        return queryset
 
 
     def list(self, request, *args, **kwargs):
@@ -119,12 +125,23 @@ class CreateOJTCoordinatorView(CEAMixin, generics.CreateAPIView):
         return Response(data)
 
 
-class UpdateOJTCoordinatorView(generics.UpdateAPIView):
-    permission_classes = [IsAuthenticated, IsCEA]
-
+class UpdateOJTCoordinatorView(CEAMixin, generics.UpdateAPIView):
     queryset = OJTCoordinator.objects.all()
     serializer_class = EditOJTCoordinatorSerializer
-    lookup_field = 'ojt_coordinator_id'
+
+    """
+        def get_queryset(self):
+        cea = self.get_cea_or_403(self.request.user)
+        queryset = OJTCoordinator.objects.filter(
+            program__department__school=cea.school
+            , user__status__in=['Active', 'Inactive']
+        )
+
+        user = self.request.query_params.get('user')
+        if user:
+            queryset = queryset.filter(user=user)
+
+        return queryset
 
     def get(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -139,7 +156,20 @@ class UpdateOJTCoordinatorView(generics.UpdateAPIView):
             "status": instance.user.status,
         }
         return Response(serialized_data)
+    """
 
+    def get_object(self):
+        user_id = self.request.query_params.get('user')  # Get the user from the query parameters
+        if not user_id:
+            raise ValidationError({"error": "Query parameter 'user' is required."})
+
+        # Get the OJT coordinator using the user ID
+        try:
+            instance = self.get_queryset().get(user__user_id=user_id)
+        except OJTCoordinator.DoesNotExist:
+            raise ValidationError({"error": f"No OJT Coordinator found for user: {user_id}"})
+
+        return instance
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
