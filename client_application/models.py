@@ -72,3 +72,6 @@ class Notification(models.Model):
     def __str__(self):
         return f'{self.notification_id} - {self.application.application_id} - {self.notification_type}'
 
+
+
+
