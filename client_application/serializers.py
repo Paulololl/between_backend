@@ -340,6 +340,7 @@ class SendDocumentSerializer(serializers.Serializer):
         max_length=500,
         allow_blank=True,
         allow_null=True,
+        required=False,
         error_messages={'error': 'The message must not exceed 500 characters.'}
     )
 
