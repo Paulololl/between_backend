@@ -274,31 +274,31 @@ class RequestDocumentSerializer(serializers.Serializer):
         applicant_email = self.application.applicant.user.email
         company_name = self.application.internship_posting.company.company_name
 
-        subject = 'Request Additional Document/s'
+        # subject = 'Request Additional Document/s'
 
-        documents = self.validated_data['document_list']
-        doc_lines = "\n".join([f"  • {doc.strip()}" for doc in documents.split(",") if doc.strip()])
+        documents = self.validated_data.get("document_list")
+        doc_lines = "\n".join(f"<li>{doc.strip()}</li>" for doc in documents.split(",") if doc.strip())
 
-        message_lines = [
-            "Dear Applicant,",
-            "",
-            f"{company_name} is requesting the following additional document(s):",
-            "",
-            doc_lines,
-            "",
-            "Additional message:",
-            self.validated_data['message'],
-            "",
-            "Best regards,",
-            company_name,
-        ]
-        message_body = "\n".join(message_lines)
+        message_html = f"""
+          <div>
+              <p>Dear Applicant,</p>
+
+              <p><strong>{company_name} is requesting the following additional document(s):</strong></p>
+
+              <p>{doc_lines}</p>
+
+              <p><strong>Additional message:</strong><br>{self.validated_data['message']}</p>
+
+              <p>Best regards,<br><strong>{company_name}</strong></p>
+          </div>
+          """
 
         email = EmailMessage(
-            subject=subject,
-            body=message_body,
+            subject="Request Additional Document/s",
+            body=message_html,
             from_email=formataddr((company_name, 'between.internships@gmail.com')),
             to=[applicant_email],
             reply_to=['no-reply@betweeninternships.com']
         )
+        email.content_subtype = 'html'
         email.send(fail_silently=False)
