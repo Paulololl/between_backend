@@ -83,16 +83,6 @@ class OJTCoordinatorListView(CEAMixin, generics.ListAPIView):
                 program_name = program.program_name if program else None
             item['program_name'] = program_name
 
-            """
-                        ojt_coordinator_id = item.get('ojt_coordinator_id')
-            if ojt_coordinator_id:
-                try:
-                    ojt_coordinator = OJTCoordinator.objects.get(ojt_coordinator_id=ojt_coordinator_id)
-                    item['user_email'] = ojt_coordinator.user.email
-                except OJTCoordinator.DoesNotExist:
-                    item['user_email'] = None
-            """
-
             modified_data.append(item)
 
         return Response(modified_data)
@@ -129,14 +119,30 @@ class CreateOJTCoordinatorView(CEAMixin, generics.CreateAPIView):
         return Response(data)
 
 
-class UpdateOJTCoordinatorView(CEAMixin, generics.UpdateAPIView):
+class UpdateOJTCoordinatorView(generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated, IsCEA]
+
     queryset = OJTCoordinator.objects.all()
     serializer_class = OJTCoordinatorRegisterSerializer
     lookup_field = 'ojt_coordinator_id'
 
+    def get(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serialized_data = {
+            "first_name": instance.first_name,
+            "last_name": instance.last_name,
+            "middle_initial": instance.middle_initial,
+            "ojtcoordinator_email": instance.user.email,
+            "password": "",
+            "confirm_password": "",
+            "program": instance.program.program_id,
+            "status": instance.user.status,
+        }
+        return Response(serialized_data)
+
+
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
-        cea = self.get_cea_or_403(self.request.user)
 
         # Check attempted status change
         new_status = request.data.get('status', '').capitalize()
@@ -166,13 +172,14 @@ class UpdateOJTCoordinatorView(CEAMixin, generics.UpdateAPIView):
 
 
 class RemoveOJTCoordinatorView(CEAMixin, generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated, IsCEA]
+
     queryset = OJTCoordinator.objects.all()
     serializer_class = GetOJTCoordinatorSerializer
     lookup_field = 'ojt_coordinator_id'
 
     def update(self, request, *args, **kwargs):
         coordinator = self.get_object()
-        cea = self.get_cea_or_403(self.request.user)
         coordinator.user.status = 'Deleted'
         coordinator.user.save()
 

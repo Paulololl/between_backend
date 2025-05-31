@@ -849,7 +849,7 @@ class GetOJTCoordinatorSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OJTCoordinator
-        fields = ['user', 'program', 'first_name', 'last_name', 'middle_initial', 'email']
+        fields = ['user', 'ojt_coordinator_id', 'program', 'first_name', 'last_name', 'middle_initial', 'email', ]
 
 
 class EditCompanySerializer(serializers.ModelSerializer):
