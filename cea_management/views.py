@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from user_account.models import CareerEmplacementAdmin, OJTCoordinator, Applicant
-from user_account.serializers import GetOJTCoordinatorSerializer, OJTCoordinatorRegisterSerializer, GetApplicantSerializer
+from user_account.serializers import GetOJTCoordinatorSerializer, OJTCoordinatorRegisterSerializer, GetApplicantSerializer, EditOJTCoordinatorSerializer
 from .models import SchoolPartnershipList, Program, Department
 from .permissions import IsCEA
 from . import serializers as cea_serializers
@@ -123,7 +123,7 @@ class UpdateOJTCoordinatorView(generics.UpdateAPIView):
     permission_classes = [IsAuthenticated, IsCEA]
 
     queryset = OJTCoordinator.objects.all()
-    serializer_class = OJTCoordinatorRegisterSerializer
+    serializer_class = EditOJTCoordinatorSerializer
     lookup_field = 'ojt_coordinator_id'
 
     def get(self, request, *args, **kwargs):

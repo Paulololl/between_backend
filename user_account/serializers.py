@@ -426,30 +426,64 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
         ojt_coordinator = OJTCoordinator.objects.create(user=user, **validated_data)
         return ojt_coordinator
 
+class EditOJTCoordinatorSerializer(serializers.ModelSerializer):
+    # Only fields allowed to be edited
+    ojtcoordinator_email = serializers.EmailField(required=False)
+    first_name = serializers.CharField(required=False)
+    last_name = serializers.CharField(required=False)
+    middle_initial = serializers.CharField(required=False, allow_blank=True, default='')
+    password = serializers.CharField(write_only=True, required=False)
+    confirm_password = serializers.CharField(write_only=True, required=False)
+    program = serializers.PrimaryKeyRelatedField(queryset=Program.objects.all(), required=False)
+    status = serializers.CharField(source='user.status', required=False)
+
+    class Meta:
+        model = OJTCoordinator
+        fields = [
+            "ojtcoordinator_email",
+            "first_name",
+            "last_name",
+            "middle_initial",
+            "password",
+            "confirm_password",
+            "program",
+            "status"
+        ]
+
+    def validate(self, attrs):
+        # Validate Password Matching
+        password = attrs.get("password")
+        confirm_password = attrs.get("confirm_password")
+        if password and password != confirm_password:
+            raise serializers.ValidationError({"confirm_password": "Passwords do not match."})
+        return attrs
+
     def update(self, instance, validated_data):
-        email = validated_data.pop('ojtcoordinator_email')
-        password = validated_data.pop('password')
-        validated_data.pop('confirm_password')
+        user_data = validated_data.pop("user", {})
+        email = validated_data.pop("ojtcoordinator_email", None)
+        password = validated_data.pop("password", None)
 
-        user_data = validated_data.get('user', {})
-
+        # Update Email if provided
         if email:
             instance.user.email = email
+
+        # Update Password if provided
         if password:
             instance.user.set_password(password)
-        if 'status' in user_data:
-            new_status = user_data['status']
-            if new_status not in ['Active', 'Inactive']:
-                raise serializers.ValidationError('Invalid status.')
-            instance.user.status = new_status
+
+        # Update Status if provided
+        if "status" in user_data:
+            instance.user.status = user_data["status"]
 
         instance.user.save()
 
+        # Update any remaining fields on the OJTCoordinator instance
         for attr, value in validated_data.items():
-            if attr != 'user': 
-                setattr(instance, attr, value)
+            setattr(instance, attr, value)
+        instance.save()
 
         return instance
+
 
 
 
