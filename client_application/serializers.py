@@ -365,8 +365,8 @@ class SendDocumentSerializer(serializers.Serializer):
                 <p><strong>{applicant.first_name} {applicant.middle_initial} {applicant.last_name}
                  has submitted additional document(s).</strong></p>
                 <p><strong>Message:</strong><br>{message}</p>
-                <p>Best regards,<br><strong>{applicant.first_name} {applicant.middle_initial} {applicant.last_name}
-                </strong></p>
+                <p>Best regards,<br>{applicant.first_name} {applicant.middle_initial} {applicant.last_name}
+                </p>
             </div>
         """
 
@@ -382,6 +382,7 @@ class SendDocumentSerializer(serializers.Serializer):
 
         for f in files:
             email.attach(f.name, f.read(), f.content_type)
+            f.seek(0)
 
         email.send(fail_silently=False)
 

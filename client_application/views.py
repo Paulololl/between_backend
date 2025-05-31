@@ -342,6 +342,13 @@ class SendDocumentView(APIView):
             if not files:
                 return Response({'error': 'At least one file is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
+            for f in files:
+                if f.size > 5 * 1024 * 1024:
+                    return Response(
+                        {'error': f"The file '{f.name}' exceeds the 5MB size limit."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
             serializer.send_document_email(files)
             return Response({'message': 'Documents sent successfully.'}, status=status.HTTP_200_OK)
 
