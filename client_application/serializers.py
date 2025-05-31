@@ -365,7 +365,7 @@ class SendDocumentSerializer(serializers.Serializer):
                 <p>Dear {self.application.internship_posting.company.company_name},</p>
                 <p><strong>{applicant.first_name} {applicant.middle_initial} {applicant.last_name}
                  has submitted additional document(s).</strong></p>
-                <p><strong>Message:</strong><br>{message}</p>
+                <p><strong>Additional Message:</strong><br>{message}</p>
                 <p>Best regards,<br>{applicant.first_name} {applicant.middle_initial} {applicant.last_name}
                 </p>
             </div>
