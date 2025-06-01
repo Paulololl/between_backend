@@ -426,7 +426,7 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
         return attrs
 
     def validate_ojtcoordinator_email(self, value):
-        if User.objects.filter(email=value, status__in=["Active", "Inactive"]).exists():
+        if User.objects.filter(email=value, status__in=["Active", "Inactive", 'Suspended']).exists():
             raise ValidationError('This email is already in use.')
         return value
 
