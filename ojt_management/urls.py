@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from .views import EndorsementDetailView
+from .views import EndorsementDetailView, RequestEndorsementView
 
 urlpatterns = [
     path('partnered-companies/', views.SchoolPartnershipListView.as_view(), name="partnered-companies"),
@@ -8,4 +8,5 @@ urlpatterns = [
     path('endorsements/', views.EndorsementListView.as_view(), name='endorsement-list'),
     path('responded_endorsements/', views.RespondedEndorsementListView.as_view()),
     path('endorsement_detail/', EndorsementDetailView.as_view()),
+    path('request_endorsement/', RequestEndorsementView.as_view()),
 ]

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from client_application.models import Endorsement
+from client_application.models import Endorsement, Application
 from user_account.models import Applicant
 
 
@@ -97,3 +97,45 @@ class EndorsementDetailSerializer(serializers.ModelSerializer):
             full_name = f"{last_name}, {first_name} {middle_initial}".strip()
             return full_name if full_name.strip(', ') else None
         return None
+
+
+class RequestEndorsementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Endorsement
+        fields = ['endorsement_id', 'program_id', 'application', 'status', 'comments', 'date_approved']
+        read_only_fields = ['endorsement_id', 'program_id', 'application', 'status', 'date_approved']
+
+    def validate(self, attrs):
+        user = self.context['request'].user
+        applicant = getattr(user, 'applicant', None)
+        application_id = self.context.get('application_id')
+
+        if not applicant:
+            raise serializers.ValidationError("Only applicants can request endorsements.")
+
+        if applicant.in_practicum != "Yes":
+            raise serializers.ValidationError("Applicant must be in practicum to request an endorsement.")
+
+        if not application_id:
+            raise serializers.ValidationError("Application ID is required.")
+
+        try:
+            application = Application.objects.get(application_id=application_id, applicant=applicant)
+        except Application.DoesNotExist:
+            raise serializers.ValidationError("Application not found or does not belong to you.")
+
+        attrs['application'] = application
+        attrs['program_id'] = applicant.program
+
+        return attrs
+
+    def create(self, validated_data):
+        application = validated_data['application']
+        program = validated_data['program_id']
+
+        endorsement, created = Endorsement.objects.get_or_create(
+            application=application,
+            program_id=program,
+            defaults={'status': 'Pending'}
+        )
+        return endorsement
