@@ -1,11 +1,15 @@
 from rest_framework import serializers
 
-from user_account.models import User, Company, OJTCoordinator
-from .models import SchoolPartnershipList
+from user_account.models import Company
+from .models import SchoolPartnershipList, Program
 
 # serializers for School Partnerships
 # region
 
+class ProgramSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Program
+        fields = ('program_id', 'program_name')
 
 class CompanySerializer(serializers.ModelSerializer):
     class Meta:
