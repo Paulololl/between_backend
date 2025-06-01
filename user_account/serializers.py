@@ -30,6 +30,9 @@ from between_ims import settings
 from cea_management.models import Program, Department, School
 from client_matching.models import HardSkillsTagList, SoftSkillsTagList
 from .models import Applicant, User, Company, CareerEmplacementAdmin, OJTCoordinator
+
+from cea_management.serializers import ProgramSerializer
+
 from django.core.exceptions import ValidationError
 
 load_dotenv()
@@ -902,6 +905,8 @@ class ChangePasswordSerializer(serializers.Serializer):
 
 
 class GetOJTCoordinatorSerializer(serializers.ModelSerializer):
+    program = ProgramSerializer(read_only=True)
+
     email = serializers.EmailField(source='user.email', read_only=True)
     status = serializers.CharField(source='user.status')
 

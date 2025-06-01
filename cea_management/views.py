@@ -1,6 +1,7 @@
 from django.db import transaction, IntegrityError
 from rest_framework.exceptions import  PermissionDenied, ValidationError
 from rest_framework import generics, filters
+from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -69,6 +70,7 @@ class OJTCoordinatorListView(CEAMixin, generics.ListAPIView):
         queryset = OJTCoordinator.objects.filter(program__department__school=cea.school, user__status__in=['Active', 'Inactive', 'Suspended'])
 
         user = self.request.query_params.get('user')
+
         if user:
             queryset = queryset.filter(user=user)
 
