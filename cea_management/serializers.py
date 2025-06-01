@@ -14,40 +14,67 @@ class CompanySerializer(serializers.ModelSerializer):
 
 
 class CompanyListSerializer(serializers.ModelSerializer):
+    company_uuid = serializers.UUIDField(source='user')
+
     class Meta:
         model = Company
-        fields = ['company_id', 'company_name', 'company_address', 'business_nature',]
+        fields = ['company_uuid', 'company_name', 'company_address', 'business_nature',]
 
 
-class SchoolPartnershipSerializer(serializers.ModelSerializer):
-    company = CompanyListSerializer(read_only=True)
-    company_id = serializers.CharField(write_only=True)
+class CreatePartnershipSerializer(serializers.Serializer):
+    company_uuids = serializers.ListField(
+        child=serializers.UUIDField(),
+        write_only=True
+    )
 
-    class Meta:
-        model = SchoolPartnershipList
-        fields = ('company', 'company_id')
-
-    def validate_company_id(self, value):
-        try:
-            company = Company.objects.get(company_id=value)
-            if company.user.status != 'Active':
-                raise serializers.ValidationError('Cannot partner with inactive company')
-            return value
-        except Company.DoesNotExist:
-            raise serializers.ValidationError('Company does not exist')
+    def validate_company_uuids(self, value):
+        companies = Company.objects.filter(user__user_id__in=value, user__status='Active')
+        if companies.count() != len(value):
+            valid_ids = set(comp.user.user_id for comp in companies)
+            invalid_ids = set(value) - valid_ids
+            raise serializers.ValidationError(f"One or more UUIDs are invalid or inactive: {list(invalid_ids)}")
+        return value
 
     def create(self, validated_data):
         school = self.context['school']
+        company_uuids = validated_data['company_uuids']
 
-        company_id = validated_data.get('company_id')
-        if not company_id:
-            raise serializers.ValidationError({'company_id': 'This field is required.'})
+        companies = Company.objects.filter(user__user_id__in=company_uuids)
 
-        company = Company.objects.get(company_id=company_id)
+        existing_uuids = set(
+            SchoolPartnershipList.objects.filter(
+                school=school,
+                company__in=companies
+            ).values_list('company__user__user_id', flat=True)
+        )
 
-        if SchoolPartnershipList.objects.filter(school=school, company=company).exists():
-            raise serializers.ValidationError('School is already partnered with this company')
+        new_partnerships = [
+            SchoolPartnershipList(school=school, company=company)
+            for company in companies
+            if company.user.user_id not in existing_uuids
+        ]
 
-        partnership = SchoolPartnershipList.objects.create(school=school, company=company)
-        return partnership
-#endregion
+        if not new_partnerships:
+            raise serializers.ValidationError({
+                "company_uuids": [f"Already partnered: {uuid}" for uuid in existing_uuids]
+            })
+
+        created_partnerships = SchoolPartnershipList.objects.bulk_create(new_partnerships)
+
+        return created_partnerships
+
+
+class SchoolPartnershipSerializer(serializers.ModelSerializer):
+    company_uuid = serializers.UUIDField(source='company.user.user_id', read_only=True)
+    company_name = serializers.CharField(source='company.company_name', read_only=True)
+    company_address = serializers.CharField(source='company.company_address', read_only=True)
+    business_nature = serializers.CharField(source='company.business_nature', read_only=True)
+
+    class Meta:
+        model = SchoolPartnershipList
+        fields = [
+            'company_uuid',
+            'company_name',
+            'company_address',
+            'business_nature'
+        ]

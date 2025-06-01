@@ -8,7 +8,7 @@ urlpatterns = [
     path('ojt-coordinators/remove/', views.RemoveOJTCoordinatorView.as_view(), name="ojt-coordinators-remove"),
     path('partnerships/', views.SchoolPartnershipListView.as_view(), name="partnerships-list"),
     path('partnerships/create/', views.CreateSchoolPartnershipView.as_view(), name="partnerships-create"),
-    path('partnerships/delete/<int:company_id>/', views.DeleteSchoolPartnershipView.as_view(), name="partnerships-delete"),
+    path('partnerships/delete/', views.BulkDeleteSchoolPartnershipView.as_view(), name="partnerships-delete"),
     path('students/', views.ApplicantListView.as_view(), name="students-list"),
     path('companies/', views.CompanyListView.as_view(), name="companies-list")
 ]
