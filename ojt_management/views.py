@@ -78,6 +78,19 @@ class EndPracticumView(CoordinatorMixin, generics.UpdateAPIView):
 
         return Response({'message': "The student's practicum has been marked as ended."})
 
+# Students Requesting Practicum List -- KC
+class GetRequestPracticumListView(CoordinatorMixin, generics.ListAPIView):
+    serializer_class = GetApplicantSerializer
+
+    def get_queryset(self):
+        coordinator = self.get_coordinator_or_403(self.request.user)
+        queryset = Applicant.objects.filter(program=coordinator.program, user__status__in=['Active'], in_practicum='Pending').select_related('user')
+
+        user = self.request.query_params.get('user')
+        if user:
+            queryset = queryset.filter(user=user)
+
+        return queryset
 
 
 # endregion
