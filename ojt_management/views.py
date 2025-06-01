@@ -8,6 +8,7 @@ from user_account.models import OJTCoordinator, Applicant
 from user_account.serializers import GetApplicantSerializer
 from cea_management.models import SchoolPartnershipList
 from cea_management.serializers import SchoolPartnershipSerializer
+from .serializers import UpdatePracticumStatusSerializer
 
 
 class CoordinatorMixin:
@@ -59,7 +60,7 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
 #  End Student's Practicum -- KC
 class EndPracticumView(CoordinatorMixin, generics.UpdateAPIView):
     queryset = Applicant.objects.all()
-    serializer_class = GetApplicantSerializer
+    serializer_class = UpdatePracticumStatusSerializer
 
     def get_object(self):
         user = self.request.query_params.get('user')
@@ -71,12 +72,19 @@ class EndPracticumView(CoordinatorMixin, generics.UpdateAPIView):
             raise ValidationError({"error": f"No student found for user: {user}"})
         return instance
 
-    def update(self, request, *args, **kwargs):
-        applicant = self.get_object()
-        applicant.in_practicum = 'No'
-        applicant.save()
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['email_message'] = (
+            'Congratulations! You have successfully completed your practicum. \n'
+            'Best regards, \nYour OJT Coordinator'
+        )
+        context['coordinator'] = self.get_coordinator_or_403(self.request.user)
+        return context
 
-        return Response({'message': "The student's practicum has been marked as ended."})
+    def update(self, request, *args, **kwargs):
+        request.data['in_practicum'] = 'No'
+        return super().update(request, *args, **kwargs)
+
 
 # Students Requesting Practicum List -- KC
 class GetRequestPracticumListView(CoordinatorMixin, generics.ListAPIView):
@@ -113,5 +121,12 @@ class ApprovePracticumRequestView(CoordinatorMixin, generics.UpdateAPIView):
         applicant.save()
 
         return Response({'message': "The student's practicum has been approved"})
+
+# Reject Practicum Request -- KC
+class RejectPracticumRequestView(CoordinatorMixin, generics.UpdateAPIView):
+    queryset = Applicant.objects.all()
+    serializer_class = GetApplicantSerializer
+
+
 
 # endregion
