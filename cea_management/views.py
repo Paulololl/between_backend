@@ -74,6 +74,8 @@ class OJTCoordinatorListView(CEAMixin, generics.ListAPIView):
         if user:
             queryset = queryset.filter(user=user)
 
+        queryset = queryset.all().order_by('user__status', 'program__program_name')
+
         return queryset
 
 
