@@ -174,19 +174,6 @@ class ApplicantListView(CEAMixin, generics.ListAPIView):
         return Applicant.objects.filter(program__department__school=cea.school, user__status__in=['Active'])
 
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-
-        modified_data = []
-        for item in serializer.data:
-            user = item.pop('user', None)
-            if user and isinstance(user, dict):
-                user.pop('user_id', None)
-
-            modified_data.append(item)
-
-        return Response(modified_data)
 #endregion
 
 # region Company Partnerships -- PAUL
