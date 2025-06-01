@@ -68,13 +68,13 @@ class EndorsementDetailSerializer(serializers.ModelSerializer):
                   'date_approved',
                   'ojt_hours',
                   'status'
-                 ]
+                  ]
 
     def get_key_tasks(self, obj):
         return [
             {
-             "id": key_task.key_task_id,
-             "key_task": key_task.key_task
+                "id": key_task.key_task_id,
+                "key_task": key_task.key_task
             }
             for key_task in obj.application.internship_posting.key_tasks.all()
         ]
@@ -133,7 +133,15 @@ class RequestEndorsementSerializer(serializers.ModelSerializer):
         application = validated_data['application']
         program = validated_data['program_id']
 
-        endorsement, created = Endorsement.objects.get_or_create(
+        existing_endorsement = Endorsement.objects.filter(application=application, program_id=program).first()
+
+        if existing_endorsement:
+            if existing_endorsement.status in ['Pending', 'Approved']:
+                raise (serializers.ValidationError
+                       ({'error': f"An endorsement already exists with status '{existing_endorsement.status}'. " 
+                                  f"You cannot request a new one unless it was rejected."}))
+
+        endorsement, created = Endorsement.objects.update_or_create(
             application=application,
             program_id=program,
             defaults={'status': 'Pending'}
