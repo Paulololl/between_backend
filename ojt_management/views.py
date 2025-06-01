@@ -8,7 +8,6 @@ from user_account.models import OJTCoordinator, Applicant
 from user_account.serializers import GetApplicantSerializer
 from cea_management.models import SchoolPartnershipList
 from cea_management.serializers import SchoolPartnershipSerializer
-from . import serializers as ojt_serializers
 
 
 class CoordinatorMixin:
@@ -20,7 +19,8 @@ class CoordinatorMixin:
         except OJTCoordinator.DoesNotExist:
             raise PermissionDenied('User is not an OJT Coordinator. Access denied.')
 
-# School Partnerships
+
+# region School Partnerships -- KC
 class SchoolPartnershipListView(CoordinatorMixin, generics.ListAPIView):
     serializer_class = SchoolPartnershipSerializer
 
@@ -28,11 +28,56 @@ class SchoolPartnershipListView(CoordinatorMixin, generics.ListAPIView):
         coordinator = self.get_coordinator_or_403(self.request.user)
         return SchoolPartnershipList.objects.filter(school=coordinator.program.department.school).select_related('company', 'company__user')
 
+# endregion
 
-# Student List
+# region Student List -- KC
 class ApplicantListView(CoordinatorMixin, generics.ListAPIView):
     serializer_class = GetApplicantSerializer
 
     def get_queryset(self):
         coordinator = self.get_coordinator_or_403(self.request.user)
-        return Applicant.objects.filter(program__department__school=coordinator.program.department.school, user__status__in=['Active'])
+        return Applicant.objects.filter(program=coordinator.program, user__status__in=['Active'])
+
+# endregion
+
+# region Practicum Management
+
+# Students In Practicum List -- KC
+class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
+    serializer_class = GetApplicantSerializer
+
+    def get_queryset(self):
+        coordinator = self.get_coordinator_or_403(self.request.user)
+        queryset = Applicant.objects.filter(program=coordinator.program, user__status__in=['Active'], in_practicum='Yes').select_related('user')
+
+        user = self.request.query_params.get('user')
+        if user:
+            queryset = queryset.filter(user=user)
+
+        return queryset
+
+#  End Student's Practicum -- KC
+class EndPracticumView(CoordinatorMixin, generics.UpdateAPIView):
+    queryset = Applicant.objects.all()
+    serializer_class = GetApplicantSerializer
+
+    def get_object(self):
+        user = self.request.query_params.get('user')
+        if not user:
+            raise ValidationError({"error": "Query parameter 'user' is required."})
+        try:
+            instance = self.get_queryset().get(user__user_id=user)
+        except Applicant.DoesNotExist:
+            raise ValidationError({"error": f"No student found for user: {user}"})
+        return instance
+
+    def update(self, request, *args, **kwargs):
+        applicant = self.get_object()
+        applicant.in_practicum = 'No'
+        applicant.save()
+
+        return Response({'message': "The student's practicum has been marked as ended."})
+
+
+
+# endregion
