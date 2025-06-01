@@ -47,7 +47,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         ('company', 'company'),
         ('cea', 'cea'),
         ('coordinator', 'coordinator'),
-    ], default='ADMIN')
+    ], default='admin')
 
     is_superuser = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
@@ -110,6 +110,8 @@ class Applicant(models.Model):
     last_matched = models.DateTimeField(null=True, blank=True)
 
     last_recommendation_filter_state = models.JSONField(null=True, blank=True)
+
+    tap_count_reset = models.DateTimeField(null=True, blank=True)
 
     tap_count = models.IntegerField(
         default=0,

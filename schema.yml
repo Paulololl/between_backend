@@ -4,9 +4,9 @@ info:
   version: 1.0.0
   description: An Internship matching system for everyone
 paths:
-  /api/lightcast/skills/:
-    get:
-      operationId: api_lightcast_skills_retrieve
+  /api/client_matching/bulk-delete/internship_posting/:
+    put:
+      operationId: api_client_matching_bulk_delete_internship_posting_update
       tags:
       - api
       security:
@@ -14,9 +14,440 @@ paths:
       responses:
         '200':
           description: No response body
-  /api/token/:
+  /api/client_matching/bulk-delete/person_in_charge/:
+    delete:
+      operationId: api_client_matching_bulk_delete_person_in_charge_destroy
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/client_matching/create/internship_posting/:
     post:
-      operationId: api_token_create
+      operationId: api_client_matching_create_internship_posting_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInternshipPosting'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateInternshipPosting'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateInternshipPosting'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateInternshipPosting'
+          description: ''
+  /api/client_matching/create/person_in_charge/:
+    post:
+      operationId: api_client_matching_create_person_in_charge_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePersonInCharge'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreatePersonInCharge'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreatePersonInCharge'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatePersonInCharge'
+          description: ''
+  /api/client_matching/edit/applicant_document/:
+    get:
+      operationId: api_client_matching_edit_applicant_document_retrieve
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+    put:
+      operationId: api_client_matching_edit_applicant_document_update
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/client_matching/edit/internship_posting/:
+    put:
+      operationId: api_client_matching_edit_internship_posting_update
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/client_matching/edit/person_in_charge/:
+    put:
+      operationId: api_client_matching_edit_person_in_charge_update
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/client_matching/get/internship_postings/:
+    get:
+      operationId: api_client_matching_get_internship_postings_list
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InternshipPostingList'
+          description: ''
+  /api/client_matching/internship_matching/:
+    post:
+      operationId: api_client_matching_internship_matching_create
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/client_matching/internship_posting/:
+    get:
+      operationId: api_client_matching_internship_posting_list
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InternshipPostingList'
+          description: ''
+  /api/client_matching/internship_recommendations/:
+    get:
+      operationId: api_client_matching_internship_recommendations_list
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InternshipRecommendationList'
+          description: ''
+  /api/client_matching/internship_recommendations/current/tap/:
+    put:
+      operationId: api_client_matching_internship_recommendations_current_tap_update
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/client_matching/person_in_charge/:
+    get:
+      operationId: api_client_matching_person_in_charge_list
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PersonInChargeList'
+          description: ''
+  /api/client_matching/report/posting/:
+    post:
+      operationId: api_client_matching_report_posting_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportPosting'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReportPosting'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReportPosting'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportPosting'
+          description: ''
+  /api/client_matching/toggle/internship_posting/:
+    put:
+      operationId: api_client_matching_toggle_internship_posting_update
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/lightcast/skills/:
+    get:
+      operationId: api_lightcast_skills_retrieve
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/user_account/applicant/:
+    get:
+      operationId: api_user_account_applicant_list
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GetApplicant'
+          description: ''
+  /api/user_account/change-password/:
+    put:
+      operationId: api_user_account_change_password_update
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/user_account/company/:
+    get:
+      operationId: api_user_account_company_list
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GetCompany'
+          description: ''
+  /api/user_account/delete-account/:
+    put:
+      operationId: api_user_account_delete_account_update
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/user_account/departments/:
+    get:
+      operationId: api_user_account_departments_list
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Department'
+          description: ''
+  /api/user_account/edit-applicant/:
+    put:
+      operationId: api_user_account_edit_applicant_update
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/user_account/edit-company/:
+    put:
+      operationId: api_user_account_edit_company_update
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/user_account/email/:
+    get:
+      operationId: api_user_account_email_list
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GetEmail'
+          description: ''
+  /api/user_account/forgot-password/:
+    get:
+      operationId: api_user_account_forgot_password_retrieve
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: api_user_account_forgot_password_create
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/user_account/forgot-password/{uidb64}/{token}/:
+    get:
+      operationId: api_user_account_forgot_password_retrieve_2
+      parameters:
+      - in: path
+        name: token
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: uidb64
+        schema:
+          type: string
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: api_user_account_forgot_password_create_2
+      parameters:
+      - in: path
+        name: token
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: uidb64
+        schema:
+          type: string
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/user_account/login/email/:
+    post:
+      operationId: api_user_account_login_email_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailLogin'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmailLogin'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmailLogin'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                message: Email verified
+          description: ''
+  /api/user_account/login/token/:
+    post:
+      operationId: api_user_account_login_token_create
       description: |-
         Takes a set of user credentials and returns an access and refresh JSON web
         token pair to prove the authentication of those credentials.
@@ -41,36 +472,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/MyTokenObtainPair'
           description: ''
-  /api/token/refresh/:
-    post:
-      operationId: api_token_refresh_create
-      description: |-
-        Takes a refresh type JSON web token and returns an access type JSON web
-        token if the refresh token is valid.
-      tags:
-      - api
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TokenRefresh'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/TokenRefresh'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/TokenRefresh'
-        required: true
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TokenRefresh'
-          description: ''
-  /api/user_account/departments/:
+  /api/user_account/ojtcoordinator/:
     get:
-      operationId: api_user_account_departments_list
+      operationId: api_user_account_ojtcoordinator_list
       tags:
       - api
       security:
@@ -82,7 +486,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Department'
+                  $ref: '#/components/schemas/GetOJTCoordinator'
           description: ''
   /api/user_account/programs/:
     get:
@@ -91,6 +495,7 @@ paths:
       - api
       security:
       - jwtAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -119,12 +524,42 @@ paths:
         required: true
       security:
       - jwtAuth: []
+      - {}
       responses:
         '201':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApplicantRegister'
+          description: ''
+  /api/user_account/register/applicant/school_verify/:
+    post:
+      operationId: api_user_account_register_applicant_school_verify_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SchoolEmailCheck'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SchoolEmailCheck'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SchoolEmailCheck'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                message: Institutional email is valid.
+                email:
+                - email
           description: ''
   /api/user_account/register/cea/:
     post:
@@ -145,6 +580,7 @@ paths:
         required: true
       security:
       - jwtAuth: []
+      - {}
       responses:
         '201':
           content:
@@ -171,6 +607,7 @@ paths:
         required: true
       security:
       - jwtAuth: []
+      - {}
       responses:
         '201':
           content:
@@ -197,6 +634,7 @@ paths:
         required: true
       security:
       - jwtAuth: []
+      - {}
       responses:
         '201':
           content:
@@ -204,6 +642,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/OJTCoordinatorRegister'
           description: ''
+  /api/user_account/reset-password/:
+    post:
+      operationId: api_user_account_reset_password_create
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
   /api/user_account/schools/:
     get:
       operationId: api_user_account_schools_list
@@ -211,6 +660,7 @@ paths:
       - api
       security:
       - jwtAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -227,6 +677,7 @@ paths:
       - api
       security:
       - jwtAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -236,6 +687,114 @@ paths:
                 items:
                   $ref: '#/components/schemas/NestedSchoolDepartmentProgram'
           description: ''
+  /api/user_account/token/refresh/:
+    post:
+      operationId: api_user_account_token_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MyTokenRefresh'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MyTokenRefresh'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MyTokenRefresh'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyTokenRefresh'
+          description: ''
+  /api/user_account/user/:
+    get:
+      operationId: api_user_account_user_list
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GetUser'
+          description: ''
+  /api/user_account/verify-email/:
+    get:
+      operationId: api_user_account_verify_email_retrieve
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: api_user_account_verify_email_create
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/user_account/verify-email/{uidb64}/{token}/:
+    get:
+      operationId: api_user_account_verify_email_retrieve_2
+      parameters:
+      - in: path
+        name: token
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: uidb64
+        schema:
+          type: string
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: api_user_account_verify_email_create_2
+      parameters:
+      - in: path
+        name: token
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: uidb64
+        schema:
+          type: string
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
 components:
   schemas:
     ApplicantRegister:
@@ -276,19 +835,16 @@ components:
           nullable: true
           maxLength: 100
         hard_skills:
-          type: array
-          items:
-            type: string
+          type: string
         soft_skills:
-          type: array
-          items:
-            type: string
+          type: string
         address:
           type: string
           maxLength: 255
+        preferred_modality:
+          $ref: '#/components/schemas/PreferredModalityEnum'
         quick_introduction:
           type: string
-          nullable: true
           maxLength: 500
         resume:
           type: string
@@ -302,13 +858,16 @@ components:
       - applicant_email
       - confirm_password
       - first_name
+      - hard_skills
       - last_name
       - password
+      - quick_introduction
       - resume
+      - soft_skills
     CareerEmplacementAdminRegister:
       type: object
       properties:
-        CEA_email:
+        cea_email:
           type: string
           format: email
           writeOnly: true
@@ -322,7 +881,7 @@ components:
           type: string
           format: uuid
       required:
-      - CEA_email
+      - cea_email
       - confirm_password
       - password
       - school
@@ -338,7 +897,6 @@ components:
         company_website_url:
           type: string
           nullable: true
-          maxLength: 255
         company_email:
           type: string
           format: email
@@ -351,7 +909,7 @@ components:
           writeOnly: true
         company_information:
           type: string
-          maxLength: 1000
+          maxLength: 500
         business_nature:
           type: string
           maxLength: 100
@@ -368,9 +926,91 @@ components:
       - company_email
       - company_information
       - company_name
+      - company_website_url
       - confirm_password
       - password
       - profile_picture
+    CreateInternshipPosting:
+      type: object
+      properties:
+        internship_position:
+          type: string
+          maxLength: 100
+        address:
+          type: string
+          nullable: true
+          maxLength: 255
+        modality:
+          $ref: '#/components/schemas/ModalityEnum'
+        internship_date_start:
+          type: string
+          format: date-time
+        ojt_hours:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        application_deadline:
+          type: string
+          format: date-time
+          nullable: true
+        person_in_charge:
+          type: string
+          format: uuid
+        other_requirements:
+          type: string
+          nullable: true
+          maxLength: 255
+        key_tasks:
+          type: string
+        min_qualifications:
+          type: string
+        benefits:
+          type: string
+        required_hard_skills:
+          type: string
+        required_soft_skills:
+          type: string
+        is_paid_internship:
+          type: boolean
+        is_only_for_practicum:
+          type: boolean
+        status:
+          $ref: '#/components/schemas/Status23eEnum'
+      required:
+      - benefits
+      - internship_date_start
+      - internship_position
+      - key_tasks
+      - min_qualifications
+      - ojt_hours
+      - person_in_charge
+      - required_hard_skills
+      - required_soft_skills
+    CreatePersonInCharge:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        position:
+          type: string
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          maxLength: 100
+        mobile_number:
+          type: string
+          nullable: true
+          maxLength: 15
+        landline_number:
+          type: string
+          nullable: true
+          maxLength: 20
+      required:
+      - email
+      - name
+      - position
     Department:
       type: object
       properties:
@@ -401,6 +1041,413 @@ components:
       - department_id
       - department_name
       - programs
+    EmailLogin:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        status:
+          type: string
+          readOnly: true
+      required:
+      - email
+      - status
+    GetApplicant:
+      type: object
+      properties:
+        user:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+        school:
+          type: string
+          nullable: true
+        department:
+          type: string
+          nullable: true
+        program:
+          type: string
+          nullable: true
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        middle_initial:
+          type: string
+          nullable: true
+          maxLength: 20
+        address:
+          type: string
+          maxLength: 255
+        hard_skills:
+          type: string
+          readOnly: true
+        soft_skills:
+          type: string
+          readOnly: true
+        in_practicum:
+          $ref: '#/components/schemas/InPracticumEnum'
+        preferred_modality:
+          $ref: '#/components/schemas/PreferredModalityEnum'
+        academic_program:
+          type: string
+          nullable: true
+          maxLength: 100
+        quick_introduction:
+          type: string
+          maxLength: 500
+        resume:
+          type: string
+          format: uri
+        enrollment_record:
+          type: string
+          format: uri
+          nullable: true
+        verified_at:
+          type: string
+          format: date-time
+      required:
+      - address
+      - department
+      - email
+      - first_name
+      - hard_skills
+      - last_name
+      - program
+      - quick_introduction
+      - resume
+      - school
+      - soft_skills
+      - user
+      - verified_at
+    GetCompany:
+      type: object
+      properties:
+        user:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+        company_name:
+          type: string
+          maxLength: 255
+        company_address:
+          type: string
+          maxLength: 255
+        company_information:
+          type: string
+          maxLength: 500
+        business_nature:
+          type: string
+          maxLength: 100
+        company_website_url:
+          type: string
+          nullable: true
+          maxLength: 255
+        linkedin_url:
+          type: string
+          nullable: true
+          maxLength: 255
+        facebook_url:
+          type: string
+          nullable: true
+          maxLength: 255
+        instagram_url:
+          type: string
+          nullable: true
+          maxLength: 255
+        x_url:
+          type: string
+          nullable: true
+          maxLength: 255
+        other_url:
+          type: string
+          nullable: true
+          maxLength: 255
+        background_image:
+          type: string
+          format: uri
+        profile_picture:
+          type: string
+          format: uri
+        verified_at:
+          type: string
+          format: date-time
+      required:
+      - background_image
+      - business_nature
+      - company_address
+      - company_information
+      - company_name
+      - email
+      - profile_picture
+      - user
+      - verified_at
+    GetEmail:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          readOnly: true
+        verified_at:
+          type: string
+          format: date-time
+          nullable: true
+        user_role:
+          $ref: '#/components/schemas/UserRoleEnum'
+        status:
+          $ref: '#/components/schemas/StatusA67Enum'
+      required:
+      - user_id
+    GetOJTCoordinator:
+      type: object
+      properties:
+        user:
+          type: string
+          format: uuid
+          readOnly: true
+        program:
+          type: integer
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        middle_initial:
+          type: string
+          nullable: true
+          maxLength: 20
+      required:
+      - first_name
+      - last_name
+      - program
+      - user
+    GetUser:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 100
+        verified_at:
+          type: string
+          format: date-time
+          nullable: true
+        user_role:
+          $ref: '#/components/schemas/UserRoleEnum'
+        status:
+          $ref: '#/components/schemas/StatusA67Enum'
+      required:
+      - email
+    InPracticumEnum:
+      enum:
+      - 'No'
+      - Pending
+      - 'Yes'
+      type: string
+      description: |-
+        * `No` - No
+        * `Pending` - Pending
+        * `Yes` - Yes
+    InternshipPostingList:
+      type: object
+      properties:
+        internship_posting_id:
+          type: string
+          format: uuid
+          readOnly: true
+        internship_position:
+          type: string
+          maxLength: 100
+        address:
+          type: string
+          nullable: true
+          maxLength: 255
+        other_requirements:
+          type: string
+          nullable: true
+          maxLength: 255
+        is_paid_internship:
+          type: boolean
+        is_only_for_practicum:
+          type: boolean
+        internship_date_start:
+          type: string
+          format: date-time
+        ojt_hours:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        application_deadline:
+          type: string
+          format: date-time
+          nullable: true
+        date_created:
+          type: string
+          format: date-time
+          readOnly: true
+        date_modified:
+          type: string
+          format: date-time
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/Status23eEnum'
+        modality:
+          $ref: '#/components/schemas/ModalityEnum'
+        company_name:
+          type: string
+        person_in_charge:
+          type: string
+          format: uuid
+        person_in_charge_name:
+          type: string
+        required_hard_skills:
+          type: string
+          readOnly: true
+        required_soft_skills:
+          type: string
+          readOnly: true
+        key_tasks:
+          type: string
+          readOnly: true
+        min_qualifications:
+          type: string
+          readOnly: true
+        benefits:
+          type: string
+          readOnly: true
+      required:
+      - benefits
+      - company_name
+      - date_created
+      - date_modified
+      - internship_date_start
+      - internship_position
+      - internship_posting_id
+      - key_tasks
+      - min_qualifications
+      - ojt_hours
+      - person_in_charge
+      - person_in_charge_name
+      - required_hard_skills
+      - required_soft_skills
+    InternshipRecommendationList:
+      type: object
+      properties:
+        company_name:
+          type: string
+        background_image:
+          type: string
+          readOnly: true
+        profile_picture:
+          type: string
+          readOnly: true
+        position:
+          type: string
+        address:
+          type: string
+        modality:
+          type: string
+        ojt_hours:
+          type: integer
+        key_tasks:
+          type: string
+          readOnly: true
+        min_qualifications:
+          type: string
+          readOnly: true
+        benefits:
+          type: string
+          readOnly: true
+        required_hard_skills:
+          type: string
+          readOnly: true
+        required_soft_skills:
+          type: string
+          readOnly: true
+        other_requirements:
+          type: string
+        application_deadline:
+          type: string
+          format: date-time
+        date_created:
+          type: string
+          format: date-time
+        internship_date_start:
+          type: string
+          format: date-time
+        person_in_charge:
+          type: string
+        recommendation_id:
+          type: integer
+          readOnly: true
+        similarity_score:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,1}(?:\.\d{0,4})?$
+        status:
+          $ref: '#/components/schemas/InternshipRecommendationListStatusEnum'
+        internship_posting:
+          type: string
+          format: uuid
+        is_paid_internship:
+          type: boolean
+        is_only_for_practicum:
+          type: boolean
+      required:
+      - address
+      - application_deadline
+      - background_image
+      - benefits
+      - company_name
+      - date_created
+      - internship_date_start
+      - internship_posting
+      - is_only_for_practicum
+      - is_paid_internship
+      - key_tasks
+      - min_qualifications
+      - modality
+      - ojt_hours
+      - other_requirements
+      - person_in_charge
+      - position
+      - profile_picture
+      - recommendation_id
+      - required_hard_skills
+      - required_soft_skills
+    InternshipRecommendationListStatusEnum:
+      enum:
+      - Pending
+      - Viewed
+      - Submitted
+      - Skipped
+      type: string
+      description: |-
+        * `Pending` - Pending
+        * `Viewed` - Viewed
+        * `Submitted` - Submitted
+        * `Skipped` - Skipped
+    ModalityEnum:
+      enum:
+      - Onsite
+      - WorkFromHome
+      - Hybrid
+      type: string
+      description: |-
+        * `Onsite` - Onsite
+        * `WorkFromHome` - WorkFromHome
+        * `Hybrid` - Hybrid
     MyTokenObtainPair:
       type: object
       properties:
@@ -413,6 +1460,17 @@ components:
       required:
       - email
       - password
+    MyTokenRefresh:
+      type: object
+      properties:
+        refresh:
+          type: string
+        access:
+          type: string
+          readOnly: true
+      required:
+      - access
+      - refresh
     NestedSchoolDepartmentProgram:
       type: object
       properties:
@@ -435,7 +1493,7 @@ components:
     OJTCoordinatorRegister:
       type: object
       properties:
-        OJTCoordinator_email:
+        ojtcoordinator_email:
           type: string
           format: email
           writeOnly: true
@@ -458,12 +1516,56 @@ components:
         program:
           type: integer
       required:
-      - OJTCoordinator_email
       - confirm_password
       - first_name
       - last_name
+      - ojtcoordinator_email
       - password
       - program
+    PersonInChargeList:
+      type: object
+      properties:
+        person_in_charge_id:
+          type: string
+          format: uuid
+          readOnly: true
+        company_name:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        position:
+          type: string
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          maxLength: 100
+        mobile_number:
+          type: string
+          nullable: true
+          maxLength: 15
+        landline_number:
+          type: string
+          nullable: true
+          maxLength: 20
+      required:
+      - company_name
+      - email
+      - name
+      - person_in_charge_id
+      - position
+    PreferredModalityEnum:
+      enum:
+      - Onsite
+      - WorkFromHome
+      - Hybrid
+      type: string
+      description: |-
+        * `Onsite` - Onsite
+        * `WorkFromHome` - WorkFromHome
+        * `Hybrid` - Hybrid
     ProgramNested:
       type: object
       properties:
@@ -476,6 +1578,24 @@ components:
       required:
       - program_id
       - program_name
+    ReportPosting:
+      type: object
+      properties:
+        internship_posting_id:
+          type: string
+          format: uuid
+          writeOnly: true
+        internship_posting:
+          type: string
+          format: uuid
+          readOnly: true
+        description:
+          type: string
+          maxLength: 500
+      required:
+      - description
+      - internship_posting
+      - internship_posting_id
     School:
       type: object
       properties:
@@ -489,18 +1609,56 @@ components:
       required:
       - school_id
       - school_name
-    TokenRefresh:
+    SchoolEmailCheck:
       type: object
       properties:
-        access:
+        email:
           type: string
-          readOnly: true
-        refresh:
+          format: email
+        school_id:
           type: string
-          writeOnly: true
+          format: uuid
       required:
-      - access
-      - refresh
+      - email
+      - school_id
+    Status23eEnum:
+      enum:
+      - Open
+      - Closed
+      - Expired
+      - Deleted
+      type: string
+      description: |-
+        * `Open` - Open
+        * `Closed` - Closed
+        * `Expired` - Expired
+        * `Deleted` - Deleted
+    StatusA67Enum:
+      enum:
+      - Active
+      - Inactive
+      - Deleted
+      - Pending
+      type: string
+      description: |-
+        * `Active` - Active
+        * `Inactive` - Inactive
+        * `Deleted` - Deleted
+        * `Pending` - Pending
+    UserRoleEnum:
+      enum:
+      - admin
+      - applicant
+      - company
+      - cea
+      - coordinator
+      type: string
+      description: |-
+        * `admin` - admin
+        * `applicant` - applicant
+        * `company` - company
+        * `cea` - cea
+        * `coordinator` - coordinator
   securitySchemes:
     jwtAuth:
       type: http

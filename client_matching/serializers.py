@@ -32,7 +32,7 @@ from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from between_ims import settings
 from cea_management.models import Program, Department, School
 from client_matching.models import PersonInCharge, InternshipPosting, KeyTask, MinQualification, Benefit, \
-    HardSkillsTagList, SoftSkillsTagList, InternshipRecommendation, Report
+    HardSkillsTagList, SoftSkillsTagList, InternshipRecommendation, Report, Advertisement
 from django.core.exceptions import ValidationError
 
 load_dotenv()
@@ -558,7 +558,8 @@ class InternshipMatchSerializer(serializers.Serializer):
             'hard_skills': applicant.hard_skills,
             'soft_skills': applicant.soft_skills,
             'address': applicant.address,
-            'preferred_modality': applicant.preferred_modality
+            'preferred_modality': applicant.preferred_modality,
+            'quick_introduction': applicant.quick_introduction
         }
 
         internship_postings = InternshipPosting.objects.filter(status='Open')
@@ -585,7 +586,10 @@ class InternshipMatchSerializer(serializers.Serializer):
             for profile in internship_posting_profiles
         ]
 
-        internship_posting_embedding = np.vstack(internship_posting_embedding)
+        if internship_posting_embedding:
+            internship_posting_embedding = np.vstack(internship_posting_embedding)
+        else:
+            internship_posting_embedding = None
 
         ranked_result = cosine_compare(
             applicant_embedding,
@@ -604,16 +608,30 @@ class InternshipMatchSerializer(serializers.Serializer):
 
         for item in ranked_result:
             posting = InternshipPosting.objects.get(internship_posting_id=item['internship_posting_id'])
+            similarity_score = Decimal(str(item['similarity_score']))
+
+            try:
+                existing = InternshipRecommendation.objects.get(
+                    applicant=applicant,
+                    internship_posting=posting
+                )
+                if existing.status in ['Submitted', 'Skipped']:
+                    status_to_set = existing.status
+                else:
+                    status_to_set = 'Pending'
+
+            except InternshipRecommendation.DoesNotExist:
+                status_to_set = 'Pending'
+
             InternshipRecommendation.objects.update_or_create(
                 applicant=applicant,
                 internship_posting=posting,
                 defaults={
-                    'similarity_score': Decimal(str(item['similarity_score'])),
-                    'status': 'Pending',
+                    'similarity_score': similarity_score,
+                    'status': status_to_set,
                 }
             )
 
-        print("Ranked result:", ranked_result)
         return ranked_result
 
 
@@ -720,6 +738,12 @@ class UploadDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Applicant
         fields = ['resume']
+
+
+class InPracticumSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Applicant
+        fields = ['in_practicum']
 
 
 class ReportPostingSerializer(serializers.ModelSerializer):

@@ -1,9 +1,6 @@
-from datetime import timedelta
-
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core.cache import cache
-from django.http import HttpResponseRedirect
 from django.shortcuts import redirect
 from django.utils import timezone
 from django.utils.http import urlsafe_base64_decode
@@ -12,16 +9,17 @@ from django.utils.timezone import now
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
-from rest_framework.generics import ListAPIView, CreateAPIView, RetrieveAPIView
+from rest_framework.generics import ListAPIView, CreateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from cea_management.models import Department, Program, School
 from client_matching.functions import run_internship_matching
+from user_account.permissions import IsApplicant
 from client_matching.serializers import InternshipMatchSerializer
+from client_matching.utils import reset_recommendations_and_tap_count
 from .models import Applicant, Company, CareerEmplacementAdmin, OJTCoordinator
 from .serializers import (ApplicantRegisterSerializer, NestedSchoolDepartmentProgramSerializer,
                           DepartmentSerializer, ProgramNestedSerializer, SchoolSerializer, CompanyRegisterSerializer,
@@ -142,14 +140,20 @@ class GetApplicantView(ListAPIView):
 
 
 class EditApplicantView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsApplicant]
 
     def put(self, request):
-        serializer = EditApplicantSerializer(instance=request.user.applicant, data=request.data, partial=True)
+        applicant = request.user.applicant
+        serializer = EditApplicantSerializer(instance=applicant, data=request.data, partial=True)
+
         if serializer.is_valid():
+            applicant.user.date_modified = now()
+            applicant.user.save(update_fields=['date_modified'])
             serializer.save()
+            run_internship_matching(applicant)
             return Response(serializer.data)
-        return Response(serializer.errors, status=400)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CompanyRegisterView(CreateAPIView):
@@ -225,6 +229,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
         if response.status_code == 200 and user and hasattr(user, 'applicant'):
             serializer = InternshipMatchSerializer(context={'applicant': user.applicant})
             serializer.create(validated_data={})
+            reset_recommendations_and_tap_count(user.applicant)
             run_internship_matching(user.applicant)
 
         return response
@@ -373,6 +378,7 @@ class ForgotPasswordLinkView(APIView):
 
 
 class ResetPasswordView(APIView):
+
     def post(self, request):
         serializer = ResetPasswordSerializer(data=request.data)
         if serializer.is_valid():
@@ -382,6 +388,8 @@ class ResetPasswordView(APIView):
 
 
 class DeleteAccountView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def put(self, request):
         serializer = DeleteAccountSerializer(data=request.data, context={'request': request})
 
@@ -394,6 +402,8 @@ class DeleteAccountView(APIView):
 
 
 class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def put(self, request):
         serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
 

@@ -81,14 +81,13 @@ class InternshipRecommendation(models.Model):
     is_current = models.BooleanField(default=False)
 
     def __str__(self):
-        return (f'{self.recommendation_id} - {self.applicant.first_name} {self.applicant.last_name}'
-                f' - {self.status}')
+        return f'{self.recommendation_id} - {self.internship_posting}'
 
 
 class Report(models.Model):
 
     report_id = models.AutoField(primary_key=True)
-    user = models.ForeignKey('user_account.User', on_delete=models.CASCADE, editable=False, default='')
+    user = models.ForeignKey('user_account.User', on_delete=models.CASCADE, editable=False)
     internship_posting = models.ForeignKey('InternshipPosting', on_delete=models.CASCADE)
 
     description = models.CharField(max_length=500)

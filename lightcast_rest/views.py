@@ -42,4 +42,4 @@ class LightcastSkillsAPIView(APIView):
       return Response(response.json(), status=status.HTTP_200_OK)
     
     except requests.RequestException as e:
-      return Response({"error": str(e)}, stawtus=status.HTTP_500_INTERNAL_SERVER_ERROR)
+      return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

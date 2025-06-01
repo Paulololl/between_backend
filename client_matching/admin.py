@@ -206,7 +206,23 @@ class ReportAdmin(admin.ModelAdmin):
 class InternshipRecommendationInline(admin.TabularInline):
     model = InternshipRecommendation
     extra = 0
-    readonly_fields = ('internship_posting', 'similarity_score', 'status', 'time_stamp')
+    readonly_fields = ('internship_posting', 'similarity_score', 'status', 'posting_status', 'time_stamp', )
     can_delete = False
 
+    def posting_status(self, obj):
+        try:
+            posting = InternshipPosting.objects.get(internship_posting_id=obj.internship_posting_id)
+            return posting.status
+        except InternshipPosting.DoesNotExist:
+            return 'Deleted or Missing'
+    posting_status.short_description = 'Internship Posting'
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return True
 

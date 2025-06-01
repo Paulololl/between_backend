@@ -9,7 +9,21 @@ def run_internship_matching(applicant):
     latest_modified = InternshipPosting.objects.exclude(status='Deleted') \
         .aggregate(Max('date_modified'))['date_modified__max']
 
-    if latest_modified and (not applicant.last_matched or latest_modified > applicant.last_matched):
+    user_modified = getattr(applicant.user, 'date_modified', None)
+    last_matched = applicant.last_matched
+
+    should_run_matching = False
+
+    if latest_modified:
+        if last_matched is None:
+            should_run_matching = True
+        elif latest_modified > last_matched:
+            should_run_matching = True
+
+    if user_modified and (last_matched is None or user_modified > last_matched):
+        should_run_matching = True
+
+    if should_run_matching:
         serializer = InternshipMatchSerializer(context={'applicant': applicant})
         serializer.create(validated_data={})
 

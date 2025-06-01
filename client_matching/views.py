@@ -1,38 +1,29 @@
 import json
 import random
-from datetime import timedelta
-from django.db import models
+from django.db import transaction
 from django.contrib.auth import get_user_model
-from django.contrib.auth.tokens import default_token_generator
-from django.core.cache import cache
-from django.db.models import Max, Avg
-from django.http import HttpResponseRedirect
-from django.shortcuts import redirect, get_object_or_404
+from django.db.models import Avg
 from django.utils import timezone
-from django.utils.http import urlsafe_base64_decode
-from django.utils.encoding import force_str
 from django.utils.timezone import now
-from drf_spectacular.utils import extend_schema
-from rest_framework import status, generics, serializers
+from rest_framework import status, serializers
 from rest_framework.exceptions import ValidationError
-from rest_framework.generics import ListAPIView, CreateAPIView, RetrieveAPIView
+from rest_framework.generics import ListAPIView, CreateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status as drf_status
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from client_application.models import Application
+from client_application.models import Application, Notification
 from client_matching.functions import run_internship_matching, fisher_yates_shuffle
-from client_matching.models import PersonInCharge, InternshipPosting, InternshipRecommendation, Report
-from client_matching.permissions import IsCompany, IsApplicant
+from client_matching.models import PersonInCharge, InternshipPosting, InternshipRecommendation, Advertisement
+from user_account.permissions import IsCompany, IsApplicant
 from client_matching.serializers import PersonInChargeListSerializer, CreatePersonInChargeSerializer, \
     EditPersonInChargeSerializer, BulkDeletePersonInChargeSerializer, InternshipPostingListSerializer, \
     CreateInternshipPostingSerializer, EditInternshipPostingSerializer, BulkDeleteInternshipPostingSerializer, \
     ToggleInternshipPostingSerializer, InternshipMatchSerializer, InternshipRecommendationListSerializer, \
-    InternshipRecommendationTapSerializer, UploadDocumentSerializer, ReportPostingSerializer
-from client_matching.utils import update_internship_posting_status, delete_old_deleted_postings
+    UploadDocumentSerializer, ReportPostingSerializer, InPracticumSerializer
+from client_matching.utils import update_internship_posting_status, delete_old_deleted_postings, \
+    reset_recommendations_and_tap_count
 
 User = get_user_model()
 
@@ -118,6 +109,17 @@ class EditInternshipPostingView(APIView):
 
         if serializer.is_valid():
             serializer.save()
+
+            related_applications = internship_posting.application_set.all()
+            for application in related_applications:
+                Notification.objects.create(
+                    application=application,
+                    notification_text=f"{company.company_name} has updated the internship information.",
+                    notification_type='Applicant'
+                )
+                application.is_viewed_applicant = False
+                application.save(update_fields=['is_viewed_applicant'])
+
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -262,26 +264,9 @@ class InternshipMatchView(APIView):
 
         serializer = InternshipMatchSerializer(data=request.data, context={'applicant': applicant})
         if serializer.is_valid():
-            matches = serializer.save()
+            ranked_result = serializer.save()
 
-            open_posting_ids = InternshipPosting.objects.filter(status='Open') \
-                .values_list('internship_posting_id', flat=True)
-
-            queryset = InternshipRecommendation.objects.filter(
-                applicant=applicant,
-                status='Pending',
-                internship_posting_id__in=open_posting_ids
-            )
-
-            shuffled_recommendations = fisher_yates_shuffle(queryset)
-
-            serialized = InternshipRecommendationListSerializer(
-                shuffled_recommendations,
-                many=True,
-                context={'request': request}
-            )
-
-            return Response(serialized.data, status=status.HTTP_200_OK)
+            return Response(ranked_result, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -303,6 +288,15 @@ class InternshipRecommendationListView(ListAPIView):
             raise ValidationError({field_name: f"Invalid value '{value}'. Use 'yes'/'no' or 'true'/'false'."})
 
     def get_filter_state(self):
+        applicant = self.request.user.applicant
+
+        if applicant.in_practicum != 'Yes':
+            return {
+                'is_paid_internship': None,
+                'is_only_for_practicum': None,
+                'modality': None
+            }
+
         is_paid_internship = self.request.query_params.get('is_paid_internship')
         is_only_for_practicum = self.request.query_params.get('is_only_for_practicum')
         modality = self.request.query_params.get('modality')
@@ -320,6 +314,7 @@ class InternshipRecommendationListView(ListAPIView):
 
     def get_queryset(self):
         applicant = self.request.user.applicant
+        reset_recommendations_and_tap_count(applicant)
         run_internship_matching(applicant)
 
         filter_state = self.get_filter_state()
@@ -335,20 +330,37 @@ class InternshipRecommendationListView(ListAPIView):
             internship_posting_id__in=open_posting_ids
         )
 
-        if filter_state['is_paid_internship'] is not None:
-            base_queryset = base_queryset.filter(
-                internship_posting__is_paid_internship=filter_state['is_paid_internship'])
+        if applicant.in_practicum == 'Yes':
+            if filter_state['is_paid_internship'] is not None:
+                base_queryset = base_queryset.filter(
+                    internship_posting__is_paid_internship=filter_state['is_paid_internship'])
 
-        if filter_state['is_only_for_practicum'] is not None:
-            base_queryset = base_queryset.filter(
-                internship_posting__is_only_for_practicum=filter_state['is_only_for_practicum'])
+            if filter_state['is_only_for_practicum'] is not None:
+                base_queryset = base_queryset.filter(
+                    internship_posting__is_only_for_practicum=filter_state['is_only_for_practicum'])
 
-        if filter_state['modality']:
-            base_queryset = base_queryset.filter(internship_posting__modality=filter_state['modality'])
+            if filter_state['modality']:
+                base_queryset = base_queryset.filter(internship_posting__modality=filter_state['modality'])
+
+        elif any([
+            filter_state['is_paid_internship'] is not None,
+            filter_state['is_only_for_practicum'] is not None,
+            filter_state['modality']
+        ]):
+            self.filter_state = {
+                'is_paid_internship': None,
+                'is_only_for_practicum': None,
+                'modality': None
+            }
+            raise ValidationError({'error': 'You must be in practicum to apply internship filters.'})
 
         avg_score = base_queryset.aggregate(avg=Avg('similarity_score'))['avg'] or 0
 
-        current_pending = InternshipRecommendation.objects.filter(applicant=applicant, is_current=True).first()
+        current_pending = InternshipRecommendation.objects.filter(
+            applicant=applicant,
+            is_current=True,
+            internship_posting__status='Open'
+        ).first()
 
         if current_pending:
             return [current_pending]
@@ -366,12 +378,42 @@ class InternshipRecommendationListView(ListAPIView):
         rest_queryset = rest_queryset.filter(similarity_score__gte=avg_score).distinct()
 
         rest_list = list(rest_queryset)
-        random.shuffle(rest_list)
+        rest_list = fisher_yates_shuffle(rest_list)
 
         final_list = [current_pending] + rest_list if current_pending else rest_list
         return final_list
 
     def list(self, request, *args, **kwargs):
+        applicant = request.user.applicant
+
+        if applicant.tap_count >= 10:
+            return Response(
+                {'message': 'You have already reached your daily limit. Come back again tomorrow!'},
+                status=status.HTTP_200_OK
+            )
+
+        filter_state = self.get_filter_state()
+        last_filter_state = applicant.last_recommendation_filter_state or {}
+        filters_changed = (filter_state != last_filter_state)
+        apply_ad_chance = not filters_changed
+
+        if apply_ad_chance:
+            advertisement_chance = 0.25
+            show_ad = random.random() < advertisement_chance
+            if show_ad:
+                ad = Advertisement.objects.order_by('?').first()
+                if ad:
+                    ad_data = {
+                        "advertisement_id": str(ad.advertisement_id),
+                        "image_url": ad.image_url.url if ad.image_url else None,
+                        "redirect_url": ad.redirect_url,
+                        "caption_text": ad.caption_text,
+                        "created_at": ad.created_at.isoformat()
+                    }
+                    return Response([ad_data])
+                else:
+                    return Response({"detail": "No advertisement found."}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
             queryset = self.get_queryset()
         except ValidationError as e:
@@ -382,12 +424,12 @@ class InternshipRecommendationListView(ListAPIView):
         if not queryset and is_only_for_practicum is not None:
             if is_only_for_practicum is True:
                 return Response(
-                    {'message': 'You have viewed all internship recommendations with "Only for Practicum" enabled.'},
+                    {'message': 'You have viewed all internship recommendations with Practicum Filtering set to "Yes".'},
                     status=status.HTTP_200_OK
                 )
             elif is_only_for_practicum is False:
                 return Response(
-                    {'message': 'You have viewed all internship recommendations with "Only for Practicum" disabled.'},
+                    {'message': 'You have viewed all internship recommendations with Practicum Filtering set to "No".'},
                     status=status.HTTP_200_OK
                 )
 
@@ -419,6 +461,7 @@ class InternshipRecommendationTapView(APIView):
             )
 
         applicant = request.user.applicant
+        reset_recommendations_and_tap_count(applicant)
         run_internship_matching(applicant)
 
         open_posting_ids = InternshipPosting.objects.filter(status='Open') \
@@ -445,20 +488,22 @@ class InternshipRecommendationTapView(APIView):
         applicant.tap_count = (applicant.tap_count or 0) + 1
         applicant.save()
 
-        if normalized_status == 'Submitted':
-            Application.objects.get_or_create(
-                applicant=applicant,
-                internship_posting=recommendation.internship_posting,
-                defaults={'status': 'Pending', 'is_bookmarked': True}
-            )
+        with transaction.atomic():
+            if normalized_status == 'Submitted':
+                Application.objects.create(
+                    applicant=applicant,
+                    internship_posting=recommendation.internship_posting,
+                    status='Pending',
+                    is_bookmarked=True
+                )
 
-        return Response(
-            {
-                'recommendation_id': recommendation.recommendation_id,
-                'updated_status': recommendation.status
-            },
-            status=drf_status.HTTP_200_OK
-        )
+            return Response(
+                {
+                    'recommendation_id': recommendation.recommendation_id,
+                    'updated_status': recommendation.status
+                },
+                status=drf_status.HTTP_200_OK
+            )
 
 
 class UploadDocumentView(APIView):
@@ -473,6 +518,17 @@ class UploadDocumentView(APIView):
 
     def get(self, request):
         serializer = UploadDocumentSerializer(instance=request.user.applicant, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
+
+class InPracticumView(APIView):
+    permission_classes = [IsAuthenticated, IsApplicant]
+
+    def get(self, request):
+        serializer = InPracticumSerializer(instance=request.user.applicant, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)

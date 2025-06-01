@@ -5,7 +5,8 @@ from django.contrib.admin import SimpleListFilter
 from django.utils.timezone import now
 from sentence_transformers import SentenceTransformer
 import numpy as np
-from client_matching.models import InternshipPosting
+from client_matching.models import InternshipPosting, InternshipRecommendation
+from user_account.models import Applicant
 
 
 @lru_cache(maxsize=1)
@@ -32,7 +33,7 @@ def get_profile_embedding(profile: dict, is_applicant: bool = True):
 
     # label for each weight
     if is_applicant:
-        weights = np.array([0.4, 0.4, 0.1, 0.1])
+        weights = np.array([0.35, 0.35, 0.1, 0.1, 0.1])
     else:
         weights = np.array([0.3, 0.3, 0.05, 0.05, 0.1, 0.1, 0.1])
 
@@ -48,13 +49,23 @@ def get_profile_embedding(profile: dict, is_applicant: bool = True):
         soft_skills = extract_skill_names(profile.get("soft_skills", []))
         address = profile.get("address", "")
         modality = profile.get("preferred_modality", "")
+        quick_introduction = profile.get("quick_introduction", "")
 
         hard_skills_emb = encode_text(" ".join(hard_skills))
         soft_skills_emb = encode_text(" ".join(soft_skills))
         address_emb = encode_text(address)
         modality_emb = encode_text(modality)
+        quick_introduction_emb = encode_text(quick_introduction)
 
-        embeddings = np.vstack([hard_skills_emb, soft_skills_emb, address_emb, modality_emb])
+        embeddings = np.vstack(
+            [
+             hard_skills_emb,
+             soft_skills_emb,
+             address_emb,
+             modality_emb,
+             quick_introduction_emb
+            ]
+        )
         weighted_embedding = np.average(embeddings, axis=0, weights=weights)
 
     else:
@@ -96,6 +107,10 @@ def cosine_similarity(a: np.ndarray, b: np.ndarray):
 
 def cosine_compare(applicant_embedding: np.ndarray, applicant_profile: dict,
                    internship_posting_embedding: np.ndarray, internship_posting_profiles: list):
+
+    if internship_posting_embedding is None or len(internship_posting_embedding) == 0:
+        return []
+
     applicant_embedding = np.array(applicant_embedding).flatten()
 
     similarities = []
@@ -143,6 +158,25 @@ def update_internship_posting_status(company):
 def delete_old_deleted_postings():
     threshold = now() - timedelta(days=3)
     InternshipPosting.objects.filter(status='Deleted', date_modified__lt=threshold).delete()
+
+
+def reset_recommendations_and_tap_count(applicant):
+    current_time = now()
+    today = current_time.date()
+    midnight_today = current_time.replace(hour=0, minute=0, second=0, microsecond=0)
+    # threshold = now() - timedelta(seconds=20)
+
+    skipped_recommendations = InternshipRecommendation.objects.filter(
+        status='Skipped',
+        time_stamp__lt=midnight_today,
+    )
+
+    skipped_recommendations.update(status='Pending', time_stamp=now())
+
+    if not applicant.tap_count_reset or applicant.tap_count_reset.date() < today:
+        applicant.tap_count = 0
+        applicant.tap_count_reset = current_time
+        applicant.save(update_fields=['tap_count', 'tap_count_reset'])
 
 
 class InternshipPostingStatusFilter(SimpleListFilter):
