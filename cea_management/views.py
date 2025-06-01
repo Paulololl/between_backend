@@ -24,10 +24,30 @@ class CEAMixin:
             raise PermissionDenied("User is not a Career Emplacement Admin. Access denied.")
 
 
-# views for OJT Coordinators
+# OJT Coordinators -- KC
 #region
 class OJTCoordinatorListView(CEAMixin, generics.ListAPIView):
     serializer_class = GetOJTCoordinatorSerializer
+
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+
+    search_fields = [
+        'user__status'
+        #, 'user__first_name'
+        #, 'user__last_name'
+        , 'user__email'
+        , 'program__program_name'
+    ]
+
+    ordering_fields = [
+        'user__status'
+        # , 'user__first_name'
+        # , 'user__last_name'
+        , 'user__email'
+        , 'program__program_name'
+    ]
+
+    ordering = ['user__status', 'program__program_name']
 
     def get_queryset(self):
         cea = self.get_cea_or_403(self.request.user)
@@ -38,7 +58,7 @@ class OJTCoordinatorListView(CEAMixin, generics.ListAPIView):
         if user:
             queryset = queryset.filter(user=user)
 
-        queryset = queryset.all().order_by('user__status', 'program__program_name')
+        #queryset = queryset.all().order_by('user__status', 'program__program_name')
 
         return queryset
 
@@ -144,7 +164,7 @@ class RemoveOJTCoordinatorView(CEAMixin, generics.UpdateAPIView):
         return Response({'message': 'The OJT Coordinator has been removed.'})
 #endregion
 
-# view for student list
+# Student list --KC
 #region
 class ApplicantListView(CEAMixin, generics.ListAPIView):
     serializer_class = GetApplicantSerializer
@@ -169,9 +189,7 @@ class ApplicantListView(CEAMixin, generics.ListAPIView):
         return Response(modified_data)
 #endregion
 
-# region by paul
-
-
+# region Company Partnerships -- PAUL
 class SchoolPartnershipListView(CEAMixin, generics.ListAPIView):
     serializer_class = SchoolPartnershipSerializer
     permission_classes = [IsAuthenticated]
