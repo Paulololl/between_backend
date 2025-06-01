@@ -3,12 +3,14 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from client_application.models import Endorsement
 from .permissions import IsCoordinator
 from user_account.models import OJTCoordinator, Applicant
 from user_account.serializers import GetApplicantSerializer
 from cea_management.models import SchoolPartnershipList
 from cea_management.serializers import SchoolPartnershipSerializer
 from . import serializers as ojt_serializers
+from .serializers import EndorsementListSerializer
 
 
 class CoordinatorMixin:
@@ -19,6 +21,7 @@ class CoordinatorMixin:
             return OJTCoordinator.objects.get(user=user)
         except OJTCoordinator.DoesNotExist:
             raise PermissionDenied('User is not an OJT Coordinator. Access denied.')
+
 
 # School Partnerships
 class SchoolPartnershipListView(CoordinatorMixin, generics.ListAPIView):
@@ -36,3 +39,27 @@ class ApplicantListView(CoordinatorMixin, generics.ListAPIView):
     def get_queryset(self):
         coordinator = self.get_coordinator_or_403(self.request.user)
         return Applicant.objects.filter(program__department__school=coordinator.program.department.school, user__status__in=['Active'])
+
+
+class EndorsementListView(CoordinatorMixin, generics.ListAPIView):
+    serializer_class = EndorsementListSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        coordinator = self.get_coordinator_or_403(self.request.user)
+        return Endorsement.objects.filter(
+            status='Pending',
+            program_id=coordinator.program
+        )
+
+
+class RespondedEndorsementListView(CoordinatorMixin, generics.ListAPIView):
+    serializer_class = EndorsementListSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        coordinator = self.get_coordinator_or_403(self.request.user)
+        return Endorsement.objects.filter(
+            program_id=coordinator.program
+        ).exclude(status='Pending')
+
