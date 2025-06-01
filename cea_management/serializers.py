@@ -13,8 +13,14 @@ class CompanySerializer(serializers.ModelSerializer):
         fields = ('company_name', 'company_address', 'business_nature', 'company_website_url', 'linkedin_url')
 
 
+class CompanyListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Company
+        fields = ['company_id', 'company_name', 'company_address', 'business_nature',]
+
+
 class SchoolPartnershipSerializer(serializers.ModelSerializer):
-    company = CompanySerializer(read_only=True)
+    company = CompanyListSerializer(read_only=True)
     company_id = serializers.CharField(write_only=True)
 
     class Meta:
