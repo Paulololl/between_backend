@@ -33,16 +33,16 @@ class OJTCoordinatorListView(CEAMixin, generics.ListAPIView):
 
     search_fields = [
         'user__status'
-        #, 'user__first_name'
-        #, 'user__last_name'
+        , 'first_name'
+        , 'last_name'
         , 'user__email'
         , 'program__program_name'
     ]
 
     ordering_fields = [
         'user__status'
-        # , 'user__first_name'
-        # , 'user__last_name'
+        , 'first_name'
+        , 'last_name'
         , 'user__email'
         , 'program__program_name'
     ]
