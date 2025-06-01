@@ -10,7 +10,7 @@ from user_account.serializers import GetApplicantSerializer
 from cea_management.models import SchoolPartnershipList
 from cea_management.serializers import SchoolPartnershipSerializer
 from . import serializers as ojt_serializers
-from .serializers import EndorsementListSerializer
+from .serializers import EndorsementListSerializer, EndorsementDetailSerializer
 
 
 class CoordinatorMixin:
@@ -62,4 +62,22 @@ class RespondedEndorsementListView(CoordinatorMixin, generics.ListAPIView):
         return Endorsement.objects.filter(
             program_id=coordinator.program
         ).exclude(status='Pending')
+
+
+class EndorsementDetailView(CoordinatorMixin, generics.ListAPIView):
+    serializer_class = EndorsementDetailSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        coordinator = self.get_coordinator_or_403(self.request.user)
+        endorsement_id = self.request.query_params.get('endorsement_id')
+
+        if not endorsement_id:
+            raise ValidationError({'error': "'endorsement_id' is required."})
+
+        return Endorsement.objects.filter(
+            endorsement_id=endorsement_id,
+            program_id=coordinator.program_id,
+        )
+
 
