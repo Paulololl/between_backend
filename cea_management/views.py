@@ -240,11 +240,11 @@ class BulkDeleteSchoolPartnershipView(CEAMixin, generics.GenericAPIView):
         )
 
 
-
-
 class CompanyListView(CEAMixin, generics.ListAPIView):
     serializer_class = CompanyListSerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['company_name']
 
     def get_queryset(self):
         try:
