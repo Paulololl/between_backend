@@ -139,3 +139,20 @@ class RequestEndorsementSerializer(serializers.ModelSerializer):
             defaults={'status': 'Pending'}
         )
         return endorsement
+
+
+class UpdateEndorsementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Endorsement
+        fields = ['endorsement_id', 'status', 'comments']
+
+    def validate(self, attrs):
+        status = attrs.get('status')
+        comments = attrs.get('comments')
+
+        if status == 'Rejected' and not comments:
+            raise serializers.ValidationError({
+                'comments': 'Comments are required when rejecting an endorsement.'
+            })
+
+        return attrs
