@@ -450,6 +450,7 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
         ojt_coordinator = OJTCoordinator.objects.create(user=user, **validated_data)
         return ojt_coordinator
 
+
 class EditOJTCoordinatorSerializer(serializers.ModelSerializer):
     # Only fields allowed to be edited
     ojtcoordinator_email = serializers.EmailField(required=False)
@@ -507,8 +508,6 @@ class EditOJTCoordinatorSerializer(serializers.ModelSerializer):
         instance.save()
 
         return instance
-
-
 
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
