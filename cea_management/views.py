@@ -1,15 +1,15 @@
 from django.db import transaction, IntegrityError
 from rest_framework.exceptions import  PermissionDenied, ValidationError
-from rest_framework import generics
+from rest_framework import generics, filters
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from user_account.models import CareerEmplacementAdmin, OJTCoordinator, Applicant
+from user_account.models import CareerEmplacementAdmin, OJTCoordinator, Applicant, Company
 from user_account.serializers import GetOJTCoordinatorSerializer, OJTCoordinatorRegisterSerializer, GetApplicantSerializer, EditOJTCoordinatorSerializer
 from .models import SchoolPartnershipList, Program, Department
 from .permissions import IsCEA
 from . import serializers as cea_serializers
-
+from .serializers import CompanySerializer, CompanyListSerializer
 
 
 class CEAMixin:
@@ -219,3 +219,12 @@ class ApplicantListView(CEAMixin, generics.ListAPIView):
 
         return Response(modified_data)
 #endregion
+
+# region by paul
+
+
+class CompanyListView(CEAMixin, generics.ListAPIView):
+    serializer_class = CompanyListSerializer
+    queryset = Company.objects.all()
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['company_name']
