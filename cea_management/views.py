@@ -171,7 +171,7 @@ class ApplicantListView(CEAMixin, generics.ListAPIView):
 
     def get_queryset(self):
         cea = self.get_cea_or_403(self.request.user)
-        return Applicant.objects.filter(program__department__school=cea.school, user__status__in=['Active', 'Inactive'])
+        return Applicant.objects.filter(program__department__school=cea.school, user__status__in=['Active'])
 
 
     def list(self, request, *args, **kwargs):
