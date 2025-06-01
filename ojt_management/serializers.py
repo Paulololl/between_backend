@@ -15,3 +15,5 @@ class GetStudentList(serializers.ModelSerializer):
             , 'academic_program'
         )
 
+
+
