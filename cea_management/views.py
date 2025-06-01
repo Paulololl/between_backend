@@ -66,7 +66,7 @@ class OJTCoordinatorListView(CEAMixin, generics.ListAPIView):
 
     def get_queryset(self):
         cea = self.get_cea_or_403(self.request.user)
-        queryset = OJTCoordinator.objects.filter(program__department__school=cea.school, user__status__in=['Active', 'Inactive'])
+        queryset = OJTCoordinator.objects.filter(program__department__school=cea.school, user__status__in=['Active', 'Inactive', 'Suspended'])
 
         user = self.request.query_params.get('user')
         if user:
@@ -105,7 +105,7 @@ class CreateOJTCoordinatorView(CEAMixin, generics.CreateAPIView):
         if program.department.school != cea.school:
             raise PermissionDenied("You can only assign coordinators to programs belonging to your school.")
 
-        existing_coordinators = OJTCoordinator.objects.filter(program=program, user__status__in=['Active', 'Inactive']).first()
+        existing_coordinators = OJTCoordinator.objects.filter(program=program, user__status__in=['Active', 'Inactive', 'Suspended']).first()
         if existing_coordinators:
             raise ValidationError({"program": ["This program already has an assigned OJT coordinator."]})
 
@@ -159,7 +159,7 @@ class UpdateOJTCoordinatorView(CEAMixin, generics.UpdateAPIView):
 
         if program:
             # Ensure no other Active/Inactive coordinator is assigned to the program
-            existing_coordinators = OJTCoordinator.objects.filter(program=program, user__status__in=['Active', 'Inactive']).exclude(pk=instance.pk).first()
+            existing_coordinators = OJTCoordinator.objects.filter(program=program, user__status__in=['Active', 'Inactive', 'Suspended']).exclude(pk=instance.pk).first()
 
             if existing_coordinators:
                 raise ValidationError({"program": ["This program already has an assigned OJT coordinator."]})
