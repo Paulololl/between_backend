@@ -92,5 +92,26 @@ class GetRequestPracticumListView(CoordinatorMixin, generics.ListAPIView):
 
         return queryset
 
+# Approve Practicum Request -- KC
+class ApprovePracticumRequestView(CoordinatorMixin, generics.UpdateAPIView):
+    queryset = Applicant.objects.all()
+    serializer_class = GetApplicantSerializer
+
+    def get_object(self):
+        user = self.request.query_params.get('user')
+        if not user:
+            raise ValidationError({"error": "Query parameter 'user' is required."})
+        try:
+            instance = self.get_queryset().get(user__user_id=user)
+        except Applicant.DoesNotExist:
+            raise ValidationError({"error": f"No student found for user: {user}"})
+        return instance
+
+    def update(self, request, *args, **kwargs):
+        applicant = self.get_object()
+        applicant.in_practicum = 'Yes'
+        applicant.save()
+
+        return Response({'message': "The student's practicum has been approved"})
 
 # endregion
