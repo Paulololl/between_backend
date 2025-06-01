@@ -38,7 +38,7 @@ class Application(models.Model):
 class Endorsement(models.Model):
 
     endorsement_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    ojt_coordinator = models.ForeignKey('user_account.OJTCoordinator', on_delete=models.CASCADE)
+    program_id = models.ForeignKey('cea_management.Program', on_delete=models.CASCADE, default=1)
     application = models.ForeignKey('Application', on_delete=models.CASCADE)
 
     comments = models.CharField(max_length=500, null=True, blank=True)

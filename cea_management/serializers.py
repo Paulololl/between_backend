@@ -4,11 +4,14 @@ from user_account.models import User, Company, OJTCoordinator
 from .models import SchoolPartnershipList
 
 # serializers for School Partnerships
-#region
+# region
+
+
 class CompanySerializer(serializers.ModelSerializer):
     class Meta:
         model = Company
         fields = ('company_name', 'company_address', 'business_nature', 'company_website_url', 'linkedin_url')
+
 
 class SchoolPartnershipSerializer(serializers.ModelSerializer):
     company = CompanySerializer(read_only=True)

@@ -38,7 +38,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         ('Active', 'Active'),
         ('Inactive', 'Inactive'),
         ('Deleted', 'Deleted'),
-        ('Pending', 'Pending')
+        ('Pending', 'Pending'),
+        ('Suspended', 'Suspended')
     ], default='Pending')
 
     user_role = models.CharField(max_length=20, choices=[
@@ -103,7 +104,7 @@ class Applicant(models.Model):
     academic_program = models.CharField(max_length=100, null=True, blank=True)
     quick_introduction = models.CharField(max_length=500)
 
-    resume = models.FileField(storage=S3Boto3Storage, upload_to=applicant_resume)
+    resume = models.FileField(storage=S3Boto3Storage, upload_to=applicant_resume, null=True, blank=True)
     enrollment_record = models.FileField(storage=S3Boto3Storage,upload_to=applicant_enrollment_record,
                                          null=True, blank=True)
 
@@ -168,8 +169,7 @@ class CareerEmplacementAdmin(models.Model):
 class OJTCoordinator(models.Model):
     ojt_coordinator_id = models.AutoField(primary_key=True)
     user = models.OneToOneField('User', on_delete=models.CASCADE, editable=False)
-    program = models.OneToOneField('cea_management.Program', on_delete=models.CASCADE)
-
+    program = models.ForeignKey('cea_management.Program', on_delete=models.CASCADE)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     middle_initial = models.CharField(max_length=20, null=True, blank=True)

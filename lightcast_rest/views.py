@@ -40,6 +40,9 @@ class LightcastSkillsAPIView(APIView):
       response.raise_for_status()
       cache.set(cache_key, response.json(), timeout=300)
       return Response(response.json(), status=status.HTTP_200_OK)
-    
+
     except requests.RequestException as e:
-      return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+      error_msg = str(e)
+      if hasattr(e, 'response') and e.response is not None:
+        error_msg += f" | Response content: {e.response.text}"
+      return Response({"error": error_msg}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
