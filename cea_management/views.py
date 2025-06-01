@@ -105,6 +105,10 @@ class CreateOJTCoordinatorView(CEAMixin, generics.CreateAPIView):
         if program.department.school != cea.school:
             raise PermissionDenied("You can only assign coordinators to programs belonging to your school.")
 
+        existing_coordinators = OJTCoordinator.objects.filter(program=program, user__status__in=['Active', 'Inactive']).first()
+        if existing_coordinators:
+            raise ValidationError({"program": ["This program already has an assigned OJT coordinator."]})
+
         try:
             serializer.save()
         except IntegrityError as e:
@@ -112,67 +116,31 @@ class CreateOJTCoordinatorView(CEAMixin, generics.CreateAPIView):
                 raise ValidationError({"program": ["An OJT Coordinator is already assigned to this program."]})
             raise e
 
-    def create(self, request, *args, **kwargs):
-        response = super().create(request, *args, **kwargs)
-        data = response.data
-
-        program = Program.objects.get(program_id=data['program'])
-        data['program_name'] = program.program_name
-        data.pop('program', None)
-
-        data.pop('id', None)
-
-        return Response(data)
-
 
 class UpdateOJTCoordinatorView(CEAMixin, generics.UpdateAPIView):
     queryset = OJTCoordinator.objects.all()
     serializer_class = EditOJTCoordinatorSerializer
 
-    """
-        def get_queryset(self):
-        cea = self.get_cea_or_403(self.request.user)
-        queryset = OJTCoordinator.objects.filter(
-            program__department__school=cea.school
-            , user__status__in=['Active', 'Inactive']
-        )
-
-        user = self.request.query_params.get('user')
-        if user:
-            queryset = queryset.filter(user=user)
-
-        return queryset
-
-    def get(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serialized_data = {
-            "first_name": instance.first_name,
-            "last_name": instance.last_name,
-            "middle_initial": instance.middle_initial,
-            "ojtcoordinator_email": instance.user.email,
-            "password": "",
-            "confirm_password": "",
-            "program": instance.program.program_id,
-            "status": instance.user.status,
-        }
-        return Response(serialized_data)
-    """
-
     def get_object(self):
-        user_id = self.request.query_params.get('user')  # Get the user from the query parameters
-        if not user_id:
+        user = self.request.query_params.get('user')  # Get the user from the query parameters
+        if not user:
             raise ValidationError({"error": "Query parameter 'user' is required."})
 
         # Get the OJT coordinator using the user ID
         try:
-            instance = self.get_queryset().get(user__user_id=user_id)
+            instance = self.get_queryset().get(user__user_id=user)
         except OJTCoordinator.DoesNotExist:
-            raise ValidationError({"error": f"No OJT Coordinator found for user: {user_id}"})
+            raise ValidationError({"error": f"No OJT Coordinator found for user: {user}"})
 
         return instance
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+
+        # Retrieve the program from the request data, if provided
+        program = serializer.validated_data.get('program', None)
 
         # Check attempted status change
         new_status = request.data.get('status', '').capitalize()
@@ -189,24 +157,35 @@ class UpdateOJTCoordinatorView(CEAMixin, generics.UpdateAPIView):
             raise PermissionDenied(
                 "You cannot directly mark an OJT Coordinator as 'Deleted'. Contact an administrator.")
 
+        if program:
+            # Ensure no other Active/Inactive coordinator is assigned to the program
+            existing_coordinators = OJTCoordinator.objects.filter(program=program, user__status__in=['Active', 'Inactive']).exclude(pk=instance.pk).first()
+
+            if existing_coordinators:
+                raise ValidationError({"program": ["This program already has an assigned OJT coordinator."]})
+
         # Proceed with the update
-        response = super().update(request, *args, **kwargs)
+        serializer.save()
 
-        # Add extra context to the response if needed
-        data = response.data
-        program = Program.objects.get(program_id=data['program'])
-        data['program_name'] = program.program_name
-        data.pop('program', None)
-
-        return Response(data)
+        return Response(serializer.data)
 
 
 class RemoveOJTCoordinatorView(CEAMixin, generics.UpdateAPIView):
-    permission_classes = [IsAuthenticated, IsCEA]
 
     queryset = OJTCoordinator.objects.all()
     serializer_class = GetOJTCoordinatorSerializer
-    lookup_field = 'ojt_coordinator_id'
+
+    def get_object(self):
+        user = self.request.query_params.get('user')
+        if not user:
+            raise ValidationError({"error": "Query parameter 'user' is required."})
+
+        try:
+            instance = self.get_queryset().get(user__user_id=user)
+        except OJTCoordinator.DoesNotExist:
+            raise ValidationError({"error": f"No OJT Coordinator found for user: {user}"})
+
+        return instance
 
     def update(self, request, *args, **kwargs):
         coordinator = self.get_object()
