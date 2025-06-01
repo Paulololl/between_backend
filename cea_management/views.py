@@ -75,25 +75,6 @@ class OJTCoordinatorListView(CEAMixin, generics.ListAPIView):
         return queryset
 
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-
-        modified_data = []
-        for item in serializer.data:
-
-            program_id = item.pop('program', None)
-            program_name = None
-            if program_id:
-                program = Program.objects.get(program_id=program_id)
-                program_name = program.program_name if program else None
-            item['program_name'] = program_name
-
-            modified_data.append(item)
-
-        return Response(modified_data)
-
-
 class CreateOJTCoordinatorView(CEAMixin, generics.CreateAPIView):
     serializer_class = OJTCoordinatorRegisterSerializer
 
