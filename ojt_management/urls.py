@@ -11,4 +11,12 @@ urlpatterns = [
     path('request_endorsement/', RequestEndorsementView.as_view()),
     path('update_endorsement/', UpdateEndorsementView.as_view()),
     path('generate_endorsement_letter/', GenerateEndorsementPDFView.as_view())
+    path('students/reqeusting_practicum/', views.GetRequestPracticumListView.as_view(), name='students-requesting-practicum'),
+    path('students/requesting_practicum/enrollment_record/', views.GetEnrollmentRecordView.as_view(), name='student-requesting-practicum-end'),
+    path('students/requesting_practicum/approve/', views.ApprovePracticumRequestView.as_view(),
+         name='student-in-practicum-approve'),
+    path('students/requesting_practicum/reject/', views.RejectPracticumRequestView.as_view(),
+         name='student-in-practicum-reject'),
+    path('students/in_practicum/', views.GetPracticumStudentListView.as_view(), name='students-in-practicum'),
+    path('students/in_practicum/end/', views.EndPracticumView.as_view(), name='student-in-practicum-end'),
 ]
