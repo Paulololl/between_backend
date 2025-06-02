@@ -1,9 +1,17 @@
 import uuid
+from datetime import date
+from email.utils import formataddr
 
+from django.core.mail import send_mail, EmailMessage
+from django.db import transaction
+from django.http import HttpResponse
+from django.template.loader import render_to_string
 from rest_framework.exceptions import  PermissionDenied, ValidationError
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from weasyprint import HTML
 
 from cea_management import serializers
 from client_application.models import Endorsement
@@ -136,12 +144,95 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
         if endorsement_status == 'Rejected' and not comments:
             raise ValidationError({"comments": "Comments are required when rejecting an endorsement."})
 
-        endorsement.status = endorsement_status
-        endorsement.comments = comments if endorsement_status == 'Rejected' else None
-        endorsement.save()
+        with transaction.atomic():
+            endorsement.status = endorsement_status
+            endorsement.comments = comments if endorsement_status == 'Rejected' else None
+            endorsement.save()
+
+            applicant_email = endorsement.application.applicant.user.email
+            applicant = endorsement.application.applicant
+            company_name = endorsement.application.internship_posting.company.company_name
+            internship_position = endorsement.application.internship_posting.internship_position
+
+            if endorsement_status == 'Approved':
+                subject = f"Your Endorsement Has Been Approved"
+                message_html = f"""
+                <div>
+                    <p>Dear <strong>{applicant.first_name} {applicant.middle_initial} {applicant.last_name}</strong>,</p>
+                    <p>Your endorsement for the internship position 
+                       <strong>{internship_position}</strong> at <strong>{company_name}</strong> has been <strong>approved</strong>.</p>
+                    <p>
+                     Best regards, <br> <strong>
+                     <br>{coordinator.first_name} {coordinator.middle_initial} {coordinator.last_name}
+                     <br>Practicum Coordinator - {coordinator.program}
+                     <br>{coordinator.user.email} </strong>
+                    </p>
+                </div>
+                """
+            else:
+                subject = f"Your Endorsement Has Been Rejected"
+                message_html = f"""
+                <div>
+                    <p>Dear <strong>{applicant.first_name} {applicant.middle_initial} {applicant.last_name}</strong>,</p>
+                    <p>Your endorsement for the internship position 
+                       <strong>{internship_position}</strong> at <strong>{company_name}</strong> has been <strong>rejected</strong>.</p>
+                    <p><strong>Comments:</strong><br>{comments.replace('\n', '<br>')}</p>
+                     <p>
+                    Best regards, <br> <strong>
+                     <br>{coordinator.first_name} {coordinator.middle_initial} {coordinator.last_name}
+                     <br>Practicum Coordinator - {coordinator.program}
+                     <br>{coordinator.user.email} </strong> 
+                    </p>
+                </div>
+                """
+
+            email = EmailMessage(
+                subject=subject,
+                body=message_html,
+                from_email=formataddr((f'{coordinator.first_name} {coordinator.middle_initial} {coordinator.last_name}',
+                                       'between_internships@gmail.com')),
+                to=[applicant_email],
+                reply_to=['no-reply@betweeninternships.com']
+            )
+            email.content_subtype = 'html'
+            email.send(fail_silently=False)
 
         serializer = self.get_serializer(endorsement)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class GenerateEndorsementPDFView(CoordinatorMixin, APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        endorsement_id = request.query_params.get('endorsement_id')
+        if not endorsement_id:
+            return Response({'error': '"endorsement_id is required", status=400'})
+
+        try:
+            endorsement = (Endorsement.objects.select_related('application', 'program_id').get
+                           (endorsement_id=endorsement_id))
+        except Endorsement.DoesNotExist:
+            raise ValidationError("Endorsement not found.")
+
+        user = request.user
+        if hasattr(user, 'applicant') and endorsement.application.applicant != user.applicant:
+            raise PermissionDenied("You don't have access to this endorsement.")
+        elif hasattr(user, 'ojtcoordinator') and user.ojtcoordinator.program != endorsement.program_id:
+            raise PermissionDenied("You don't manage this program's endorsements.")
+
+        html_string = render_to_string("endorsement_letter_template.html", {
+            "endorsement": endorsement,
+            "coordinator": user.ojtcoordinator if hasattr(user, 'ojtcoordinator') else None,
+            "today": date.today()
+        })
+
+        html = HTML(string=html_string)
+        pdf = html.write_pdf()
+
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename=endorsement_{endorsement_id}.pdf'
+        return response
 
 
 

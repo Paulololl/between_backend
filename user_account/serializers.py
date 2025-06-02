@@ -389,13 +389,12 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
     middle_initial = serializers.CharField(write_only=True, required=False, allow_blank=True, default='')
     password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
-    program = serializers.PrimaryKeyRelatedField(queryset=Program.objects.all())
     status = serializers.CharField(source='user.status', default='Active')
 
     class Meta:
         model = OJTCoordinator
         fields = ['ojtcoordinator_email', 'first_name', 'last_name', 'middle_initial',
-                  'password', 'confirm_password', 'program', 'status']
+                  'password', 'confirm_password', 'program', 'status', 'program_logo', 'signature']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -405,7 +404,7 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
             try:
                 cea = CareerEmplacementAdmin.objects.get(user=request.user)
                 self.fields['program'].queryset = Program.objects.filter(department__school=cea.school)
-                self.cea =cea
+                self.cea = cea
             except CareerEmplacementAdmin.DoesNotExist:
                 raise serializers.ValidationError("User is not a Career Emplacement Admin. Access denied.")
         else:
@@ -462,8 +461,6 @@ class EditOJTCoordinatorSerializer(serializers.ModelSerializer):
     middle_initial = serializers.CharField(required=False, allow_blank=True, default='')
     password = serializers.CharField(write_only=True, required=False)
     confirm_password = serializers.CharField(write_only=True, required=False)
-    # program = serializers.PrimaryKeyRelatedField(queryset=Program.objects.all(),
-    #                                              required=False, allow_null=True)
     status = serializers.CharField(source='user.status', required=False)
 
     class Meta:
@@ -476,7 +473,9 @@ class EditOJTCoordinatorSerializer(serializers.ModelSerializer):
             "password",
             "confirm_password",
             "program",
-            "status"
+            "status",
+            "program_logo",
+            "signature"
         ]
 
     def validate(self, attrs):
@@ -913,7 +912,18 @@ class GetOJTCoordinatorSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OJTCoordinator
-        fields = ['user', 'ojt_coordinator_id', 'program', 'first_name', 'last_name', 'middle_initial', 'email', 'status']
+        fields = [
+            'user',
+            'ojt_coordinator_id',
+            'program',
+            'first_name',
+            'last_name',
+            'middle_initial',
+            'email',
+            'status',
+            'program_logo',
+            'signature'
+        ]
 
 
 class EditCompanySerializer(serializers.ModelSerializer):
@@ -1092,6 +1102,3 @@ class GetEmailSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['user_id', 'verified_at', 'user_role', 'status']
-
-
-

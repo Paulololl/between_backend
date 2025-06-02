@@ -2,7 +2,8 @@ import uuid
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from .filepaths import applicant_resume, applicant_enrollment_record, company_profile_picture, company_background_image
+from .filepaths import applicant_resume, applicant_enrollment_record, company_profile_picture, company_background_image, \
+    coordinator_program_logo, coordinator_signature
 from storages.backends.s3boto3 import S3Boto3Storage
 
 
@@ -173,6 +174,8 @@ class OJTCoordinator(models.Model):
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     middle_initial = models.CharField(max_length=20, null=True, blank=True)
+    program_logo = models.FileField(storage=S3Boto3Storage, upload_to=coordinator_program_logo)
+    signature = models.FileField(storage=S3Boto3Storage, upload_to=coordinator_signature)
 
     class Meta:
         verbose_name = 'OJT Coordinator'
