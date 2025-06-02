@@ -444,6 +444,9 @@ class RequestPracticumView(generics.UpdateAPIView):
         try:
             applicant = request.user.applicant
 
+            if applicant.in_practicum == 'Yes':
+                return Response({'error': 'Action not allowed. Student is already in practicum.'})
+
             if 'enrollment_record' not in request.data:
                 return Response({'error': 'Enrollment record is required.'})
 
