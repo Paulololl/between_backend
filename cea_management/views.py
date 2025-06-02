@@ -1,15 +1,13 @@
 from django.db import transaction, IntegrityError
 from rest_framework.exceptions import  PermissionDenied, ValidationError
 from rest_framework import generics, filters, status
-from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from user_account.models import CareerEmplacementAdmin, OJTCoordinator, Applicant, Company
 from user_account.serializers import GetOJTCoordinatorSerializer, OJTCoordinatorRegisterSerializer, GetApplicantSerializer, EditOJTCoordinatorSerializer
-from .models import SchoolPartnershipList, Program, Department
-from .permissions import IsCEA
-from . import serializers as cea_serializers
+from .models import SchoolPartnershipList
+from user_account.permissions import IsCEA
 from .serializers import CompanyListSerializer, CreatePartnershipSerializer, SchoolPartnershipSerializer
 
 

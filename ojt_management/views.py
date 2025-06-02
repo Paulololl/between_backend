@@ -3,12 +3,12 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .permissions import IsCoordinator
+from user_account.permissions import IsCoordinator, IsApplicant
 from user_account.models import OJTCoordinator, Applicant
 from user_account.serializers import GetApplicantSerializer
 from cea_management.models import SchoolPartnershipList
 from cea_management.serializers import SchoolPartnershipSerializer
-from .serializers import UpdatePracticumStatusSerializer
+from .serializers import UpdatePracticumStatusSerializer, UploadEnrollmentRecordSerializer
 
 
 class CoordinatorMixin:
@@ -57,6 +57,7 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
 
         return queryset
 
+
 #  End Student's Practicum -- KC
 class EndPracticumView(CoordinatorMixin, generics.UpdateAPIView):
     queryset = Applicant.objects.all()
@@ -75,13 +76,21 @@ class EndPracticumView(CoordinatorMixin, generics.UpdateAPIView):
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context['email_message'] = (
-            'Congratulations! You have successfully completed your practicum. \n'
+            'Congratulations! You have successfully completed your practicum.\n\n'
             'Best regards, \nYour OJT Coordinator'
         )
         context['coordinator'] = self.get_coordinator_or_403(self.request.user)
         return context
 
     def update(self, request, *args, **kwargs):
+        applicant = self.get_object()
+
+        if applicant.in_practicum != 'Yes':
+            return Response({'error': 'Action not allowed. Student is not currently in practicum.'})
+
+        if not applicant.enrollment_record:
+            return Response({'error': 'Action not allowed. Student has not submitted enrollment record.'})
+
         request.data['in_practicum'] = 'No'
         return super().update(request, *args, **kwargs)
 
@@ -92,7 +101,7 @@ class GetRequestPracticumListView(CoordinatorMixin, generics.ListAPIView):
 
     def get_queryset(self):
         coordinator = self.get_coordinator_or_403(self.request.user)
-        queryset = Applicant.objects.filter(program=coordinator.program, user__status__in=['Active'], in_practicum='Pending').select_related('user')
+        queryset = Applicant.objects.filter(program=coordinator.program, user__status__in=['Active'], in_practicum='Pending', enrollment_record__isnull=False).select_related('user')
 
         user = self.request.query_params.get('user')
         if user:
@@ -100,10 +109,11 @@ class GetRequestPracticumListView(CoordinatorMixin, generics.ListAPIView):
 
         return queryset
 
+
 # Approve Practicum Request -- KC
 class ApprovePracticumRequestView(CoordinatorMixin, generics.UpdateAPIView):
     queryset = Applicant.objects.all()
-    serializer_class = GetApplicantSerializer
+    serializer_class = UpdatePracticumStatusSerializer
 
     def get_object(self):
         user = self.request.query_params.get('user')
@@ -115,17 +125,91 @@ class ApprovePracticumRequestView(CoordinatorMixin, generics.UpdateAPIView):
             raise ValidationError({"error": f"No student found for user: {user}"})
         return instance
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['email_message'] = (
+            'Your request for practicum has been approved. Best of luck!\n\n'
+            'Best regards, \nYour OJT Coordinator'
+        )
+        context['coordinator'] = self.get_coordinator_or_403(self.request.user)
+        return context
+
     def update(self, request, *args, **kwargs):
         applicant = self.get_object()
-        applicant.in_practicum = 'Yes'
-        applicant.save()
 
-        return Response({'message': "The student's practicum has been approved"})
+        if applicant.in_practicum != 'Pending':
+            return Response({'error': 'Action not allowed. Student has not requested to be in practicum.'})
+
+        if not applicant.enrollment_record:
+            return Response({'error': 'Action not allowed. Student has not submitted enrollment record.'})
+
+        request.data['in_practicum'] = 'Yes'
+        return super().update(request, *args, **kwargs)
+
 
 # Reject Practicum Request -- KC
 class RejectPracticumRequestView(CoordinatorMixin, generics.UpdateAPIView):
     queryset = Applicant.objects.all()
-    serializer_class = GetApplicantSerializer
+    serializer_class = UpdatePracticumStatusSerializer
+
+    def get_object(self):
+        user = self.request.query_params.get('user')
+        if not user:
+            raise ValidationError({"error": "Query parameter 'user' is required."})
+        try:
+            instance = self.get_queryset().get(user__user_id=user)
+        except Applicant.DoesNotExist:
+            raise ValidationError({"error": f"No student found for user: {user}"})
+        return instance
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+
+        rejection_reason = self.request.data.get('reason', '').strip()
+        if not rejection_reason:
+            raise ValidationError({"error": "A reason for rejecting the request is required."})
+
+        context['email_message'] = (
+            'Your request for practicum has been rejected for the following reason:\n'
+            f'{rejection_reason} \n\n'
+            'Best regards, \nYour OJT Coordinator'
+        )
+        context['coordinator'] = self.get_coordinator_or_403(self.request.user)
+        return context
+
+    def update(self, request, *args, **kwargs):
+        applicant = self.get_object()
+
+        if applicant.in_practicum != 'Pending':
+            return Response({'error': 'Action not allowed. Student has not requested to be in practicum.'})
+
+        if not applicant.enrollment_record:
+            return Response({'error': 'Action not allowed. Student has not submitted enrollment record.'})
+
+        request.data['in_practicum'] = 'No'
+        return super().update(request, *args, **kwargs)
+
+# Applicant: Request for Practicum -- KC
+class RequestPracticumView(generics.UpdateAPIView):
+    permission_class = [IsAuthenticated, IsApplicant]
+    serializer_class = UpdatePracticumStatusSerializer
+
+    def update(self, request, *args, **kwargs):
+        applicant = request.user.applicant
+        if not applicant:
+            return Response({'error': 'Applicant account not found.'})
+
+        applicant.in_practicum = 'Pending'
+
+        document_serializer = UploadEnrollmentRecordSerializer(data=request.data)
+        if document_serializer.is_valid():
+            document_serializer.save()
+        else:
+            return Response(document_serializer.errors)
+
+        applicant.save()
+
+        return Response({'message': 'Request for practicum submitted successfully.'})
 
 
 

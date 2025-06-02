@@ -16,6 +16,11 @@ class GetStudentList(serializers.ModelSerializer):
             , 'academic_program'
         )
 
+class UploadEnrollmentRecordSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Applicant
+        fields = ['enrollment_record']
+
 class UpdatePracticumStatusSerializer(serializers.ModelSerializer):
     in_practicum = serializers.CharField(max_length=10)
 
