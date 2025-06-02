@@ -10,7 +10,7 @@ urlpatterns = [
     path('endorsement_detail/', EndorsementDetailView.as_view()),
     path('request_endorsement/', RequestEndorsementView.as_view()),
     path('update_endorsement/', UpdateEndorsementView.as_view()),
-    path('generate_endorsement_letter/', GenerateEndorsementPDFView.as_view())
+    path('generate_endorsement_letter/', GenerateEndorsementPDFView.as_view()),
     path('students/reqeusting_practicum/', views.GetRequestPracticumListView.as_view(), name='students-requesting-practicum'),
     path('students/requesting_practicum/enrollment_record/', views.GetEnrollmentRecordView.as_view(), name='student-requesting-practicum-end'),
     path('students/requesting_practicum/approve/', views.ApprovePracticumRequestView.as_view(),

@@ -6,7 +6,7 @@ from django.core.mail import send_mail, EmailMessage
 from django.db import transaction
 from django.http import HttpResponse
 from django.template.loader import render_to_string
-from rest_framework.exceptions import  PermissionDenied, ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework import generics, status, filters
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -20,9 +20,9 @@ from user_account.models import OJTCoordinator, Applicant
 from user_account.serializers import GetApplicantSerializer
 from cea_management.models import SchoolPartnershipList
 from cea_management.serializers import SchoolPartnershipSerializer
-from . import serializers as ojt_serializers
 from .serializers import EndorsementListSerializer, EndorsementDetailSerializer, RequestEndorsementSerializer, \
     UpdatePracticumStatusSerializer, UpdateEndorsementSerializer, EnrollmentRecordSerializer
+
 
 class CoordinatorMixin:
     permission_class = [IsAuthenticated, IsCoordinator]
@@ -46,6 +46,8 @@ class SchoolPartnershipListView(CoordinatorMixin, generics.ListAPIView):
 # endregion
 
 # region Student List -- KC
+
+
 class ApplicantListView(CoordinatorMixin, generics.ListAPIView):
     serializer_class = GetApplicantSerializer
 
@@ -330,14 +332,6 @@ class GenerateEndorsementPDFView(CoordinatorMixin, APIView):
         response['Content-Disposition'] = f'attachment; filename=endorsement_{endorsement_id}.pdf'
         return response
 
-        queryset = Applicant.objects.filter(program=coordinator.program, user__status__in=['Active'], in_practicum='Pending', enrollment_record__isnull=False).select_related('user')
-
-        user = self.request.query_params.get('user')
-        if user:
-            queryset = queryset.filter(user=user)
-
-        return queryset
-
 
 # Approve Practicum Request -- KC
 class ApprovePracticumRequestView(CoordinatorMixin, generics.UpdateAPIView):
@@ -441,7 +435,8 @@ class RequestPracticumView(generics.UpdateAPIView):
         try:
             context['coordinator'] = OJTCoordinator.objects.get(program=applicant.program, user__status__in=['Active'])
         except OJTCoordinator.DoesNotExist:
-            raise ValidationError({'error': 'No OJT Coordinator is currently assigned to this program. Please contact your school administrator for assistance.'})
+            raise ValidationError({'error': 'No OJT Coordinator is currently assigned to this program. Please contact '
+                                            'your school administrator for assistance.'})
 
         return context
 
@@ -482,7 +477,5 @@ class GetEnrollmentRecordView(CoordinatorMixin, generics.RetrieveAPIView):
             return applicant
         except Applicant.DoesNotExist:
             raise ValidationError({"error": f"No student found for user: {user}"})
-
-
 
 # endregion

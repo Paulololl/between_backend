@@ -172,7 +172,7 @@ class RequestEndorsementSerializer(serializers.ModelSerializer):
                 student_name = self.build_student_name(application.applicant)
 
                 if coordinator_email:
-                    subject = f"[Internship System] Endorsement Request from {student_name}"
+                    subject = f"Endorsement Request from {student_name}"
                     html_message = (
                         f"Dear {ojt_coordinator.first_name},<br><br>"
                         f"<strong>{student_name}</strong> has requested an endorsement for their internship.<br><br>"
