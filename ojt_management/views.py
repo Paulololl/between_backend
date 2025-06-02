@@ -16,15 +16,13 @@ from weasyprint import HTML
 from cea_management import serializers
 from client_application.models import Endorsement
 from user_account.permissions import IsCoordinator, IsApplicant
-from .permissions import IsCoordinator
 from user_account.models import OJTCoordinator, Applicant
 from user_account.serializers import GetApplicantSerializer
 from cea_management.models import SchoolPartnershipList
 from cea_management.serializers import SchoolPartnershipSerializer
 from . import serializers as ojt_serializers
-from .serializers import EndorsementListSerializer, EndorsementDetailSerializer, RequestEndorsementSerializer,
-    UpdateEndorsementSerializer
-
+from .serializers import EndorsementListSerializer, EndorsementDetailSerializer, RequestEndorsementSerializer, \
+    UpdatePracticumStatusSerializer, UpdateEndorsementSerializer, EnrollmentRecordSerializer
 
 class CoordinatorMixin:
     permission_class = [IsAuthenticated, IsCoordinator]
