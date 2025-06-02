@@ -149,7 +149,11 @@ class GetRequestPracticumListView(CoordinatorMixin, generics.ListAPIView):
 
     def get_queryset(self):
         coordinator = self.get_coordinator_or_403(self.request.user)
-        return Applicant.objects.filter(program__department__school=coordinator.program.department.school, user__status__in=['Active'])
+        return Applicant.objects.filter(
+            program__department__school=coordinator.program.department.school
+            , user__status__in=['Active']
+            , in_practicum='Pending'
+            , enrollment_record__isnull=False).select_related('user')
 
 
 class EndorsementListView(CoordinatorMixin, generics.ListAPIView):
