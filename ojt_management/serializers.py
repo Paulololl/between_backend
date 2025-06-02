@@ -16,7 +16,9 @@ class GetStudentList(serializers.ModelSerializer):
             , 'academic_program'
         )
 
-class UploadEnrollmentRecordSerializer(serializers.ModelSerializer):
+class EnrollmentRecordSerializer(serializers.ModelSerializer):
+    enrollment_record = serializers.FileField(use_url=True)
+
     class Meta:
         model = Applicant
         fields = ['enrollment_record']
@@ -40,9 +42,10 @@ class UpdatePracticumStatusSerializer(serializers.ModelSerializer):
         instance.save()
 
         email_message = self.context.get('email_message')
-        coordinator = self.context.get('coordinator')
+        email_subject = self.context.get('email_subject')
+        email_recipients = self.context.get('email_recipients')
 
-        if email_message:
+        if email_message and email_subject and email_recipients :
             self.send_email_to_applicant(instance, coordinator, email_message)
 
         return instance
