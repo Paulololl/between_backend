@@ -89,7 +89,12 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
 
     def get_queryset(self):
         coordinator = self.get_coordinator_or_403(self.request.user)
-        queryset = Applicant.objects.filter(program=coordinator.program, user__status__in=['Active'], in_practicum='Yes').select_related('user')
+        queryset = Applicant.objects.filter(
+            program=coordinator.program
+            , user__status__in=['Active']
+            , in_practicum='Yes'
+            , enrollment_record__isnull = False
+        ).select_related('user')
 
         user = self.request.query_params.get('user')
         if user:
@@ -153,7 +158,8 @@ class GetRequestPracticumListView(CoordinatorMixin, generics.ListAPIView):
             program__department__school=coordinator.program.department.school
             , user__status__in=['Active']
             , in_practicum='Pending'
-            , enrollment_record__isnull=False).select_related('user')
+            , enrollment_record__isnull=False
+        ).select_related('user')
 
 
 class EndorsementListView(CoordinatorMixin, generics.ListAPIView):
