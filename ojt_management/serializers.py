@@ -144,7 +144,10 @@ class RequestEndorsementSerializer(serializers.ModelSerializer):
         endorsement, created = Endorsement.objects.update_or_create(
             application=application,
             program_id=program,
-            defaults={'status': 'Pending'}
+            defaults={
+                'status': 'Pending',
+                'comments': ''
+            }
         )
         return endorsement
 

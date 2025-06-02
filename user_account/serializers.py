@@ -614,8 +614,8 @@ class SchoolEmailCheckSerializer(serializers.Serializer):
             if data_api.get('deliverability') != 'DELIVERABLE':
                 errors.append('Email is not deliverable.')
 
-            if float(data_api.get('quality_score', 0)) < 0.90:
-                errors.append('Email may not exist.')
+            # if float(data_api.get('quality_score', 0)) < 0.80:
+            #     errors.append('Email may not exist.')
 
             if not data_api.get('is_valid_format', {}).get('value', False):
                 errors.append('Email format is invalid.')
