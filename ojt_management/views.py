@@ -208,7 +208,29 @@ class RejectPracticumRequestView(CoordinatorMixin, generics.UpdateAPIView):
 # Applicant: Request for Practicum -- KC
 class RequestPracticumView(generics.UpdateAPIView):
     permission_classes = [IsAuthenticated, IsApplicant]
+
+    queryset = Applicant.objects.all()
     serializer_class = UpdatePracticumStatusSerializer
+
+    def get_object(self):
+        try:
+            return self.request.user.applicant
+        except Applicant.DoesNotExist:
+            raise ValidationError({'error': 'Applicant account not found.'})
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        applicant = self.request.user.applicant
+        context['email_message'] = (
+            f'A new practicum request has been submitted by {applicant.first_name} {applicant.last_name}.\n\n'
+            'Best regards, \nBetween Team'
+        )
+        try:
+            context['coordinator'] = OJTCoordinator.objects.get(program=applicant.program, user__status__in=['Active'])
+        except OJTCoordinator.DoesNotExist:
+            raise ValidationError({'error': 'No OJT Coordinator is currently assigned to this program. Please contact your school administrator for assistance.'})
+
+        return context
 
     def update(self, request, *args, **kwargs):
         try:
@@ -223,15 +245,9 @@ class RequestPracticumView(generics.UpdateAPIView):
 
             document_serializer.save()
 
-            status_serializer = UpdatePracticumStatusSerializer(instance=applicant, data=request.data, partial=True)
+            request.data['in_practicum'] = 'Pending'
 
-            if status_serializer.is_valid():
-                status_serializer.save()
-                applicant.in_practicum = 'Pending'
-                applicant.save()
-                return Response({'message': 'Request for practicum submitted successfully.'})
-            else:
-                return Response(status_serializer.errors)
+            return super().update(request, *args, **kwargs)
 
         except Applicant.DoesNotExist:
             return Response({'error': 'Applicant account not found.'})

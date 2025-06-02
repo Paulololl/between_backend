@@ -1,4 +1,4 @@
-from django.core.mail import send_mail
+from django.core.mail import send_mail, EmailMessage
 from rest_framework import serializers
 
 from user_account.models import Applicant
@@ -42,10 +42,9 @@ class UpdatePracticumStatusSerializer(serializers.ModelSerializer):
         instance.save()
 
         email_message = self.context.get('email_message')
-        email_subject = self.context.get('email_subject')
-        email_recipients = self.context.get('email_recipients')
+        coordinator = self.context.get('coordinator')
 
-        if email_message and email_subject and email_recipients :
+        if email_message:
             self.send_email_to_applicant(instance, coordinator, email_message)
 
         return instance
