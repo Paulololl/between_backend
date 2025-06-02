@@ -2,7 +2,8 @@ import uuid
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from .filepaths import applicant_resume, applicant_enrollment_record, company_profile_picture, company_background_image
+from .filepaths import applicant_resume, applicant_enrollment_record, company_profile_picture, company_background_image, \
+    coordinator_program_logo, coordinator_signature
 from storages.backends.s3boto3 import S3Boto3Storage
 
 
@@ -104,7 +105,7 @@ class Applicant(models.Model):
     academic_program = models.CharField(max_length=100, null=True, blank=True)
     quick_introduction = models.CharField(max_length=500)
 
-    resume = models.FileField(storage=S3Boto3Storage, upload_to=applicant_resume, null=True, blank=True)
+    resume = models.FileField(storage=S3Boto3Storage, upload_to=applicant_resume)
     enrollment_record = models.FileField(storage=S3Boto3Storage,upload_to=applicant_enrollment_record,
                                          null=True, blank=True)
 
@@ -169,10 +170,12 @@ class CareerEmplacementAdmin(models.Model):
 class OJTCoordinator(models.Model):
     ojt_coordinator_id = models.AutoField(primary_key=True)
     user = models.OneToOneField('User', on_delete=models.CASCADE, editable=False)
-    program = models.ForeignKey('cea_management.Program', on_delete=models.CASCADE)
+    program = models.ForeignKey('cea_management.Program', on_delete=models.CASCADE, null=True, blank=True)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     middle_initial = models.CharField(max_length=20, null=True, blank=True)
+    program_logo = models.FileField(storage=S3Boto3Storage, upload_to=coordinator_program_logo)
+    signature = models.FileField(storage=S3Boto3Storage, upload_to=coordinator_signature)
 
     class Meta:
         verbose_name = 'OJT Coordinator'

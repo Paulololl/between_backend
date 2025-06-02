@@ -15,3 +15,12 @@ def company_background_image(instance, filename):
 
 def company_profile_picture(instance, filename):
     return f'Company/{instance.user.email} | {str(instance.user.user_id)[-12:]}/profile_picture/{filename}'
+
+
+def coordinator_program_logo(instance, filename):
+    return f'Coordinator/{instance.user.email} | {str(instance.user.user_id)[-12:]}/program_logo/{filename}'
+
+
+def coordinator_signature(instance, filename):
+    return f'Coordinator/{instance.user.email} | {str(instance.user.user_id)[-12:]}/signature/{filename}'
+
