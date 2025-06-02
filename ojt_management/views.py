@@ -63,6 +63,14 @@ class ApplicantListView(CoordinatorMixin, generics.ListAPIView):
 class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
     serializer_class = GetApplicantSerializer
 
+    filter_backends = [filters.SearchFilter]
+
+    search_fields = [
+        'first_name'
+        , 'last_name'
+        , 'user__email'
+    ]
+
     def get_queryset(self):
         coordinator = self.get_coordinator_or_403(self.request.user)
         queryset = Applicant.objects.filter(program=coordinator.program, user__status__in=['Active'], in_practicum='Yes').select_related('user')
@@ -114,6 +122,14 @@ class EndPracticumView(CoordinatorMixin, generics.UpdateAPIView):
 # Students Requesting Practicum List -- KC
 class GetRequestPracticumListView(CoordinatorMixin, generics.ListAPIView):
     serializer_class = GetApplicantSerializer
+
+    filter_backends = [filters.SearchFilter]
+
+    search_fields = [
+        'first_name'
+        , 'last_name'
+        , 'user__email'
+    ]
 
     def get_queryset(self):
         coordinator = self.get_coordinator_or_403(self.request.user)
