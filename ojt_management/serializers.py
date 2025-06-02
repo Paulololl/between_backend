@@ -1,7 +1,10 @@
+from django.conf import settings
+from django.core.mail import send_mail, EmailMessage
+from django.db import transaction
 from rest_framework import serializers
 
 from client_application.models import Endorsement, Application
-from user_account.models import Applicant
+from user_account.models import Applicant, OJTCoordinator
 
 
 class GetStudentList(serializers.ModelSerializer):
@@ -100,10 +103,22 @@ class EndorsementDetailSerializer(serializers.ModelSerializer):
 
 
 class RequestEndorsementSerializer(serializers.ModelSerializer):
+    student_name = serializers.SerializerMethodField()
+
     class Meta:
         model = Endorsement
-        fields = ['endorsement_id', 'program_id', 'application', 'status', 'comments', 'date_approved']
-        read_only_fields = ['endorsement_id', 'program_id', 'application', 'status', 'date_approved']
+        fields = ['endorsement_id', 'program_id', 'application', 'status', 'comments', 'date_approved', 'student_name']
+        read_only_fields = ['endorsement_id', 'program_id', 'application', 'status', 'date_approved', 'student_name']
+
+    def get_student_name(self, obj):
+        return self.build_student_name(obj.application.applicant)
+
+    def build_student_name(self, applicant):
+        first_name = applicant.first_name or ''
+        last_name = applicant.last_name or ''
+        middle_initial = applicant.middle_initial or ''
+        full_name = f"{last_name}, {first_name} {middle_initial}".strip()
+        return full_name.strip(', ') or None
 
     def validate(self, attrs):
         user = self.context['request'].user
@@ -133,22 +148,53 @@ class RequestEndorsementSerializer(serializers.ModelSerializer):
         application = validated_data['application']
         program = validated_data['program_id']
 
-        existing_endorsement = Endorsement.objects.filter(application=application, program_id=program).first()
+        with transaction.atomic():
 
-        if existing_endorsement:
-            if existing_endorsement.status in ['Pending', 'Approved']:
-                raise (serializers.ValidationError
-                       ({'error': f"An endorsement already exists with status '{existing_endorsement.status}'. " 
-                                  f"You cannot request a new one unless it was rejected."}))
+            existing_endorsement = Endorsement.objects.filter(application=application, program_id=program).first()
 
-        endorsement, created = Endorsement.objects.update_or_create(
-            application=application,
-            program_id=program,
-            defaults={
-                'status': 'Pending',
-                'comments': ''
-            }
-        )
+            if existing_endorsement:
+                if existing_endorsement.status in ['Pending', 'Approved']:
+                    raise (serializers.ValidationError
+                           ({'error': f"An endorsement already exists with status '{existing_endorsement.status}'. " 
+                                      f"You cannot request a new one unless it was rejected."}))
+
+            endorsement, created = Endorsement.objects.update_or_create(
+                application=application,
+                program_id=program,
+                defaults={
+                    'status': 'Pending',
+                    'comments': ''
+                }
+            )
+
+            try:
+                ojt_coordinator = OJTCoordinator.objects.get(program=program)
+                coordinator_email = ojt_coordinator.user.email
+                student_name = self.build_student_name(application.applicant)
+
+                if coordinator_email:
+                    subject = f"[Internship System] Endorsement Request from {student_name}"
+                    html_message = (
+                        f"Dear {ojt_coordinator.first_name},<br><br>"
+                        f"<strong>{student_name}</strong> has requested an endorsement for their internship.<br><br>"
+                        f"<strong>Program:</strong> {program.program_name}<br>"
+                        f"<strong>Company:</strong> {application.internship_posting.company.company_name}<br><br>"
+                        f"<strong>Internship Position:</strong> {application.internship_posting.internship_position}<br><br>"
+                        f"Please log in to review the request.<br><br>"
+                        f"Best regards,<br><strong>Between IMS</strong>"
+                    )
+                    email = EmailMessage(
+                        subject=subject,
+                        body=html_message,
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        to=[coordinator_email],
+                    )
+                    email.content_subtype = "html"
+                    email.send()
+
+            except OJTCoordinator.DoesNotExist:
+                raise serializers.ValidationError({'message': 'no OJTCoordinator assigned to this program yet.'})
+
         return endorsement
 
 

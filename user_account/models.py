@@ -169,7 +169,7 @@ class CareerEmplacementAdmin(models.Model):
 class OJTCoordinator(models.Model):
     ojt_coordinator_id = models.AutoField(primary_key=True)
     user = models.OneToOneField('User', on_delete=models.CASCADE, editable=False)
-    program = models.ForeignKey('cea_management.Program', on_delete=models.CASCADE)
+    program = models.ForeignKey('cea_management.Program', on_delete=models.CASCADE, null=True, blank=True)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     middle_initial = models.CharField(max_length=20, null=True, blank=True)

@@ -462,7 +462,8 @@ class EditOJTCoordinatorSerializer(serializers.ModelSerializer):
     middle_initial = serializers.CharField(required=False, allow_blank=True, default='')
     password = serializers.CharField(write_only=True, required=False)
     confirm_password = serializers.CharField(write_only=True, required=False)
-    program = serializers.PrimaryKeyRelatedField(queryset=Program.objects.all(), required=False)
+    # program = serializers.PrimaryKeyRelatedField(queryset=Program.objects.all(),
+    #                                              required=False, allow_null=True)
     status = serializers.CharField(source='user.status', required=False)
 
     class Meta:
