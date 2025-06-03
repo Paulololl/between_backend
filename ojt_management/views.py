@@ -20,7 +20,7 @@ from user_account.models import OJTCoordinator, Applicant
 from user_account.serializers import GetApplicantSerializer
 from cea_management.models import SchoolPartnershipList
 from cea_management.serializers import SchoolPartnershipSerializer
-from .serializers import EndorsementListSerializer, EndorsementDetailSerializer, RequestEndorsementSerializer, \
+from .serializers import EndorsementDetailSerializer, RequestEndorsementSerializer, \
     UpdatePracticumStatusSerializer, UpdateEndorsementSerializer, EnrollmentRecordSerializer
 
 
@@ -162,20 +162,8 @@ class GetRequestPracticumListView(CoordinatorMixin, generics.ListAPIView):
         ).select_related('user')
 
 
-class EndorsementListView(CoordinatorMixin, generics.ListAPIView):
-    serializer_class = EndorsementListSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        coordinator = self.get_coordinator_or_403(self.request.user)
-        return Endorsement.objects.filter(
-            status='Pending',
-            program_id=coordinator.program
-        )
-
-
 class RespondedEndorsementListView(CoordinatorMixin, generics.ListAPIView):
-    serializer_class = EndorsementListSerializer
+    serializer_class = EndorsementDetailSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
@@ -194,6 +182,7 @@ class EndorsementDetailView(CoordinatorMixin, generics.ListAPIView):
 
         return Endorsement.objects.filter(
             program_id=coordinator.program_id,
+            status='Pending'
         )
 
 
@@ -423,6 +412,8 @@ class RejectPracticumRequestView(CoordinatorMixin, generics.UpdateAPIView):
         return super().update(request, *args, **kwargs)
 
 # Applicant: Request for Practicum -- KC
+
+
 class RequestPracticumView(generics.UpdateAPIView):
     permission_classes = [IsAuthenticated, IsApplicant]
 
