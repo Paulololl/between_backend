@@ -170,7 +170,7 @@ class RespondedEndorsementListView(CoordinatorMixin, generics.ListAPIView):
         coordinator = self.get_coordinator_or_403(self.request.user)
         return Endorsement.objects.filter(
             program_id=coordinator.program
-        ).exclude(status='Pending')
+        ).exclude(status__in=['Pending', 'Deleted'])
 
 
 class EndorsementDetailView(CoordinatorMixin, generics.ListAPIView):
