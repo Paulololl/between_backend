@@ -1,7 +1,3 @@
-from email.utils import formataddr
-
-from django.core.mail import EmailMessage
-from django.shortcuts import render
 from rest_framework import serializers, status
 from rest_framework.generics import ListAPIView, CreateAPIView
 from rest_framework.permissions import IsAuthenticated
@@ -29,7 +25,8 @@ class ApplicationListView(ListAPIView):
         if user.user_role == 'applicant':
             queryset = Application.objects.filter(applicant__user=user).exclude(applicant_status='Deleted')
         elif user.user_role == 'company':
-            queryset = Application.objects.filter(internship_posting__company__user=user).exclude(company_status='Deleted')
+            queryset = (Application.objects.filter(internship_posting__company__user=user).exclude
+                        (company_status='Deleted'))
         else:
             return Application.objects.none()
 
@@ -363,4 +360,3 @@ class SendDocumentView(APIView):
             return Response({'message': 'Documents sent successfully.'}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
