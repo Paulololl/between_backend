@@ -39,7 +39,7 @@ class Endorsement(models.Model):
 
     endorsement_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     program_id = models.ForeignKey('cea_management.Program', on_delete=models.CASCADE, default=1)
-    application = models.OneToOneField('Application', on_delete=models.CASCADE)
+    application = models.ForeignKey('Application', on_delete=models.CASCADE)
 
     comments = models.CharField(max_length=500, null=True, blank=True)
     date_approved = models.DateTimeField(null=True, blank=True)
@@ -47,7 +47,8 @@ class Endorsement(models.Model):
     status = models.CharField(max_length=20, choices=[
         ('Pending', 'Pending'),
         ('Approved', 'Approved'),
-        ('Rejected', 'Rejected')
+        ('Rejected', 'Rejected'),
+        ('Deleted', 'Deleted'),
     ], default='Pending')
 
     def __str__(self):

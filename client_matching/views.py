@@ -411,8 +411,8 @@ class InternshipRecommendationListView(ListAPIView):
                         "created_at": ad.created_at.isoformat()
                     }
                     return Response([ad_data])
-                else:
-                    return Response({"detail": "No advertisement found."}, status=status.HTTP_400_BAD_REQUEST)
+                # else:
+                #     return Response({"detail": "No advertisement found."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             queryset = self.get_queryset()

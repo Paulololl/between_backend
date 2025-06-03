@@ -139,6 +139,10 @@ class RequestEndorsementSerializer(serializers.ModelSerializer):
         except Application.DoesNotExist:
             raise serializers.ValidationError("Application not found or does not belong to you.")
 
+        if application.status == 'Dropped':
+            raise serializers.ValidationError("Cannot request for an endorsement because you already dropped "
+                                              "this application.")
+
         attrs['application'] = application
         attrs['program_id'] = applicant.program
 

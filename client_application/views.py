@@ -8,11 +8,14 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from client_application.models import Application, Notification
+from client_application.models import Application, Notification, Endorsement
 from client_application.serializers import ApplicationListSerializer, ApplicationDetailSerializer, \
     NotificationSerializer, UpdateApplicationSerializer, RequestDocumentSerializer, DropApplicationSerializer, \
     SendDocumentSerializer
+from client_matching.functions import run_internship_matching
 from client_matching.models import InternshipRecommendation
+from client_matching.serializers import InternshipMatchSerializer
+from client_matching.utils import reset_recommendations_and_tap_count
 from user_account.permissions import IsCompany, IsApplicant
 
 
@@ -280,6 +283,8 @@ class DropApplicationView(APIView):
         if serializer.is_valid():
             serializer.save()
 
+            Endorsement.objects.filter(application=application).update(status='Deleted')
+
             Notification.objects.create(
                 application=application,
                 notification_text=f'The application has been dropped by the applicant.',
@@ -320,6 +325,11 @@ class RemoveFromBookmarksView(APIView):
                 applicant=application.applicant,
                 internship_posting=application.internship_posting
             ).delete()
+
+            serializer = InternshipMatchSerializer(context={'applicant': user.applicant})
+            serializer.create(validated_data={})
+            reset_recommendations_and_tap_count(user.applicant)
+            run_internship_matching(user.applicant)
 
             return Response({'message': 'Application removed from bookmarks (applicant).'}, status=status.HTTP_200_OK)
 
