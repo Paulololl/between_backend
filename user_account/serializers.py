@@ -604,7 +604,7 @@ class SchoolEmailCheckSerializer(serializers.Serializer):
         response = requests.get(url, params=params)
 
         if response.status_code != 200:
-            raise serializers.ValidationError('Failed to validate email with external service.')
+            raise serializers.ValidationError({'email': 'Failed to validate email with external service.'})
 
         data_api = response.json()
 
