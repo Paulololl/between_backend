@@ -215,7 +215,7 @@ class UpdateEndorsementSerializer(serializers.ModelSerializer):
         return attrs
 
 class EnrollmentRecordSerializer(serializers.ModelSerializer):
-    enrollment_record = serializers.FileField(use_url=True)
+    # enrollment_record = serializers.FileField(use_url=True)
 
     class Meta:
         model = Applicant
