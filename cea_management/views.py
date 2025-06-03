@@ -175,11 +175,25 @@ class ApplicantListView(CEAMixin, generics.ListAPIView):
 # region Company Partnerships -- PAUL
 class SchoolPartnershipListView(CEAMixin, generics.ListAPIView):
     serializer_class = SchoolPartnershipSerializer
-    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         cea = self.get_cea_or_403(self.request.user)
-        return SchoolPartnershipList.objects.filter(school=cea.school).select_related('company', 'company__user')
+        queryset = SchoolPartnershipList.objects.filter(
+                        school=cea.school
+                        , company__user__status__in=['Active']
+        ).select_related('company', 'company__user')
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        if not queryset.exists():
+            return Response(
+                {'message': 'There are no company partnerships.'},
+                status=status.HTTP_200_OK,
+            )
+
+        serilizer = SchoolPartnershipSerializer(queryset, many=True)
+        return Response(serilizer.data, status=status.HTTP_200_OK)
 
 
 class CreateSchoolPartnershipView(CEAMixin, generics.CreateAPIView):
@@ -240,20 +254,29 @@ class BulkDeleteSchoolPartnershipView(CEAMixin, generics.GenericAPIView):
 
 class CompanyListView(CEAMixin, generics.ListAPIView):
     serializer_class = CompanyListSerializer
-    permission_classes = [IsAuthenticated]
     filter_backends = [filters.SearchFilter]
     search_fields = ['company_name']
 
     def get_queryset(self):
-        try:
-            cea = CareerEmplacementAdmin.objects.select_related('school').get(user=self.request.user)
-        except CareerEmplacementAdmin.DoesNotExist:
-            raise PermissionDenied("Only Career Emplacement Admins can access this list.")
+        cea = self.get_cea_or_403(self.request.user)
 
         partnered_company_ids = SchoolPartnershipList.objects.filter(
             school=cea.school
         ).values_list('company__user__user_id', flat=True)
 
-        return Company.objects.exclude(user__user_id__in=partnered_company_ids).select_related('user')
+        return Company.objects.filter( user__status__in=['Active']
+                                ).exclude(user__user_id__in=partnered_company_ids
+                                ).select_related('user')
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        if not queryset.exists():
+            return Response(
+                {'message': 'There are no companies currently registered in the system.'},
+                status=status.HTTP_200_OK,
+            )
+
+        serializer = CompanyListSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 # endregion
