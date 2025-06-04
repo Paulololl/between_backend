@@ -117,8 +117,9 @@ class EditInternshipPostingView(APIView):
                     notification_text=f"{company.company_name} has updated the internship information.",
                     notification_type='Applicant'
                 )
-                application.applicant_status = 'Unread'
-                application.save(update_fields=['applicant_status'])
+                if application.applicant_status != 'Deleted':
+                    application.applicant_status = 'Unread'
+                    application.save(update_fields=['applicant_status'])
 
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

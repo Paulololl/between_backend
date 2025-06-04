@@ -192,8 +192,9 @@ class UpdateApplicationView(APIView):
             return Response({'error': 'This application has been dropped. Cannot change status.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        application.applicant_status = 'Unread'
-        application.save(update_fields=['applicant_status'])
+        if application.applicant_status != 'Deleted':
+            application.applicant_status = 'Unread'
+            application.save(update_fields=['applicant_status'])
 
         serializer = self.serializer_class(application, data={'status': new_status}, partial=True)
         if serializer.is_valid():
@@ -236,8 +237,9 @@ class RequestDocumentView(CreateAPIView):
                     notification_type='Applicant'
                 )
 
-                application.applicant_status = 'Unread'
-                application.save(update_fields=['applicant_status'])
+                if application.applicant_status != 'Deleted':
+                    application.applicant_status = 'Unread'
+                    application.save(update_fields=['applicant_status'])
 
                 return Response({'message': 'Document request sent successfully.'}, status=status.HTTP_200_OK)
             except Exception as e:
@@ -273,8 +275,9 @@ class DropApplicationView(APIView):
                                       ' Dropped.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        application.company_status = 'Unread'
-        application.save(update_fields=['company_status'])
+        if application.company_status != 'Deleted':
+            application.company_status = 'Unread'
+            application.save(update_fields=['company_status'])
 
         serializer = self.serializer_class(application, data={'status': new_status}, partial=True)
         if serializer.is_valid():
