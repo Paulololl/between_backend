@@ -378,6 +378,7 @@ class CareerEmplacementAdminRegisterSerializer(serializers.ModelSerializer):
             email=email,
             password=password,
             user_role='cea',
+            status='Active'
         )
 
         cea = CareerEmplacementAdmin.objects.create(user=user, **validated_data)
