@@ -37,6 +37,7 @@ class EndorsementDetailSerializer(serializers.ModelSerializer):
     internship_position = serializers.CharField(source='application.internship_posting.internship_position')
     company_name = serializers.CharField(source='application.internship_posting.company.company_name')
     company_address = serializers.CharField(source='application.internship_posting.company.company_address')
+    internship_address = serializers.CharField(source='application.internship_posting.address')
     business_nature = serializers.CharField(source='application.internship_posting.company.business_nature')
     company_website_url = serializers.CharField(source='application.internship_posting.company.company_website_url')
     person_in_charge = serializers.CharField(source='application.internship_posting.person_in_charge')
@@ -58,6 +59,7 @@ class EndorsementDetailSerializer(serializers.ModelSerializer):
                   'internship_position',
                   'company_name',
                   'company_address',
+                  'internship_address',
                   'business_nature',
                   'company_website_url',
                   'person_in_charge',
@@ -138,6 +140,10 @@ class RequestEndorsementSerializer(serializers.ModelSerializer):
             application = Application.objects.get(application_id=application_id, applicant=applicant)
         except Application.DoesNotExist:
             raise serializers.ValidationError("Application not found or does not belong to you.")
+
+        if application.status == 'Dropped':
+            raise serializers.ValidationError("Cannot request for an endorsement because you already dropped "
+                                              "this application.")
 
         attrs['application'] = application
         attrs['program_id'] = applicant.program

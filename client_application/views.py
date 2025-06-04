@@ -1,18 +1,18 @@
-from email.utils import formataddr
-
-from django.core.mail import EmailMessage
-from django.shortcuts import render
+from django.db import transaction
 from rest_framework import serializers, status
 from rest_framework.generics import ListAPIView, CreateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from client_application.models import Application, Notification
+from client_application.models import Application, Notification, Endorsement
 from client_application.serializers import ApplicationListSerializer, ApplicationDetailSerializer, \
     NotificationSerializer, UpdateApplicationSerializer, RequestDocumentSerializer, DropApplicationSerializer, \
     SendDocumentSerializer
+from client_matching.functions import run_internship_matching
 from client_matching.models import InternshipRecommendation
+from client_matching.serializers import InternshipMatchSerializer
+from client_matching.utils import reset_recommendations_and_tap_count
 from user_account.permissions import IsCompany, IsApplicant
 
 
@@ -26,7 +26,8 @@ class ApplicationListView(ListAPIView):
         if user.user_role == 'applicant':
             queryset = Application.objects.filter(applicant__user=user).exclude(applicant_status='Deleted')
         elif user.user_role == 'company':
-            queryset = Application.objects.filter(internship_posting__company__user=user).exclude(company_status='Deleted')
+            queryset = (Application.objects.filter(internship_posting__company__user=user).exclude
+                        (company_status='Deleted'))
         else:
             return Application.objects.none()
 
@@ -192,8 +193,9 @@ class UpdateApplicationView(APIView):
             return Response({'error': 'This application has been dropped. Cannot change status.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        application.applicant_status = 'Unread'
-        application.save(update_fields=['applicant_status'])
+        if application.applicant_status != 'Deleted':
+            application.applicant_status = 'Unread'
+            application.save(update_fields=['applicant_status'])
 
         serializer = self.serializer_class(application, data={'status': new_status}, partial=True)
         if serializer.is_valid():
@@ -236,8 +238,9 @@ class RequestDocumentView(CreateAPIView):
                     notification_type='Applicant'
                 )
 
-                application.applicant_status = 'Unread'
-                application.save(update_fields=['applicant_status'])
+                if application.applicant_status != 'Deleted':
+                    application.applicant_status = 'Unread'
+                    application.save(update_fields=['applicant_status'])
 
                 return Response({'message': 'Document request sent successfully.'}, status=status.HTTP_200_OK)
             except Exception as e:
@@ -273,12 +276,15 @@ class DropApplicationView(APIView):
                                       ' Dropped.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        application.company_status = 'Unread'
-        application.save(update_fields=['company_status'])
+        if application.company_status != 'Deleted':
+            application.company_status = 'Unread'
+            application.save(update_fields=['company_status'])
 
         serializer = self.serializer_class(application, data={'status': new_status}, partial=True)
         if serializer.is_valid():
             serializer.save()
+
+            Endorsement.objects.filter(application=application).update(status='Deleted')
 
             Notification.objects.create(
                 application=application,
@@ -321,6 +327,11 @@ class RemoveFromBookmarksView(APIView):
                 internship_posting=application.internship_posting
             ).delete()
 
+            serializer = InternshipMatchSerializer(context={'applicant': user.applicant})
+            serializer.create(validated_data={})
+            reset_recommendations_and_tap_count(user.applicant)
+            run_internship_matching(user.applicant)
+
             return Response({'message': 'Application removed from bookmarks (applicant).'}, status=status.HTTP_200_OK)
 
         if user.user_role == 'company' and application.internship_posting.company.user == user:
@@ -337,7 +348,10 @@ class SendDocumentView(APIView):
 
     def post(self, request):
         serializer = SendDocumentSerializer(data=request.data)
+
         if serializer.is_valid():
+            application = serializer.application
+
             files = request.FILES.getlist('files')
             if not files:
                 return Response({'error': 'At least one file is required.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -349,8 +363,19 @@ class SendDocumentView(APIView):
                         status=status.HTTP_400_BAD_REQUEST
                     )
 
-            serializer.send_document_email(files)
-            return Response({'message': 'Documents sent successfully.'}, status=status.HTTP_200_OK)
+            with transaction.atomic():
+                serializer.send_document_email(files)
+
+                Notification.objects.create(
+                    application=application,
+                    notification_text=f'The applicant has sent additional documents.',
+                    notification_type='Company'
+                )
+
+                if application.company_status != 'Deleted':
+                    application.company_status = 'Unread'
+                    application.save(update_fields=['company_status'])
+
+                return Response({'message': 'Documents sent successfully.'}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-

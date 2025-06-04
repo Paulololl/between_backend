@@ -47,7 +47,8 @@ class Endorsement(models.Model):
     status = models.CharField(max_length=20, choices=[
         ('Pending', 'Pending'),
         ('Approved', 'Approved'),
-        ('Rejected', 'Rejected')
+        ('Rejected', 'Rejected'),
+        ('Deleted', 'Deleted'),
     ], default='Pending')
 
     def __str__(self):

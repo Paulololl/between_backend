@@ -117,8 +117,9 @@ class EditInternshipPostingView(APIView):
                     notification_text=f"{company.company_name} has updated the internship information.",
                     notification_type='Applicant'
                 )
-                application.is_viewed_applicant = False
-                application.save(update_fields=['is_viewed_applicant'])
+                if application.applicant_status != 'Deleted':
+                    application.applicant_status = 'Unread'
+                    application.save(update_fields=['applicant_status'])
 
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -411,8 +412,8 @@ class InternshipRecommendationListView(ListAPIView):
                         "created_at": ad.created_at.isoformat()
                     }
                     return Response([ad_data])
-                else:
-                    return Response({"detail": "No advertisement found."}, status=status.HTTP_400_BAD_REQUEST)
+                # else:
+                #     return Response({"detail": "No advertisement found."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             queryset = self.get_queryset()
