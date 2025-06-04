@@ -6,6 +6,7 @@ from django.core.mail import send_mail, EmailMessage
 from django.db import transaction
 from django.http import HttpResponse
 from django.template.loader import render_to_string
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework import generics, status, filters
 from rest_framework.permissions import IsAuthenticated
@@ -23,6 +24,8 @@ from cea_management.serializers import SchoolPartnershipSerializer
 from .serializers import EndorsementDetailSerializer, RequestEndorsementSerializer, \
     UpdatePracticumStatusSerializer, UpdateEndorsementSerializer, EnrollmentRecordSerializer
 
+ojt_management_tag = extend_schema(tags=["ojt_management"])
+
 
 class CoordinatorMixin:
     permission_class = [IsAuthenticated, IsCoordinator]
@@ -34,6 +37,7 @@ class CoordinatorMixin:
             raise PermissionDenied('User is not an OJT Coordinator. Access denied.')
 
 
+@ojt_management_tag
 # School Partnerships
 # region School Partnerships -- KC
 class SchoolPartnershipListView(CoordinatorMixin, generics.ListAPIView):
@@ -48,6 +52,7 @@ class SchoolPartnershipListView(CoordinatorMixin, generics.ListAPIView):
 # region Student List -- KC
 
 
+@ojt_management_tag
 class ApplicantListView(CoordinatorMixin, generics.ListAPIView):
     serializer_class = GetApplicantSerializer
 
@@ -75,6 +80,8 @@ class ApplicantListView(CoordinatorMixin, generics.ListAPIView):
 
 # region Practicum Management
 
+
+@ojt_management_tag
 # Students In Practicum List -- KC
 class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
     serializer_class = GetApplicantSerializer
@@ -103,6 +110,7 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
         return queryset
 
 
+@ojt_management_tag
 #  End Student's Practicum -- KC
 class EndPracticumView(CoordinatorMixin, generics.UpdateAPIView):
     queryset = Applicant.objects.all()
@@ -140,6 +148,7 @@ class EndPracticumView(CoordinatorMixin, generics.UpdateAPIView):
         return super().update(request, *args, **kwargs)
 
 
+@ojt_management_tag
 # Students Requesting Practicum List -- KC
 class GetRequestPracticumListView(CoordinatorMixin, generics.ListAPIView):
     serializer_class = GetApplicantSerializer
@@ -162,6 +171,7 @@ class GetRequestPracticumListView(CoordinatorMixin, generics.ListAPIView):
         ).select_related('user')
 
 
+@ojt_management_tag
 class RespondedEndorsementListView(CoordinatorMixin, generics.ListAPIView):
     serializer_class = EndorsementDetailSerializer
     permission_classes = [IsAuthenticated]
@@ -173,6 +183,7 @@ class RespondedEndorsementListView(CoordinatorMixin, generics.ListAPIView):
         ).exclude(status__in=['Pending', 'Deleted'])
 
 
+@ojt_management_tag
 class EndorsementDetailView(CoordinatorMixin, generics.ListAPIView):
     serializer_class = EndorsementDetailSerializer
     permission_classes = [IsAuthenticated]
@@ -186,6 +197,7 @@ class EndorsementDetailView(CoordinatorMixin, generics.ListAPIView):
         )
 
 
+@ojt_management_tag
 class RequestEndorsementView(generics.CreateAPIView):
     serializer_class = RequestEndorsementSerializer
     permission_classes = [IsAuthenticated, IsApplicant]
@@ -205,6 +217,7 @@ class RequestEndorsementView(generics.CreateAPIView):
         return Response(self.get_serializer(endorsement).data, status=status.HTTP_201_CREATED)
 
 
+@ojt_management_tag
 class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
     serializer_class = UpdateEndorsementSerializer
     permission_classes = [IsAuthenticated]
@@ -298,6 +311,7 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+@ojt_management_tag
 class GenerateEndorsementPDFView(CoordinatorMixin, APIView):
     permission_classes = [IsAuthenticated]
 
@@ -332,6 +346,7 @@ class GenerateEndorsementPDFView(CoordinatorMixin, APIView):
         return response
 
 
+@ojt_management_tag
 # Approve Practicum Request -- KC
 class ApprovePracticumRequestView(CoordinatorMixin, generics.UpdateAPIView):
     queryset = Applicant.objects.all()
@@ -369,6 +384,7 @@ class ApprovePracticumRequestView(CoordinatorMixin, generics.UpdateAPIView):
         return super().update(request, *args, **kwargs)
 
 
+@ojt_management_tag
 # Reject Practicum Request -- KC
 class RejectPracticumRequestView(CoordinatorMixin, generics.UpdateAPIView):
     queryset = Applicant.objects.all()
@@ -414,6 +430,7 @@ class RejectPracticumRequestView(CoordinatorMixin, generics.UpdateAPIView):
 # Applicant: Request for Practicum -- KC
 
 
+@ojt_management_tag
 class RequestPracticumView(generics.UpdateAPIView):
     permission_classes = [IsAuthenticated, IsApplicant]
 
@@ -464,6 +481,8 @@ class RequestPracticumView(generics.UpdateAPIView):
         except Applicant.DoesNotExist:
             return Response({'error': 'Applicant account not found.'})
 
+
+@ojt_management_tag
 # View Enrollment Record -- KC
 class GetEnrollmentRecordView(CoordinatorMixin, generics.RetrieveAPIView):
     serializer_class = EnrollmentRecordSerializer

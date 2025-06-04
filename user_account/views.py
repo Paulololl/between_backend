@@ -32,8 +32,10 @@ from .serializers import (ApplicantRegisterSerializer, NestedSchoolDepartmentPro
 from .utils import delete_pending_users
 
 User = get_user_model()
+user_account_tag = extend_schema(tags=["user_account"])
 
 
+@user_account_tag
 class GetUserView(ListAPIView):
     queryset = User.objects.all()
     serializer_class = GetUserSerializer
@@ -49,6 +51,7 @@ class GetUserView(ListAPIView):
         return queryset
 
 
+@user_account_tag
 class GetEmailView(ListAPIView):
     queryset = User.objects.all()
     serializer_class = GetEmailSerializer
@@ -64,6 +67,7 @@ class GetEmailView(ListAPIView):
         return queryset
 
 
+@user_account_tag
 class SchoolListView(ListAPIView):
     queryset = School.objects.all()
     serializer_class = SchoolSerializer
@@ -77,6 +81,7 @@ class SchoolListView(ListAPIView):
         return queryset
 
 
+@user_account_tag
 class DepartmentListView(ListAPIView):
     queryset = Department.objects.all()
     serializer_class = DepartmentSerializer
@@ -92,6 +97,7 @@ class DepartmentListView(ListAPIView):
         return queryset
 
 
+@user_account_tag
 class ProgramListView(ListAPIView):
     queryset = Program.objects.all()
     serializer_class = ProgramNestedSerializer
@@ -107,6 +113,7 @@ class ProgramListView(ListAPIView):
         return queryset
 
 
+@user_account_tag
 class NestedSchoolDepartmentProgramListView(ListAPIView):
     queryset = School.objects.prefetch_related('departments__programs')
     serializer_class = NestedSchoolDepartmentProgramSerializer
@@ -119,11 +126,13 @@ class NestedSchoolDepartmentProgramListView(ListAPIView):
         return queryset
 
 
+@user_account_tag
 class ApplicantRegisterView(CreateAPIView):
     queryset = Applicant.objects.all()
     serializer_class = ApplicantRegisterSerializer
 
 
+@user_account_tag
 class GetApplicantView(ListAPIView):
     permission_classes = [IsAuthenticated]
     queryset = Applicant.objects.all()
@@ -139,6 +148,7 @@ class GetApplicantView(ListAPIView):
         return queryset
 
 
+@user_account_tag
 class EditApplicantView(APIView):
     permission_classes = [IsAuthenticated, IsApplicant]
 
@@ -156,11 +166,13 @@ class EditApplicantView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@user_account_tag
 class CompanyRegisterView(CreateAPIView):
     queryset = Company.objects.all()
     serializer_class = CompanyRegisterSerializer
 
 
+@user_account_tag
 class GetCompanyView(ListAPIView):
     permission_classes = [IsAuthenticated]
     queryset = Company.objects.all()
@@ -176,6 +188,7 @@ class GetCompanyView(ListAPIView):
         return queryset
 
 
+@user_account_tag
 class EditCompanyView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -187,16 +200,19 @@ class EditCompanyView(APIView):
         return Response(serializer.errors, status=400)
 
 
+@user_account_tag
 class CareerEmplacementAdminRegisterView(CreateAPIView):
     queryset = CareerEmplacementAdmin.objects.all()
     serializer_class = CareerEmplacementAdminRegisterSerializer
 
 
+@user_account_tag
 class OJTCoordinatorRegisterView(CreateAPIView):
     queryset = OJTCoordinator.objects.all()
     serializer_class = OJTCoordinatorRegisterSerializer
 
 
+@user_account_tag
 class GetOJTCoordinatorView(ListAPIView):
     permission_classes = [IsAuthenticated]
     queryset = OJTCoordinator.objects.all()
@@ -212,6 +228,7 @@ class GetOJTCoordinatorView(ListAPIView):
         return queryset
 
 
+@user_account_tag
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
 
@@ -235,10 +252,12 @@ class MyTokenObtainPairView(TokenObtainPairView):
         return response
 
 
+@user_account_tag
 class MyTokenRefreshView(TokenRefreshView):
     serializer_class = MyTokenRefreshSerializer
 
 
+@user_account_tag
 class EmailLoginView(APIView):
 
     @extend_schema(
@@ -276,6 +295,7 @@ class EmailLoginView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@user_account_tag
 class SchoolEmailCheckView(APIView):
 
     @extend_schema(
@@ -295,6 +315,7 @@ class SchoolEmailCheckView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@user_account_tag
 class VerifyEmailView(APIView):
     def post(self, request):
         serializer = SendEmailVerificationSerializer(data=request.data)
@@ -346,6 +367,7 @@ class VerifyEmailView(APIView):
             return redirect(f'https://localhost:5173/sign-up/account-reverify?status=invalid')
 
 
+@user_account_tag
 class ForgotPasswordLinkView(APIView):
     def post(self, request):
         serializer = SendForgotPasswordLinkSerializer(data=request.data)
@@ -377,6 +399,7 @@ class ForgotPasswordLinkView(APIView):
             return Response({"error": "Invalid or expired reset link."}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@user_account_tag
 class ResetPasswordView(APIView):
 
     def post(self, request):
@@ -387,6 +410,7 @@ class ResetPasswordView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@user_account_tag
 class DeleteAccountView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -401,6 +425,7 @@ class DeleteAccountView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@user_account_tag
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
 

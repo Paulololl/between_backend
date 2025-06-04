@@ -4,11 +4,410 @@ info:
   version: 1.0.0
   description: An Internship matching system for everyone
 paths:
+  /api/cea_management/companies/:
+    get:
+      operationId: api_cea_management_companies_list
+      parameters:
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - cea_management
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CompanyList'
+          description: ''
+  /api/cea_management/ojt-coordinators/:
+    get:
+      operationId: api_cea_management_ojt_coordinators_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - cea_management
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GetOJTCoordinator'
+          description: ''
+  /api/cea_management/ojt-coordinators/create/:
+    post:
+      operationId: api_cea_management_ojt_coordinators_create_create
+      tags:
+      - cea_management
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OJTCoordinatorRegister'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OJTCoordinatorRegister'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OJTCoordinatorRegister'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OJTCoordinatorRegister'
+          description: ''
+  /api/cea_management/ojt-coordinators/remove/:
+    put:
+      operationId: api_cea_management_ojt_coordinators_remove_update
+      tags:
+      - cea_management
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetOJTCoordinator'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GetOJTCoordinator'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GetOJTCoordinator'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetOJTCoordinator'
+          description: ''
+    patch:
+      operationId: api_cea_management_ojt_coordinators_remove_partial_update
+      tags:
+      - cea_management
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedGetOJTCoordinator'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedGetOJTCoordinator'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedGetOJTCoordinator'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetOJTCoordinator'
+          description: ''
+  /api/cea_management/ojt-coordinators/update/:
+    put:
+      operationId: api_cea_management_ojt_coordinators_update_update
+      tags:
+      - cea_management
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditOJTCoordinator'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EditOJTCoordinator'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EditOJTCoordinator'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EditOJTCoordinator'
+          description: ''
+    patch:
+      operationId: api_cea_management_ojt_coordinators_update_partial_update
+      tags:
+      - cea_management
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedEditOJTCoordinator'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedEditOJTCoordinator'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedEditOJTCoordinator'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EditOJTCoordinator'
+          description: ''
+  /api/cea_management/partnerships/:
+    get:
+      operationId: api_cea_management_partnerships_list
+      tags:
+      - cea_management
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SchoolPartnership'
+          description: ''
+  /api/cea_management/partnerships/create/:
+    post:
+      operationId: api_cea_management_partnerships_create_create
+      tags:
+      - cea_management
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePartnership'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreatePartnership'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreatePartnership'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatePartnership'
+          description: ''
+  /api/cea_management/partnerships/delete/:
+    delete:
+      operationId: api_cea_management_partnerships_delete_destroy
+      tags:
+      - cea_management
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/cea_management/students/:
+    get:
+      operationId: api_cea_management_students_list
+      tags:
+      - cea_management
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GetApplicant'
+          description: ''
+  /api/client_application/application/request_document/:
+    post:
+      operationId: api_client_application_application_request_document_create
+      tags:
+      - client_application
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestDocument'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RequestDocument'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RequestDocument'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestDocument'
+          description: ''
+  /api/client_application/application/send_document/:
+    post:
+      operationId: api_client_application_application_send_document_create
+      tags:
+      - client_application
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/client_application/clear_notifications/:
+    delete:
+      operationId: api_client_application_clear_notifications_destroy
+      tags:
+      - client_application
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/client_application/drop/application/:
+    put:
+      operationId: api_client_application_drop_application_update
+      tags:
+      - client_application
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DropApplication'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DropApplication'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DropApplication'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DropApplication'
+          description: ''
+  /api/client_application/get/application_detail/:
+    get:
+      operationId: api_client_application_get_application_detail_list
+      tags:
+      - client_application
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ApplicationDetail'
+          description: ''
+  /api/client_application/get/applications/:
+    get:
+      operationId: api_client_application_get_applications_list
+      tags:
+      - client_application
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ApplicationList'
+          description: ''
+  /api/client_application/notifications/:
+    get:
+      operationId: api_client_application_notifications_list
+      tags:
+      - client_application
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/client_application/remove/application/:
+    put:
+      operationId: api_client_application_remove_application_update
+      tags:
+      - client_application
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/client_application/update/application/:
+    put:
+      operationId: api_client_application_update_application_update
+      tags:
+      - client_application
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateApplication'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UpdateApplication'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UpdateApplication'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateApplication'
+          description: ''
   /api/client_matching/bulk-delete/internship_posting/:
     put:
       operationId: api_client_matching_bulk_delete_internship_posting_update
       tags:
-      - api
+      - client_matching
       security:
       - jwtAuth: []
       responses:
@@ -18,7 +417,7 @@ paths:
     delete:
       operationId: api_client_matching_bulk_delete_person_in_charge_destroy
       tags:
-      - api
+      - client_matching
       security:
       - jwtAuth: []
       responses:
@@ -28,7 +427,7 @@ paths:
     post:
       operationId: api_client_matching_create_internship_posting_create
       tags:
-      - api
+      - client_matching
       requestBody:
         content:
           application/json:
@@ -54,7 +453,7 @@ paths:
     post:
       operationId: api_client_matching_create_person_in_charge_create
       tags:
-      - api
+      - client_matching
       requestBody:
         content:
           application/json:
@@ -80,7 +479,7 @@ paths:
     get:
       operationId: api_client_matching_edit_applicant_document_retrieve
       tags:
-      - api
+      - client_matching
       security:
       - jwtAuth: []
       responses:
@@ -89,7 +488,7 @@ paths:
     put:
       operationId: api_client_matching_edit_applicant_document_update
       tags:
-      - api
+      - client_matching
       security:
       - jwtAuth: []
       responses:
@@ -99,7 +498,7 @@ paths:
     put:
       operationId: api_client_matching_edit_internship_posting_update
       tags:
-      - api
+      - client_matching
       security:
       - jwtAuth: []
       responses:
@@ -109,7 +508,7 @@ paths:
     put:
       operationId: api_client_matching_edit_person_in_charge_update
       tags:
-      - api
+      - client_matching
       security:
       - jwtAuth: []
       responses:
@@ -119,7 +518,7 @@ paths:
     get:
       operationId: api_client_matching_get_internship_postings_list
       tags:
-      - api
+      - client_matching
       security:
       - jwtAuth: []
       responses:
@@ -131,11 +530,21 @@ paths:
                 items:
                   $ref: '#/components/schemas/InternshipPostingList'
           description: ''
+  /api/client_matching/in_practicum/:
+    get:
+      operationId: api_client_matching_in_practicum_retrieve
+      tags:
+      - client_matching
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
   /api/client_matching/internship_matching/:
     post:
       operationId: api_client_matching_internship_matching_create
       tags:
-      - api
+      - client_matching
       security:
       - jwtAuth: []
       responses:
@@ -145,7 +554,7 @@ paths:
     get:
       operationId: api_client_matching_internship_posting_list
       tags:
-      - api
+      - client_matching
       security:
       - jwtAuth: []
       responses:
@@ -161,7 +570,7 @@ paths:
     get:
       operationId: api_client_matching_internship_recommendations_list
       tags:
-      - api
+      - client_matching
       security:
       - jwtAuth: []
       responses:
@@ -177,7 +586,7 @@ paths:
     put:
       operationId: api_client_matching_internship_recommendations_current_tap_update
       tags:
-      - api
+      - client_matching
       security:
       - jwtAuth: []
       responses:
@@ -187,7 +596,7 @@ paths:
     get:
       operationId: api_client_matching_person_in_charge_list
       tags:
-      - api
+      - client_matching
       security:
       - jwtAuth: []
       responses:
@@ -203,7 +612,7 @@ paths:
     post:
       operationId: api_client_matching_report_posting_create
       tags:
-      - api
+      - client_matching
       requestBody:
         content:
           application/json:
@@ -229,7 +638,7 @@ paths:
     put:
       operationId: api_client_matching_toggle_internship_posting_update
       tags:
-      - api
+      - client_matching
       security:
       - jwtAuth: []
       responses:
@@ -239,18 +648,370 @@ paths:
     get:
       operationId: api_lightcast_skills_retrieve
       tags:
-      - api
+      - client_matching
       security:
       - jwtAuth: []
       - {}
       responses:
         '200':
           description: No response body
+  /api/ojt_management/endorsement_detail/:
+    get:
+      operationId: api_ojt_management_endorsement_detail_list
+      tags:
+      - ojt_management
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EndorsementDetail'
+          description: ''
+  /api/ojt_management/generate_endorsement_letter/:
+    get:
+      operationId: api_ojt_management_generate_endorsement_letter_retrieve
+      tags:
+      - ojt_management
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/ojt_management/partnered-companies/:
+    get:
+      operationId: api_ojt_management_partnered_companies_list
+      tags:
+      - ojt_management
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SchoolPartnership'
+          description: ''
+  /api/ojt_management/request_endorsement/:
+    post:
+      operationId: api_ojt_management_request_endorsement_create
+      tags:
+      - ojt_management
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestEndorsement'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RequestEndorsement'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RequestEndorsement'
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestEndorsement'
+          description: ''
+  /api/ojt_management/responded_endorsements/:
+    get:
+      operationId: api_ojt_management_responded_endorsements_list
+      tags:
+      - ojt_management
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EndorsementDetail'
+          description: ''
+  /api/ojt_management/students/:
+    get:
+      operationId: api_ojt_management_students_list
+      parameters:
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - ojt_management
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GetApplicant'
+          description: ''
+  /api/ojt_management/students/in_practicum/:
+    get:
+      operationId: api_ojt_management_students_in_practicum_list
+      parameters:
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - ojt_management
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GetApplicant'
+          description: ''
+  /api/ojt_management/students/in_practicum/end/:
+    put:
+      operationId: api_ojt_management_students_in_practicum_end_update
+      tags:
+      - ojt_management
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePracticumStatus'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UpdatePracticumStatus'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UpdatePracticumStatus'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdatePracticumStatus'
+          description: ''
+    patch:
+      operationId: api_ojt_management_students_in_practicum_end_partial_update
+      tags:
+      - ojt_management
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdatePracticumStatus'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdatePracticumStatus'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdatePracticumStatus'
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdatePracticumStatus'
+          description: ''
+  /api/ojt_management/students/reqeusting_practicum/:
+    get:
+      operationId: api_ojt_management_students_reqeusting_practicum_list
+      parameters:
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - ojt_management
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GetApplicant'
+          description: ''
+  /api/ojt_management/students/requesting_practicum/approve/:
+    put:
+      operationId: api_ojt_management_students_requesting_practicum_approve_update
+      tags:
+      - ojt_management
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePracticumStatus'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UpdatePracticumStatus'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UpdatePracticumStatus'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdatePracticumStatus'
+          description: ''
+    patch:
+      operationId: api_ojt_management_students_requesting_practicum_approve_partial_update
+      tags:
+      - ojt_management
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdatePracticumStatus'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdatePracticumStatus'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdatePracticumStatus'
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdatePracticumStatus'
+          description: ''
+  /api/ojt_management/students/requesting_practicum/enrollment_record/:
+    get:
+      operationId: api_ojt_management_students_requesting_practicum_enrollment_record_retrieve
+      tags:
+      - ojt_management
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentRecord'
+          description: ''
+  /api/ojt_management/students/requesting_practicum/reject/:
+    put:
+      operationId: api_ojt_management_students_requesting_practicum_reject_update
+      tags:
+      - ojt_management
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePracticumStatus'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UpdatePracticumStatus'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UpdatePracticumStatus'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdatePracticumStatus'
+          description: ''
+    patch:
+      operationId: api_ojt_management_students_requesting_practicum_reject_partial_update
+      tags:
+      - ojt_management
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdatePracticumStatus'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdatePracticumStatus'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdatePracticumStatus'
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdatePracticumStatus'
+          description: ''
+  /api/ojt_management/update_endorsement/:
+    put:
+      operationId: api_ojt_management_update_endorsement_update
+      tags:
+      - ojt_management
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEndorsement'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UpdateEndorsement'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UpdateEndorsement'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateEndorsement'
+          description: ''
   /api/user_account/applicant/:
     get:
       operationId: api_user_account_applicant_list
       tags:
-      - api
+      - user_account
       security:
       - jwtAuth: []
       responses:
@@ -266,10 +1027,9 @@ paths:
     put:
       operationId: api_user_account_change_password_update
       tags:
-      - api
+      - user_account
       security:
       - jwtAuth: []
-      - {}
       responses:
         '200':
           description: No response body
@@ -277,7 +1037,7 @@ paths:
     get:
       operationId: api_user_account_company_list
       tags:
-      - api
+      - user_account
       security:
       - jwtAuth: []
       responses:
@@ -293,10 +1053,9 @@ paths:
     put:
       operationId: api_user_account_delete_account_update
       tags:
-      - api
+      - user_account
       security:
       - jwtAuth: []
-      - {}
       responses:
         '200':
           description: No response body
@@ -304,7 +1063,7 @@ paths:
     get:
       operationId: api_user_account_departments_list
       tags:
-      - api
+      - user_account
       security:
       - jwtAuth: []
       - {}
@@ -321,17 +1080,67 @@ paths:
     put:
       operationId: api_user_account_edit_applicant_update
       tags:
-      - api
+      - user_account
       security:
       - jwtAuth: []
       responses:
         '200':
           description: No response body
+  /api/user_account/edit-applicant/request-practicum/:
+    put:
+      operationId: api_user_account_edit_applicant_request_practicum_update
+      tags:
+      - ojt_management
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePracticumStatus'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UpdatePracticumStatus'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UpdatePracticumStatus'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdatePracticumStatus'
+          description: ''
+    patch:
+      operationId: api_user_account_edit_applicant_request_practicum_partial_update
+      tags:
+      - ojt_management
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdatePracticumStatus'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdatePracticumStatus'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdatePracticumStatus'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdatePracticumStatus'
+          description: ''
   /api/user_account/edit-company/:
     put:
       operationId: api_user_account_edit_company_update
       tags:
-      - api
+      - user_account
       security:
       - jwtAuth: []
       responses:
@@ -341,7 +1150,7 @@ paths:
     get:
       operationId: api_user_account_email_list
       tags:
-      - api
+      - user_account
       security:
       - jwtAuth: []
       - {}
@@ -358,7 +1167,7 @@ paths:
     get:
       operationId: api_user_account_forgot_password_retrieve
       tags:
-      - api
+      - user_account
       security:
       - jwtAuth: []
       - {}
@@ -368,7 +1177,7 @@ paths:
     post:
       operationId: api_user_account_forgot_password_create
       tags:
-      - api
+      - user_account
       security:
       - jwtAuth: []
       - {}
@@ -390,7 +1199,7 @@ paths:
           type: string
         required: true
       tags:
-      - api
+      - user_account
       security:
       - jwtAuth: []
       - {}
@@ -411,7 +1220,7 @@ paths:
           type: string
         required: true
       tags:
-      - api
+      - user_account
       security:
       - jwtAuth: []
       - {}
@@ -422,7 +1231,7 @@ paths:
     post:
       operationId: api_user_account_login_email_create
       tags:
-      - api
+      - user_account
       requestBody:
         content:
           application/json:
@@ -452,7 +1261,7 @@ paths:
         Takes a set of user credentials and returns an access and refresh JSON web
         token pair to prove the authentication of those credentials.
       tags:
-      - api
+      - user_account
       requestBody:
         content:
           application/json:
@@ -476,7 +1285,7 @@ paths:
     get:
       operationId: api_user_account_ojtcoordinator_list
       tags:
-      - api
+      - user_account
       security:
       - jwtAuth: []
       responses:
@@ -492,7 +1301,7 @@ paths:
     get:
       operationId: api_user_account_programs_list
       tags:
-      - api
+      - user_account
       security:
       - jwtAuth: []
       - {}
@@ -509,7 +1318,7 @@ paths:
     post:
       operationId: api_user_account_register_applicant_create
       tags:
-      - api
+      - user_account
       requestBody:
         content:
           application/json:
@@ -536,7 +1345,7 @@ paths:
     post:
       operationId: api_user_account_register_applicant_school_verify_create
       tags:
-      - api
+      - user_account
       requestBody:
         content:
           application/json:
@@ -565,7 +1374,7 @@ paths:
     post:
       operationId: api_user_account_register_cea_create
       tags:
-      - api
+      - user_account
       requestBody:
         content:
           application/json:
@@ -592,7 +1401,7 @@ paths:
     post:
       operationId: api_user_account_register_company_create
       tags:
-      - api
+      - user_account
       requestBody:
         content:
           application/json:
@@ -619,7 +1428,7 @@ paths:
     post:
       operationId: api_user_account_register_ojt_coordinator_create
       tags:
-      - api
+      - user_account
       requestBody:
         content:
           application/json:
@@ -646,7 +1455,7 @@ paths:
     post:
       operationId: api_user_account_reset_password_create
       tags:
-      - api
+      - user_account
       security:
       - jwtAuth: []
       - {}
@@ -657,7 +1466,7 @@ paths:
     get:
       operationId: api_user_account_schools_list
       tags:
-      - api
+      - user_account
       security:
       - jwtAuth: []
       - {}
@@ -674,7 +1483,7 @@ paths:
     get:
       operationId: api_user_account_schools_departments_programs_list
       tags:
-      - api
+      - user_account
       security:
       - jwtAuth: []
       - {}
@@ -694,7 +1503,7 @@ paths:
         Takes a refresh type JSON web token and returns an access type JSON web
         token if the refresh token is valid.
       tags:
-      - api
+      - user_account
       requestBody:
         content:
           application/json:
@@ -718,7 +1527,7 @@ paths:
     get:
       operationId: api_user_account_user_list
       tags:
-      - api
+      - user_account
       security:
       - jwtAuth: []
       - {}
@@ -735,7 +1544,7 @@ paths:
     get:
       operationId: api_user_account_verify_email_retrieve
       tags:
-      - api
+      - user_account
       security:
       - jwtAuth: []
       - {}
@@ -745,7 +1554,7 @@ paths:
     post:
       operationId: api_user_account_verify_email_create
       tags:
-      - api
+      - user_account
       security:
       - jwtAuth: []
       - {}
@@ -767,7 +1576,7 @@ paths:
           type: string
         required: true
       tags:
-      - api
+      - user_account
       security:
       - jwtAuth: []
       - {}
@@ -788,7 +1597,7 @@ paths:
           type: string
         required: true
       tags:
-      - api
+      - user_account
       security:
       - jwtAuth: []
       - {}
@@ -862,8 +1671,168 @@ components:
       - last_name
       - password
       - quick_introduction
-      - resume
       - soft_skills
+    ApplicantStatusEnum:
+      enum:
+      - Read
+      - Unread
+      - Deleted
+      type: string
+      description: |-
+        * `Read` - Read
+        * `Unread` - Unread
+        * `Deleted` - Deleted
+    ApplicationDetail:
+      type: object
+      properties:
+        company_email:
+          type: string
+        company_name:
+          type: string
+        internship_position:
+          type: string
+        company_address:
+          type: string
+        application_modality:
+          type: string
+        internship_date_start:
+          type: string
+          format: date-time
+        application_deadline:
+          type: string
+          format: date-time
+        date_created:
+          type: string
+          format: date-time
+        other_requirements:
+          type: string
+        key_tasks:
+          type: string
+          readOnly: true
+        min_qualifications:
+          type: string
+          readOnly: true
+        benefits:
+          type: string
+          readOnly: true
+        company_information:
+          type: string
+        company_status:
+          $ref: '#/components/schemas/CompanyStatusEnum'
+        company_website_url:
+          type: string
+        linkedin_url:
+          type: string
+        facebook_url:
+          type: string
+        instagram_url:
+          type: string
+        x_url:
+          type: string
+        other_url:
+          type: string
+        profile_picture:
+          type: string
+          readOnly: true
+        applicant_name:
+          type: string
+          readOnly: true
+        applicant_email:
+          type: string
+          readOnly: true
+        applicant_address:
+          type: string
+          readOnly: true
+        applicant_modality:
+          type: string
+          readOnly: true
+        applicant_program:
+          type: string
+          readOnly: true
+        applicant_academic_program:
+          type: string
+          readOnly: true
+        applicant_resume:
+          type: string
+          readOnly: true
+        applicant_status:
+          $ref: '#/components/schemas/ApplicantStatusEnum'
+        application_id:
+          type: string
+          format: uuid
+          readOnly: true
+        application_status:
+          type: string
+      required:
+      - applicant_academic_program
+      - applicant_address
+      - applicant_email
+      - applicant_modality
+      - applicant_name
+      - applicant_program
+      - applicant_resume
+      - application_deadline
+      - application_id
+      - application_modality
+      - application_status
+      - benefits
+      - company_address
+      - company_email
+      - company_information
+      - company_name
+      - company_website_url
+      - date_created
+      - facebook_url
+      - instagram_url
+      - internship_date_start
+      - internship_position
+      - key_tasks
+      - linkedin_url
+      - min_qualifications
+      - other_requirements
+      - other_url
+      - profile_picture
+      - x_url
+    ApplicationList:
+      type: object
+      properties:
+        company_name:
+          type: string
+        internship_position:
+          type: string
+        company_address:
+          type: string
+        profile_picture:
+          type: string
+          readOnly: true
+        applicant_name:
+          type: string
+          readOnly: true
+        applicant_address:
+          type: string
+        application_id:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/Status779Enum'
+        application_date:
+          type: string
+          format: date-time
+          readOnly: true
+        applicant_status:
+          $ref: '#/components/schemas/ApplicantStatusEnum'
+        company_status:
+          $ref: '#/components/schemas/CompanyStatusEnum'
+      required:
+      - applicant_address
+      - applicant_name
+      - application_date
+      - application_id
+      - company_address
+      - company_name
+      - internship_position
+      - profile_picture
     CareerEmplacementAdminRegister:
       type: object
       properties:
@@ -885,6 +1854,26 @@ components:
       - confirm_password
       - password
       - school
+    CompanyList:
+      type: object
+      properties:
+        company_uuid:
+          type: string
+          format: uuid
+        company_name:
+          type: string
+          maxLength: 255
+        company_address:
+          type: string
+          maxLength: 255
+        business_nature:
+          type: string
+          maxLength: 100
+      required:
+      - business_nature
+      - company_address
+      - company_name
+      - company_uuid
     CompanyRegister:
       type: object
       properties:
@@ -930,6 +1919,16 @@ components:
       - confirm_password
       - password
       - profile_picture
+    CompanyStatusEnum:
+      enum:
+      - Read
+      - Unread
+      - Deleted
+      type: string
+      description: |-
+        * `Read` - Read
+        * `Unread` - Unread
+        * `Deleted` - Deleted
     CreateInternshipPosting:
       type: object
       properties:
@@ -986,6 +1985,17 @@ components:
       - person_in_charge
       - required_hard_skills
       - required_soft_skills
+    CreatePartnership:
+      type: object
+      properties:
+        company_uuids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          writeOnly: true
+      required:
+      - company_uuids
     CreatePersonInCharge:
       type: object
       properties:
@@ -1041,6 +2051,49 @@ components:
       - department_id
       - department_name
       - programs
+    DropApplication:
+      type: object
+      properties:
+        application_id:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/Status779Enum'
+      required:
+      - application_id
+    EditOJTCoordinator:
+      type: object
+      properties:
+        ojtcoordinator_email:
+          type: string
+          format: email
+        first_name:
+          type: string
+        last_name:
+          type: string
+        middle_initial:
+          type: string
+          default: ''
+        password:
+          type: string
+          writeOnly: true
+        confirm_password:
+          type: string
+          writeOnly: true
+        program:
+          type: integer
+          nullable: true
+        status:
+          type: string
+        program_logo:
+          type: string
+          format: uri
+          nullable: true
+        signature:
+          type: string
+          format: uri
+          nullable: true
     EmailLogin:
       type: object
       properties:
@@ -1053,6 +2106,84 @@ components:
       required:
       - email
       - status
+    EndorsementDetail:
+      type: object
+      properties:
+        endorsement_id:
+          type: string
+          format: uuid
+          readOnly: true
+        student_email:
+          type: string
+          format: email
+        student_name:
+          type: string
+          readOnly: true
+        internship_position:
+          type: string
+        company_name:
+          type: string
+        company_address:
+          type: string
+        internship_address:
+          type: string
+        business_nature:
+          type: string
+        company_website_url:
+          type: string
+        person_in_charge:
+          type: string
+        person_in_charge_position:
+          type: string
+        person_in_charge_email:
+          type: string
+        person_in_charge_mobile_number:
+          type: string
+        person_in_charge_landline_number:
+          type: string
+        resume:
+          type: string
+          readOnly: true
+        key_tasks:
+          type: string
+          readOnly: true
+        comments:
+          type: string
+          nullable: true
+          maxLength: 500
+        date_approved:
+          type: string
+          format: date-time
+          nullable: true
+        ojt_hours:
+          type: string
+        status:
+          $ref: '#/components/schemas/Status55bEnum'
+      required:
+      - business_nature
+      - company_address
+      - company_name
+      - company_website_url
+      - endorsement_id
+      - internship_address
+      - internship_position
+      - key_tasks
+      - ojt_hours
+      - person_in_charge
+      - person_in_charge_email
+      - person_in_charge_landline_number
+      - person_in_charge_mobile_number
+      - person_in_charge_position
+      - resume
+      - student_email
+      - student_name
+    EnrollmentRecord:
+      type: object
+      properties:
+        enrollment_record:
+          type: string
+          format: uri
+          nullable: true
     GetApplicant:
       type: object
       properties:
@@ -1121,7 +2252,6 @@ components:
       - last_name
       - program
       - quick_introduction
-      - resume
       - school
       - soft_skills
       - user
@@ -1205,7 +2335,7 @@ components:
         user_role:
           $ref: '#/components/schemas/UserRoleEnum'
         status:
-          $ref: '#/components/schemas/StatusA67Enum'
+          $ref: '#/components/schemas/StatusE9dEnum'
       required:
       - user_id
     GetOJTCoordinator:
@@ -1215,8 +2345,13 @@ components:
           type: string
           format: uuid
           readOnly: true
-        program:
+        ojt_coordinator_id:
           type: integer
+          readOnly: true
+        program:
+          allOf:
+          - $ref: '#/components/schemas/Program'
+          readOnly: true
         first_name:
           type: string
           maxLength: 100
@@ -1227,10 +2362,27 @@ components:
           type: string
           nullable: true
           maxLength: 20
+        email:
+          type: string
+          format: email
+          readOnly: true
+        status:
+          type: string
+        program_logo:
+          type: string
+          format: uri
+          nullable: true
+        signature:
+          type: string
+          format: uri
+          nullable: true
       required:
+      - email
       - first_name
       - last_name
+      - ojt_coordinator_id
       - program
+      - status
       - user
     GetUser:
       type: object
@@ -1246,7 +2398,7 @@ components:
         user_role:
           $ref: '#/components/schemas/UserRoleEnum'
         status:
-          $ref: '#/components/schemas/StatusA67Enum'
+          $ref: '#/components/schemas/StatusE9dEnum'
       required:
       - email
     InPracticumEnum:
@@ -1490,6 +2642,42 @@ components:
       - departments
       - school_id
       - school_name
+    Notification:
+      type: object
+      properties:
+        notification_id:
+          type: integer
+          readOnly: true
+        application:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        notification_text:
+          type: string
+          maxLength: 300
+        notification_type:
+          $ref: '#/components/schemas/NotificationTypeEnum'
+        internship_position:
+          type: string
+          readOnly: true
+      required:
+      - application
+      - created_at
+      - internship_position
+      - notification_id
+      - notification_text
+      - notification_type
+    NotificationTypeEnum:
+      enum:
+      - Applicant
+      - Company
+      type: string
+      description: |-
+        * `Applicant` - Applicant
+        * `Company` - Company
     OJTCoordinatorRegister:
       type: object
       properties:
@@ -1515,13 +2703,100 @@ components:
           writeOnly: true
         program:
           type: integer
+          nullable: true
+        status:
+          type: string
+          default: Active
+        program_logo:
+          type: string
+          format: uri
+          nullable: true
+        signature:
+          type: string
+          format: uri
+          nullable: true
       required:
       - confirm_password
       - first_name
       - last_name
       - ojtcoordinator_email
       - password
-      - program
+    PatchedEditOJTCoordinator:
+      type: object
+      properties:
+        ojtcoordinator_email:
+          type: string
+          format: email
+        first_name:
+          type: string
+        last_name:
+          type: string
+        middle_initial:
+          type: string
+          default: ''
+        password:
+          type: string
+          writeOnly: true
+        confirm_password:
+          type: string
+          writeOnly: true
+        program:
+          type: integer
+          nullable: true
+        status:
+          type: string
+        program_logo:
+          type: string
+          format: uri
+          nullable: true
+        signature:
+          type: string
+          format: uri
+          nullable: true
+    PatchedGetOJTCoordinator:
+      type: object
+      properties:
+        user:
+          type: string
+          format: uuid
+          readOnly: true
+        ojt_coordinator_id:
+          type: integer
+          readOnly: true
+        program:
+          allOf:
+          - $ref: '#/components/schemas/Program'
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        middle_initial:
+          type: string
+          nullable: true
+          maxLength: 20
+        email:
+          type: string
+          format: email
+          readOnly: true
+        status:
+          type: string
+        program_logo:
+          type: string
+          format: uri
+          nullable: true
+        signature:
+          type: string
+          format: uri
+          nullable: true
+    PatchedUpdatePracticumStatus:
+      type: object
+      properties:
+        in_practicum:
+          type: string
+          maxLength: 10
     PersonInChargeList:
       type: object
       properties:
@@ -1566,6 +2841,18 @@ components:
         * `Onsite` - Onsite
         * `WorkFromHome` - WorkFromHome
         * `Hybrid` - Hybrid
+    Program:
+      type: object
+      properties:
+        program_id:
+          type: integer
+          readOnly: true
+        program_name:
+          type: string
+          maxLength: 100
+      required:
+      - program_id
+      - program_name
     ProgramNested:
       type: object
       properties:
@@ -1596,6 +2883,60 @@ components:
       - description
       - internship_posting
       - internship_posting_id
+    RequestDocument:
+      type: object
+      properties:
+        application_id:
+          type: string
+          format: uuid
+        document_list:
+          type: string
+          maxLength: 500
+        message:
+          type: string
+          nullable: true
+          maxLength: 500
+      required:
+      - application_id
+      - document_list
+      - message
+    RequestEndorsement:
+      type: object
+      properties:
+        endorsement_id:
+          type: string
+          format: uuid
+          readOnly: true
+        program_id:
+          type: integer
+          readOnly: true
+        application:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status55bEnum'
+          readOnly: true
+        comments:
+          type: string
+          nullable: true
+          maxLength: 500
+        date_approved:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        student_name:
+          type: string
+          readOnly: true
+      required:
+      - application
+      - date_approved
+      - endorsement_id
+      - program_id
+      - status
+      - student_name
     School:
       type: object
       properties:
@@ -1621,6 +2962,27 @@ components:
       required:
       - email
       - school_id
+    SchoolPartnership:
+      type: object
+      properties:
+        company_uuid:
+          type: string
+          format: uuid
+          readOnly: true
+        company_name:
+          type: string
+          readOnly: true
+        company_address:
+          type: string
+          readOnly: true
+        business_nature:
+          type: string
+          readOnly: true
+      required:
+      - business_nature
+      - company_address
+      - company_name
+      - company_uuid
     Status23eEnum:
       enum:
       - Open
@@ -1633,18 +2995,78 @@ components:
         * `Closed` - Closed
         * `Expired` - Expired
         * `Deleted` - Deleted
-    StatusA67Enum:
+    Status55bEnum:
+      enum:
+      - Pending
+      - Approved
+      - Rejected
+      - Deleted
+      type: string
+      description: |-
+        * `Pending` - Pending
+        * `Approved` - Approved
+        * `Rejected` - Rejected
+        * `Deleted` - Deleted
+    Status779Enum:
+      enum:
+      - Pending
+      - Confirmed
+      - Rejected
+      - Dropped
+      type: string
+      description: |-
+        * `Pending` - Pending
+        * `Confirmed` - Confirmed
+        * `Rejected` - Rejected
+        * `Dropped` - Dropped
+    StatusE9dEnum:
       enum:
       - Active
       - Inactive
       - Deleted
       - Pending
+      - Suspended
       type: string
       description: |-
         * `Active` - Active
         * `Inactive` - Inactive
         * `Deleted` - Deleted
         * `Pending` - Pending
+        * `Suspended` - Suspended
+    UpdateApplication:
+      type: object
+      properties:
+        application_id:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/Status779Enum'
+      required:
+      - application_id
+    UpdateEndorsement:
+      type: object
+      properties:
+        endorsement_id:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/Status55bEnum'
+        comments:
+          type: string
+          nullable: true
+          maxLength: 500
+      required:
+      - endorsement_id
+    UpdatePracticumStatus:
+      type: object
+      properties:
+        in_practicum:
+          type: string
+          maxLength: 10
+      required:
+      - in_practicum
     UserRoleEnum:
       enum:
       - admin

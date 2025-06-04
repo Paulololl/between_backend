@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Avg
 from django.utils import timezone
 from django.utils.timezone import now
+from drf_spectacular.utils import extend_schema
 from rest_framework import status, serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import ListAPIView, CreateAPIView
@@ -26,14 +27,17 @@ from client_matching.utils import update_internship_posting_status, delete_old_d
     reset_recommendations_and_tap_count
 
 User = get_user_model()
+client_matching_tag = extend_schema(tags=["client_matching"])
 
 
+@client_matching_tag
 class GetInternshipPostingsView(ListAPIView):
     permission_classes = [IsAuthenticated, IsApplicant]
     serializer_class = InternshipPostingListSerializer
     queryset = InternshipPosting.objects.all()
 
 
+@client_matching_tag
 class InternshipPostingListView(ListAPIView):
     permission_classes = [IsAuthenticated, IsCompany]
     serializer_class = InternshipPostingListSerializer
@@ -60,6 +64,7 @@ class InternshipPostingListView(ListAPIView):
         return queryset
 
 
+@client_matching_tag
 class CreateInternshipPostingView(CreateAPIView):
     queryset = InternshipPosting.objects.all()
     serializer_class = CreateInternshipPostingSerializer
@@ -75,6 +80,7 @@ class CreateInternshipPostingView(CreateAPIView):
         serializer.save()
 
 
+@client_matching_tag
 class EditInternshipPostingView(APIView):
     permission_classes = [IsAuthenticated, IsCompany]
 
@@ -125,6 +131,7 @@ class EditInternshipPostingView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@client_matching_tag
 class PersonInChargeListView(ListAPIView):
     permission_classes = [IsAuthenticated, IsCompany]
     serializer_class = PersonInChargeListSerializer
@@ -141,6 +148,7 @@ class PersonInChargeListView(ListAPIView):
         return queryset
 
 
+@client_matching_tag
 class CreatePersonInChargeView(CreateAPIView):
     permission_classes = [IsAuthenticated, IsCompany]
     serializer_class = CreatePersonInChargeSerializer
@@ -154,6 +162,7 @@ class CreatePersonInChargeView(CreateAPIView):
         return context
 
 
+@client_matching_tag
 class EditPersonInChargeView(APIView):
     permission_classes = [IsAuthenticated, IsCompany]
 
@@ -174,6 +183,7 @@ class EditPersonInChargeView(APIView):
         return Response(serializer.errors, status=400)
 
 
+@client_matching_tag
 class BulkDeletePersonInChargeView(APIView):
     permission_classes = [IsAuthenticated, IsCompany]
 
@@ -191,6 +201,7 @@ class BulkDeletePersonInChargeView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@client_matching_tag
 class BulkDeleteInternshipPostingView(APIView):
     permission_classes = [IsAuthenticated, IsCompany]
 
@@ -214,6 +225,7 @@ class BulkDeleteInternshipPostingView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@client_matching_tag
 class ToggleInternshipPostingView(APIView):
     permission_classes = [IsAuthenticated, IsCompany]
 
@@ -252,6 +264,7 @@ class ToggleInternshipPostingView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@client_matching_tag
 class InternshipMatchView(APIView):
     permission_classes = [IsAuthenticated, IsApplicant]
 
@@ -272,6 +285,7 @@ class InternshipMatchView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@client_matching_tag
 class InternshipRecommendationListView(ListAPIView):
     permission_classes = [IsAuthenticated, IsApplicant]
     serializer_class = InternshipRecommendationListSerializer
@@ -441,6 +455,7 @@ class InternshipRecommendationListView(ListAPIView):
         return Response([], status=status.HTTP_200_OK)
 
 
+@client_matching_tag
 class InternshipRecommendationTapView(APIView):
     permission_classes = [IsAuthenticated, IsApplicant]
 
@@ -507,6 +522,7 @@ class InternshipRecommendationTapView(APIView):
             )
 
 
+@client_matching_tag
 class UploadDocumentView(APIView):
     permission_classes = [IsAuthenticated, IsApplicant]
 
@@ -525,6 +541,7 @@ class UploadDocumentView(APIView):
         return Response(serializer.errors, status=400)
 
 
+@client_matching_tag
 class InPracticumView(APIView):
     permission_classes = [IsAuthenticated, IsApplicant]
 
@@ -536,6 +553,7 @@ class InPracticumView(APIView):
         return Response(serializer.errors, status=400)
 
 
+@client_matching_tag
 class ReportPostingView(CreateAPIView):
     permission_classes = [IsAuthenticated, IsApplicant]
     serializer_class = ReportPostingSerializer

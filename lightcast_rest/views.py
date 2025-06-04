@@ -3,9 +3,12 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 import requests
+
+from client_matching.views import client_matching_tag
 from .lightcast_utils import get_lightcast_token
 
 
+@client_matching_tag
 class LightcastSkillsAPIView(APIView):
 
   def get(self, request):

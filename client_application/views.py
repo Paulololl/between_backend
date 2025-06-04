@@ -1,4 +1,5 @@
 from django.db import transaction
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.generics import ListAPIView, CreateAPIView
 from rest_framework.permissions import IsAuthenticated
@@ -15,7 +16,10 @@ from client_matching.serializers import InternshipMatchSerializer
 from client_matching.utils import reset_recommendations_and_tap_count
 from user_account.permissions import IsCompany, IsApplicant
 
+client_application_tag = extend_schema(tags=["client_application"])
 
+
+@client_application_tag
 class ApplicationListView(ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = ApplicationListSerializer
@@ -73,6 +77,7 @@ class ApplicationListView(ListAPIView):
         return queryset
 
 
+@client_application_tag
 class ApplicationDetailView(ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = ApplicationDetailSerializer
@@ -108,6 +113,7 @@ class ApplicationDetailView(ListAPIView):
         return Application.objects.none()
 
 
+@client_application_tag
 class NotificationView(ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = NotificationSerializer
@@ -132,6 +138,7 @@ class NotificationView(ListAPIView):
             return Notification.objects.none()
 
 
+@client_application_tag
 class ClearNotificationView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -162,6 +169,7 @@ class ClearNotificationView(APIView):
         return Response({'message': f'{deleted_count} notifications cleared.'}, status=status.HTTP_200_OK)
 
 
+@client_application_tag
 class UpdateApplicationView(APIView):
     permission_classes = [IsAuthenticated, IsCompany]
     serializer_class = UpdateApplicationSerializer
@@ -212,6 +220,7 @@ class UpdateApplicationView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@client_application_tag
 class RequestDocumentView(CreateAPIView):
     permission_classes = [IsAuthenticated, IsCompany]
     serializer_class = RequestDocumentSerializer
@@ -249,6 +258,7 @@ class RequestDocumentView(CreateAPIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@client_application_tag
 class DropApplicationView(APIView):
     permission_classes = [IsAuthenticated, IsApplicant]
     serializer_class = DropApplicationSerializer
@@ -297,6 +307,7 @@ class DropApplicationView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@client_application_tag
 class RemoveFromBookmarksView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -343,6 +354,7 @@ class RemoveFromBookmarksView(APIView):
                         status=status.HTTP_403_FORBIDDEN)
 
 
+@client_application_tag
 class SendDocumentView(APIView):
     permission_classes = [IsAuthenticated, IsApplicant]
 

@@ -1,4 +1,5 @@
 from django.db import transaction, IntegrityError
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import  PermissionDenied, ValidationError
 from rest_framework import generics, filters, status
 from rest_framework.permissions import IsAuthenticated
@@ -9,6 +10,8 @@ from user_account.serializers import GetOJTCoordinatorSerializer, OJTCoordinator
 from .models import SchoolPartnershipList
 from user_account.permissions import IsCEA
 from .serializers import CompanyListSerializer, CreatePartnershipSerializer, SchoolPartnershipSerializer
+
+cea_management_tag = extend_schema(tags=["cea_management"])
 
 
 class CEAMixin:
@@ -22,8 +25,9 @@ class CEAMixin:
             raise PermissionDenied("User is not a Career Emplacement Admin. Access denied.")
 
 
+@cea_management_tag
 # OJT Coordinators -- KC
-#region
+# region
 class OJTCoordinatorListView(CEAMixin, generics.ListAPIView):
     serializer_class = GetOJTCoordinatorSerializer
 
@@ -59,6 +63,7 @@ class OJTCoordinatorListView(CEAMixin, generics.ListAPIView):
         return queryset
 
 
+@cea_management_tag
 class CreateOJTCoordinatorView(CEAMixin, generics.CreateAPIView):
     serializer_class = OJTCoordinatorRegisterSerializer
 
@@ -83,6 +88,7 @@ class CreateOJTCoordinatorView(CEAMixin, generics.CreateAPIView):
             raise e
 
 
+@cea_management_tag
 class UpdateOJTCoordinatorView(CEAMixin, generics.UpdateAPIView):
     queryset = OJTCoordinator.objects.all()
     serializer_class = EditOJTCoordinatorSerializer
@@ -136,6 +142,7 @@ class UpdateOJTCoordinatorView(CEAMixin, generics.UpdateAPIView):
         return Response(serializer.data)
 
 
+@cea_management_tag
 class RemoveOJTCoordinatorView(CEAMixin, generics.UpdateAPIView):
 
     queryset = OJTCoordinator.objects.all()
@@ -159,10 +166,12 @@ class RemoveOJTCoordinatorView(CEAMixin, generics.UpdateAPIView):
         coordinator.user.save()
 
         return Response({'message': 'The OJT Coordinator has been removed.'})
-#endregion
+# endregion
 
+
+@cea_management_tag
 # Student list --KC
-#region
+# region
 class ApplicantListView(CEAMixin, generics.ListAPIView):
     serializer_class = GetApplicantSerializer
 
@@ -171,8 +180,9 @@ class ApplicantListView(CEAMixin, generics.ListAPIView):
         return Applicant.objects.filter(program__department__school=cea.school, user__status__in=['Active'])
 
 
-#endregion
+# endregion
 
+@cea_management_tag
 # region Company Partnerships -- PAUL
 class SchoolPartnershipListView(CEAMixin, generics.ListAPIView):
     serializer_class = SchoolPartnershipSerializer
@@ -197,6 +207,7 @@ class SchoolPartnershipListView(CEAMixin, generics.ListAPIView):
         return Response(serilizer.data, status=status.HTTP_200_OK)
 
 
+@cea_management_tag
 class CreateSchoolPartnershipView(CEAMixin, generics.CreateAPIView):
     serializer_class = CreatePartnershipSerializer
     permission_classes = [IsAuthenticated]
@@ -216,6 +227,7 @@ class CreateSchoolPartnershipView(CEAMixin, generics.CreateAPIView):
         return Response(read_serializer.data, status=status.HTTP_201_CREATED)
 
 
+@cea_management_tag
 class BulkDeleteSchoolPartnershipView(CEAMixin, generics.GenericAPIView):
     permission_classes = [IsAuthenticated]
 
@@ -253,6 +265,7 @@ class BulkDeleteSchoolPartnershipView(CEAMixin, generics.GenericAPIView):
         )
 
 
+@cea_management_tag
 class CompanyListView(CEAMixin, generics.ListAPIView):
     serializer_class = CompanyListSerializer
     filter_backends = [filters.SearchFilter]
