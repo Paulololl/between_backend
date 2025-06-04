@@ -37,6 +37,7 @@ class EndorsementDetailSerializer(serializers.ModelSerializer):
     internship_position = serializers.CharField(source='application.internship_posting.internship_position')
     company_name = serializers.CharField(source='application.internship_posting.company.company_name')
     company_address = serializers.CharField(source='application.internship_posting.company.company_address')
+    internship_address = serializers.CharField(source='application.internship_posting.address')
     business_nature = serializers.CharField(source='application.internship_posting.company.business_nature')
     company_website_url = serializers.CharField(source='application.internship_posting.company.company_website_url')
     person_in_charge = serializers.CharField(source='application.internship_posting.person_in_charge')
@@ -58,6 +59,7 @@ class EndorsementDetailSerializer(serializers.ModelSerializer):
                   'internship_position',
                   'company_name',
                   'company_address',
+                  'internship_address',
                   'business_nature',
                   'company_website_url',
                   'person_in_charge',
