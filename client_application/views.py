@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework import serializers, status
 from rest_framework.generics import ListAPIView, CreateAPIView
 from rest_framework.permissions import IsAuthenticated
@@ -347,7 +348,10 @@ class SendDocumentView(APIView):
 
     def post(self, request):
         serializer = SendDocumentSerializer(data=request.data)
+
         if serializer.is_valid():
+            application = serializer.application
+
             files = request.FILES.getlist('files')
             if not files:
                 return Response({'error': 'At least one file is required.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -359,7 +363,19 @@ class SendDocumentView(APIView):
                         status=status.HTTP_400_BAD_REQUEST
                     )
 
-            serializer.send_document_email(files)
-            return Response({'message': 'Documents sent successfully.'}, status=status.HTTP_200_OK)
+            with transaction.atomic():
+                serializer.send_document_email(files)
+
+                Notification.objects.create(
+                    application=application,
+                    notification_text=f'The applicant has sent additional documents.',
+                    notification_type='Company'
+                )
+
+                if application.company_status != 'Deleted':
+                    application.company_status = 'Unread'
+                    application.save(update_fields=['company_status'])
+
+                return Response({'message': 'Documents sent successfully.'}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
