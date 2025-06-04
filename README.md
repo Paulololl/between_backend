@@ -2,6 +2,8 @@ All instructions are in this Notion link:
 
 https://www.notion.so/MASTER-NOTES-1ba140a2fb9480ae9b1bf90bfd473312?pvs=4
 
+# Set up your .env with the .env.sample file. MAKE A .env COPY
+
 # Make sure that the Docker is up whether on the app or CLI:
 docker compose up
 
