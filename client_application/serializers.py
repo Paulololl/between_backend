@@ -88,6 +88,7 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
     applicant_program = serializers.SerializerMethodField(required=False)
     applicant_academic_program = serializers.SerializerMethodField(required=False)
     applicant_resume = serializers.SerializerMethodField()
+    applicant_in_practicum = serializers.SerializerMethodField()
     application_status = serializers.CharField(source='status')
 
     class Meta:
@@ -98,8 +99,13 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
                   'company_website_url', 'linkedin_url', 'facebook_url', 'instagram_url', 'x_url', 'other_url',
                   'profile_picture',
                   'applicant_name', 'applicant_email', 'applicant_address', 'applicant_modality', 'applicant_program',
-                  'applicant_academic_program', 'applicant_resume', 'applicant_status',
+                  'applicant_academic_program', 'applicant_resume', 'applicant_status', 'applicant_in_practicum',
                   'application_id', 'application_status']
+
+    def get_applicant_in_practicum(self, obj):
+        if obj.applicant and obj.applicant.in_practicum:
+            return obj.applicant.in_practicum
+        return None
 
     def get_applicant_academic_program(self, obj):
         if obj.applicant and obj.applicant.academic_program:
@@ -186,7 +192,8 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
                                   'internship_date_start', 'application_deadline', 'date_created', 'other_requirements',
                                   'key_tasks', 'min_qualifications', 'benefits', 'company_information',
                                   'company_website_url', 'linkedin_url', 'facebook_url', 'instagram_url', 'x_url',
-                                  'other_url', 'profile_picture', 'application_status', 'applicant_status']
+                                  'other_url', 'profile_picture', 'application_status', 'applicant_status',
+                                  'applicant_in_practicum']
 
             elif user.user_role == 'company':
                 allowed_fields = ['application_id', 'applicant_name', 'applicant_email', 'internship_position',
