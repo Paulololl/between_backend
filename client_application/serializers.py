@@ -4,7 +4,7 @@ from email.utils import formataddr
 from django.core.mail import EmailMessage
 from rest_framework import serializers
 
-from client_application.models import Application, Notification
+from client_application.models import Application, Notification, Endorsement
 
 
 class ApplicationListSerializer(serializers.ModelSerializer):
@@ -90,6 +90,7 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
     applicant_resume = serializers.SerializerMethodField()
     applicant_in_practicum = serializers.SerializerMethodField()
     application_status = serializers.CharField(source='status')
+    endorsement_status = serializers.SerializerMethodField()
 
     class Meta:
         model = Application
@@ -100,7 +101,15 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
                   'profile_picture',
                   'applicant_name', 'applicant_email', 'applicant_address', 'applicant_modality', 'applicant_program',
                   'applicant_academic_program', 'applicant_resume', 'applicant_status', 'applicant_in_practicum',
-                  'application_id', 'application_status']
+                  'application_id', 'application_status', 'endorsement_status']
+
+    def get_endorsement_status(self, obj):
+        endorsement = Endorsement.objects.filter(
+            application=obj
+        ).exclude(
+            status='Deleted'
+        ).first()
+        return endorsement.status if endorsement else None
 
     def get_applicant_in_practicum(self, obj):
         if obj.applicant and obj.applicant.in_practicum:
@@ -193,7 +202,7 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
                                   'key_tasks', 'min_qualifications', 'benefits', 'company_information',
                                   'company_website_url', 'linkedin_url', 'facebook_url', 'instagram_url', 'x_url',
                                   'other_url', 'profile_picture', 'application_status', 'applicant_status',
-                                  'applicant_in_practicum']
+                                  'applicant_in_practicum', 'endorsement_status']
 
             elif user.user_role == 'company':
                 allowed_fields = ['application_id', 'applicant_name', 'applicant_email', 'internship_position',
