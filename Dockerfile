@@ -18,6 +18,29 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
+# Add APT dependencies for WeasyPrint and general utilities
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libffi-dev \
+    libcairo2 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libgdk-pixbuf2.0-0 \
+    libxml2 \
+    libxslt1.1 \
+    libjpeg-dev \
+    libpng-dev \
+    libwebp-dev \
+    fonts-liberation \
+    fonts-freefont-ttf \
+    curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Optional but recommended: install tzdata so Python timezone settings work correctly
+ENV TZ=Asia/Manila
+RUN apt-get update && apt-get install -y tzdata && rm -rf /var/lib/apt/lists/*
+
 # Create a non-privileged user that the app will run under.
 # See https://docs.docker.com/go/dockerfile-user-best-practices/
 ARG UID=10001
