@@ -2,6 +2,7 @@ import uuid
 from datetime import date
 from email.utils import formataddr
 
+from django.core.files.base import ContentFile
 from django.core.mail import send_mail, EmailMessage
 from django.db import transaction
 from django.http import HttpResponse
@@ -47,7 +48,9 @@ class SchoolPartnershipListView(CoordinatorMixin, generics.ListAPIView):
 
     def get_queryset(self):
         coordinator = self.get_coordinator_or_403(self.request.user)
-        return SchoolPartnershipList.objects.filter(school=coordinator.program.department.school).select_related('company', 'company__user')
+        return SchoolPartnershipList.objects.filter(school=coordinator.program.department.school).select_related(
+            'company', 'company__user')
+
 
 # endregion
 
@@ -78,6 +81,7 @@ class ApplicantListView(CoordinatorMixin, generics.ListAPIView):
 
         return queryset
 
+
 # endregion
 
 # region Practicum Management
@@ -102,7 +106,7 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
             program=coordinator.program
             , user__status__in=['Active']
             , in_practicum='Yes'
-            , enrollment_record__isnull = False
+            , enrollment_record__isnull=False
         ).select_related('user')
 
         user = self.request.query_params.get('user')
@@ -272,6 +276,13 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
             internship_position = endorsement.application.internship_posting.internship_position
 
             if endorsement_status == 'Approved':
+
+                if not coordinator.program_logo or not coordinator.signature:
+                    raise ValidationError({
+                        "error": "Your program logo and signature must be uploaded before approving an "
+                                 "endorsement."
+                    })
+
                 subject = f"Your Endorsement Has Been Approved"
                 message_html = f"""
                 <div>
@@ -286,6 +297,28 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
                     </p>
                 </div>
                 """
+
+                html_string = render_to_string("endorsement_letter_template.html", {
+                    "endorsement": endorsement,
+                    "coordinator": coordinator,
+                    "today": date.today()
+                })
+                pdf = HTML(string=html_string).write_pdf()
+                pdf_file = ContentFile(pdf, name=f"endorsement_{endorsement.endorsement_id}.pdf")
+
+                email = EmailMessage(
+                    subject=subject,
+                    body=message_html,
+                    from_email=formataddr((
+                        f'{coordinator.first_name} {coordinator.middle_initial} {coordinator.last_name}',
+                        'between_internships@gmail.com')),
+                    to=[applicant_email, coordinator.user.email],
+                    reply_to=['no-reply@betweeninternships.com']
+                )
+                email.content_subtype = 'html'
+                email.attach(f"endorsement_{endorsement.endorsement_id}.pdf", pdf, 'application/pdf')
+                email.send(fail_silently=False)
+
             else:
                 subject = f"Your Endorsement Has Been Rejected"
                 message_html = f"""
@@ -303,16 +336,17 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
                 </div>
                 """
 
-            email = EmailMessage(
-                subject=subject,
-                body=message_html,
-                from_email=formataddr((f'{coordinator.first_name} {coordinator.middle_initial} {coordinator.last_name}',
-                                       'between_internships@gmail.com')),
-                to=[applicant_email],
-                reply_to=['no-reply@betweeninternships.com']
-            )
-            email.content_subtype = 'html'
-            email.send(fail_silently=False)
+                email = EmailMessage(
+                    subject=subject,
+                    body=message_html,
+                    from_email=formataddr(
+                        (f'{coordinator.first_name} {coordinator.middle_initial} {coordinator.last_name}',
+                         'between_internships@gmail.com')),
+                    to=[applicant_email],
+                    reply_to=['no-reply@betweeninternships.com']
+                )
+                email.content_subtype = 'html'
+                email.send(fail_silently=False)
 
         serializer = self.get_serializer(endorsement)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -331,13 +365,20 @@ class GenerateEndorsementPDFView(CoordinatorMixin, APIView):
             endorsement = (Endorsement.objects.select_related('application', 'program_id').get
                            (endorsement_id=endorsement_id))
         except Endorsement.DoesNotExist:
-            raise ValidationError("Endorsement not found.")
+            raise ValidationError({'error': "Endorsement not found."})
 
         user = request.user
-        if hasattr(user, 'applicant') and endorsement.application.applicant != user.applicant:
-            raise PermissionDenied("You don't have access to this endorsement.")
-        elif hasattr(user, 'ojtcoordinator') and user.ojtcoordinator.program != endorsement.program_id:
-            raise PermissionDenied("You don't manage this program's endorsements.")
+        if hasattr(user, 'ojtcoordinator'):
+            coordinator = user.ojtcoordinator
+
+            if not coordinator.program_logo or not coordinator.signature:
+                raise ValidationError({
+                    "error": "Your program logo and signature must be uploaded before generating an endorsement "
+                             "PDF."
+                })
+
+            if coordinator.program != endorsement.program_id:
+                raise PermissionDenied("You don't manage this program's endorsements.")
 
         html_string = render_to_string("endorsement_letter_template.html", {
             "endorsement": endorsement,
@@ -434,6 +475,7 @@ class RejectPracticumRequestView(CoordinatorMixin, generics.UpdateAPIView):
         request.data['in_practicum'] = 'No'
         return super().update(request, *args, **kwargs)
 
+
 # Applicant: Request for Practicum -- KC
 
 
@@ -501,7 +543,8 @@ class GetEnrollmentRecordView(CoordinatorMixin, generics.RetrieveAPIView):
 
         coordinator = self.get_coordinator_or_403(self.request.user)
         try:
-            applicant = Applicant.objects.get(user__user_id=user, program=coordinator.program, user__status__in=['Active'], in_practicum='Pending')
+            applicant = Applicant.objects.get(user__user_id=user, program=coordinator.program,
+                                              user__status__in=['Active'], in_practicum='Pending')
             if not applicant.enrollment_record:
                 raise ValidationError({"error": "No enrollment record found for student."})
             return applicant
