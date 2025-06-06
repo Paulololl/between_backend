@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core.cache import cache
+from django.core.mail import EmailMessage
 from django.shortcuts import redirect
 from django.utils import timezone
 from django.utils.http import urlsafe_base64_decode
@@ -346,6 +347,38 @@ class VerifyEmailView(APIView):
                 user.save()
 
                 if hasattr(user, 'applicant'):
+                    applicant = user.applicant
+
+                    if applicant.enrollment_record and applicant.in_practicum != 'Pending':
+                        applicant.in_practicum = 'Pending'
+                        applicant.save(update_fields=['in_practicum'])
+
+                        try:
+                            coordinator = OJTCoordinator.objects.get(
+                                program=applicant.program,
+                                user__status='Active'
+                            )
+
+                            full_name = f"{applicant.first_name} {applicant.last_name}"
+                            subject = f'New Practicum Request from {full_name}'
+                            html_message = (
+                                f'A new practicum request has been submitted by <strong>{full_name}</strong>.<br><br>'
+                                'Please log in to Between IMS to review the request.<br><br>'
+                                'Best regards,<br><strong>Between Team</strong>'
+                            )
+
+                            email = EmailMessage(
+                                subject=subject,
+                                body=html_message,
+                                from_email='Between_IMS <no-reply.between.internships@gmail.com>',
+                                to=[coordinator.user.email]
+                            )
+                            email.content_subtype = "html"
+                            email.send()
+
+                        except OJTCoordinator.DoesNotExist:
+                            pass
+
                     return redirect(f'https://localhost:5173/sign-up/applicant/account-verified?'
                                     f'status=success&uuid={user.pk}')
 
