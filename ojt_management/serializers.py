@@ -220,12 +220,14 @@ class UpdateEndorsementSerializer(serializers.ModelSerializer):
 
         return attrs
 
+
 class EnrollmentRecordSerializer(serializers.ModelSerializer):
     # enrollment_record = serializers.FileField(use_url=True)
 
     class Meta:
         model = Applicant
         fields = ['enrollment_record']
+
 
 class UpdatePracticumStatusSerializer(serializers.ModelSerializer):
     in_practicum = serializers.CharField(max_length=10)

@@ -3,6 +3,7 @@ from rest_framework import serializers
 from user_account.models import Company
 from .models import SchoolPartnershipList, Program
 
+
 # serializers for School Partnerships
 # region
 
@@ -10,6 +11,7 @@ class ProgramSerializer(serializers.ModelSerializer):
     class Meta:
         model = Program
         fields = ('program_id', 'program_name')
+
 
 class CompanySerializer(serializers.ModelSerializer):
     class Meta:
@@ -22,7 +24,19 @@ class CompanyListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Company
-        fields = ['company_uuid', 'company_name', 'company_address', 'business_nature',]
+        fields = [
+            'company_uuid',
+            'company_name',
+            'company_address',
+            'company_information',
+            'business_nature',
+            'company_website_url',
+            'x_url',
+            'facebook_url',
+            'linkedin_url',
+            'instagram_url',
+            'other_url',
+        ]
 
 
 class CreatePartnershipSerializer(serializers.Serializer):
@@ -72,7 +86,14 @@ class SchoolPartnershipSerializer(serializers.ModelSerializer):
     company_uuid = serializers.UUIDField(source='company.user.user_id', read_only=True)
     company_name = serializers.CharField(source='company.company_name', read_only=True)
     company_address = serializers.CharField(source='company.company_address', read_only=True)
+    company_information = serializers.CharField(source='company.company_information', read_only=True)
     business_nature = serializers.CharField(source='company.business_nature', read_only=True)
+    company_website_url = serializers.CharField(source='company.company_website_url', read_only=True)
+    x_url = serializers.CharField(source='company.x_url', read_only=True)
+    facebook_url = serializers.CharField(source='company.facebook_url', read_only=True)
+    linkedin_url = serializers.CharField(source='company.linkedin_url', read_only=True)
+    instagram_url = serializers.CharField(source='company.instagram_url', read_only=True)
+    other_url = serializers.CharField(source='company.other_url', read_only=True)
 
     class Meta:
         model = SchoolPartnershipList
@@ -80,5 +101,13 @@ class SchoolPartnershipSerializer(serializers.ModelSerializer):
             'company_uuid',
             'company_name',
             'company_address',
-            'business_nature'
+            'company_information',
+            'business_nature',
+            'company_website_url',
+            'x_url',
+            'facebook_url',
+            'linkedin_url',
+            'instagram_url',
+            'other_url',
         ]
+

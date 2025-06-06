@@ -42,6 +42,8 @@ class CoordinatorMixin:
 # region School Partnerships -- KC
 class SchoolPartnershipListView(CoordinatorMixin, generics.ListAPIView):
     serializer_class = SchoolPartnershipSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['company__company_name']
 
     def get_queryset(self):
         coordinator = self.get_coordinator_or_403(self.request.user)

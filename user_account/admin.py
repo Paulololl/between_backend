@@ -27,7 +27,7 @@ class UserAdmin(BaseUserAdmin):
 
     readonly_fields = (
         'email', 'user_id', 'date_joined', 'date_modified',
-        'status', 'user_role', 'is_staff', 'is_superuser',
+        'user_role', 'is_staff', 'is_superuser',
         'groups', 'user_permissions'
     )
 
@@ -41,7 +41,7 @@ class UserAdmin(BaseUserAdmin):
         return False
 
     def has_change_permission(self, request, obj=None):
-        return False
+        return True
 
     def has_delete_permission(self, request, obj=None):
         return True
