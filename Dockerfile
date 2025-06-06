@@ -21,6 +21,17 @@ WORKDIR /app
 # Create a non-privileged user that the app will run under.
 # See https://docs.docker.com/go/dockerfile-user-best-practices/
 ARG UID=10001
+
+# add mysqlClient
+RUN apt-get update && apt-get install -y \
+    default-libmysqlclient-dev \
+    gcc \
+    build-essential \
+    pkg-config \
+    libgobject-2.0-0 \
+ && rm -rf /var/lib/apt/lists/*
+
+# Create user or something
 RUN adduser \
     --disabled-password \
     --gecos "" \
@@ -48,4 +59,5 @@ COPY . .
 EXPOSE 8000
 
 # Run the application.
-CMD gunicorn '.venv.Lib.site-packages.asgiref.wsgi' --bind=0.0.0.0:8000
+# CMD gunicorn '.venv.Lib.site-packages.asgiref.wsgi' --bind=0.0.0.0:8000
+CMD ["gunicorn", "myproject.wsgi:application", "--bind=0.0.0.0:8000"]
