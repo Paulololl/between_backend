@@ -1,6 +1,3 @@
-
-{{ % {with minio_base_url="https://minio:9000" %} }}
-
 <!DOCTYPE html>
 
 <html>
@@ -14,11 +11,10 @@
   </style>
 </head>
 <body>
-
   <!-- Program Logo at Top Center -->
   {% if coordinator.program_logo %}
   <div class="logo">
-    <img src="{{ coordinator.program_logo.url }}" alt="Program Logo">
+     <img src="{{ coordinator.program_logo.url }}" alt="Program Logo">
   </div>
   {% endif %}
 
@@ -49,3 +45,4 @@
 
 </body>
 </html>
+

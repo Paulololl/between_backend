@@ -14,6 +14,7 @@ from rest_framework import generics, status, filters
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from weasyprint import HTML
 
 from between_ims import settings
 from cea_management import serializers
@@ -305,17 +306,7 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
                     "today": date.today()
                 })
 
-                weasy_url = settings.WEASYPRINT_SERVICE_URL
-
-                response = requests.post(
-                    weasy_url,
-                    files={"html": ("endorsement_letter.html", html_string, "text/html")}
-                )
-
-                if response.status_code != 200:
-                    raise ValidationError({"error": "Failed to generate PDF from WeasyPrint service."})
-
-                pdf_bytes = response.content
+                pdf_bytes = HTML(string=html_string).write_pdf()
 
                 email = EmailMessage(
                     subject=subject,
@@ -394,24 +385,16 @@ class GenerateEndorsementPDFView(CoordinatorMixin, APIView):
         html_string = render_to_string("endorsement_letter_template.html", {
             "endorsement": endorsement,
             "coordinator": user.ojtcoordinator if hasattr(user, 'ojtcoordinator') else None,
-            "today": date.today()
+            "today": date.today(),
         })
 
-        response = requests.post(
-            settings.WEASYPRINT_SERVICE_URL,
-            files={"html": ("endorsement_letter.html", html_string, "text/html")}
-        )
+        pdf_bytes = HTML(string=html_string).write_pdf()
 
-        if response.status_code != 200:
-            return Response({'error': 'Failed to generate PDF from WeasyPrint service.'}, status=500)
-
-        pdf_bytes = response.content
         return HttpResponse(
             pdf_bytes,
             content_type='application/pdf',
             headers={'Content-Disposition': f'attachment; filename=endorsement_{endorsement_id}.pdf'}
         )
-
 
 
 @ojt_management_tag

@@ -13,8 +13,12 @@ services:
       - "${MINIO_DATA_PATH}:/data"
     command: server /data --console-address ":9001"
 
-  weasyprint:
-    image: 4teamwork/weasyprint:latest
-    container_name: weasyprint-service
-    ports:
-      - "3443:8080"
+#  weasyprint:
+#    image: 4teamwork/weasyprint:latest
+#    container_name: weasyprint-service
+#    ports:
+#      - "3443:8080"
+#    environment:
+#      - WEASYPRINT_ALLOW_EXTERNAL_RESOURCES=true
+#    depends_on:
+#      - minio
