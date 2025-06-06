@@ -2,6 +2,7 @@ import uuid
 from datetime import date
 from email.utils import formataddr
 
+import requests
 from django.core.files.base import ContentFile
 from django.core.mail import send_mail, EmailMessage
 from django.db import transaction
@@ -13,8 +14,8 @@ from rest_framework import generics, status, filters
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from weasyprint import HTML
 
+from between_ims import settings
 from cea_management import serializers
 from client_application.models import Endorsement
 from user_account.permissions import IsCoordinator, IsApplicant
@@ -303,8 +304,18 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
                     "coordinator": coordinator,
                     "today": date.today()
                 })
-                pdf = HTML(string=html_string).write_pdf()
-                pdf_file = ContentFile(pdf, name=f"endorsement_{endorsement.endorsement_id}.pdf")
+
+                weasy_url = settings.WEASYPRINT_SERVICE_URL
+
+                response = requests.post(
+                    weasy_url,
+                    files={"html": ("endorsement_letter.html", html_string, "text/html")}
+                )
+
+                if response.status_code != 200:
+                    raise ValidationError({"error": "Failed to generate PDF from WeasyPrint service."})
+
+                pdf_bytes = response.content
 
                 email = EmailMessage(
                     subject=subject,
@@ -316,7 +327,7 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
                     reply_to=['no-reply@betweeninternships.com']
                 )
                 email.content_subtype = 'html'
-                email.attach(f"endorsement_{endorsement.endorsement_id}.pdf", pdf, 'application/pdf')
+                email.attach(f"endorsement_{endorsement.endorsement_id}.pdf", pdf_bytes, 'application/pdf')
                 email.send(fail_silently=False)
 
             else:
@@ -386,12 +397,21 @@ class GenerateEndorsementPDFView(CoordinatorMixin, APIView):
             "today": date.today()
         })
 
-        html = HTML(string=html_string)
-        pdf = html.write_pdf()
+        response = requests.post(
+            settings.WEASYPRINT_SERVICE_URL,
+            files={"html": ("endorsement_letter.html", html_string, "text/html")}
+        )
 
-        response = HttpResponse(pdf, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename=endorsement_{endorsement_id}.pdf'
-        return response
+        if response.status_code != 200:
+            return Response({'error': 'Failed to generate PDF from WeasyPrint service.'}, status=500)
+
+        pdf_bytes = response.content
+        return HttpResponse(
+            pdf_bytes,
+            content_type='application/pdf',
+            headers={'Content-Disposition': f'attachment; filename=endorsement_{endorsement_id}.pdf'}
+        )
+
 
 
 @ojt_management_tag
