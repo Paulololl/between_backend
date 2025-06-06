@@ -145,6 +145,11 @@ class EndPracticumView(CoordinatorMixin, generics.UpdateAPIView):
             return Response({'error': 'Action not allowed. Student has not submitted enrollment record.'})
 
         request.data['in_practicum'] = 'No'
+
+        applicant.enrollment_record.delete(save=False)
+        applicant.enrollment_record = None
+        applicant.save(update_fields=['enrollment_record'])
+
         return super().update(request, *args, **kwargs)
 
 

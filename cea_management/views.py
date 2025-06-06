@@ -175,6 +175,15 @@ class RemoveOJTCoordinatorView(CEAMixin, generics.UpdateAPIView):
 class ApplicantListView(CEAMixin, generics.ListAPIView):
     serializer_class = GetApplicantSerializer
 
+    filter_backends = [filters.SearchFilter]
+
+    search_fields = [
+        'first_name'
+        , 'last_name'
+        , 'user__email'
+        , 'in_practicum'
+    ]
+
     def get_queryset(self):
         cea = self.get_cea_or_403(self.request.user)
         return Applicant.objects.filter(program__department__school=cea.school, user__status__in=['Active'])
@@ -283,10 +292,10 @@ class CompanyListView(CEAMixin, generics.ListAPIView):
                                 ).select_related('user')
 
     def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
+        queryset = self.filter_queryset(self.get_queryset())
         if not queryset.exists():
             return Response(
-                {'message': 'There are no companies currently registered in the system.'},
+                {'message': 'No Companies found.'},
                 status=status.HTTP_200_OK,
             )
 

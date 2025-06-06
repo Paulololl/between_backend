@@ -214,6 +214,13 @@ SPECTACULAR_SETTINGS = {
     # OTHER SETTINGS
 }
 
+# Session settings
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE = int(timedelta(hours=1).total_seconds())
+SESSION_COOKIE_SECURE = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_SAVE_EVERY_REQUEST = False
+
 # AUTH PASSWORD VALIDATORS
 AUTH_PASSWORD_VALIDATORS = [
     {

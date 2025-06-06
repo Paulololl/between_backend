@@ -287,6 +287,10 @@ class EmailLoginView(APIView):
                     return Response({'email': 'User with this email does not exist.'},
                                     status=status.HTTP_400_BAD_REQUEST)
 
+                if user.status == 'Suspended':
+                    return Response({'email': 'Email is Suspended. Please try again.'},
+                                    status=status.HTTP_400_BAD_REQUEST)
+
                 return Response({'status': user.status}, status=status.HTTP_200_OK)
 
             except User.DoesNotExist:
