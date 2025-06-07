@@ -137,6 +137,7 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
             'applicant_email', 'school', 'password', 'confirm_password',
             'department', 'program', 'academic_program', 'hard_skills', 'soft_skills',
             'address', 'preferred_modality', 'quick_introduction', 'resume', 'enrollment_record',
+            'mobile_number'
         ]
 
     def validate_password(self, value):
@@ -1001,6 +1002,7 @@ class EditApplicantSerializer(serializers.ModelSerializer):
             'enrollment_record',
             'quick_introduction',
             'preferred_modality',
+            'mobile_number'
         ]
 
     def get_displayed_hard_skills(self, obj):

@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.db.models import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.generics import ListAPIView, CreateAPIView
@@ -69,10 +70,33 @@ class ApplicationListView(ListAPIView):
                 queryset = queryset.order_by('application_date')
 
         internship_position = self.request.query_params.get('internship_position')
-        if user.user_role == 'company' and internship_position:
+        if user.user_role in ['company', 'applicant'] and internship_position:
             queryset = queryset.filter(
-                internship_posting__internship_position__iexact=internship_position
+                internship_posting__internship_position__icontains=internship_position
             )
+
+        company_name = self.request.query_params.get('company_name')
+        if user.user_role == 'applicant' and company_name:
+            queryset = queryset.filter(internship_posting__company__company_name__icontains=company_name)
+
+        applicant_name = self.request.query_params.get('applicant_name')
+        if user.user_role == 'company' and applicant_name:
+            name_parts = applicant_name.strip().split()
+
+            queryset = queryset.filter(
+                Q(applicant__first_name__icontains=applicant_name) |
+                Q(applicant__last_name__icontains=applicant_name)
+            )
+
+            if len(name_parts) > 1:
+                queryset = queryset.union(
+                    queryset.model.objects.filter(
+                        Q(applicant__first_name__icontains=name_parts[0],
+                          applicant__last_name__icontains=' '.join(name_parts[1:])) |
+                        Q(applicant__last_name__icontains=name_parts[-1],
+                          applicant__first_name__icontains=' '.join(name_parts[:-1]))
+                    )
+                )
 
         return queryset
 

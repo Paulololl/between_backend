@@ -35,7 +35,7 @@ class InternshipPosting(models.Model):
     is_only_for_practicum = models.BooleanField(default=False)
 
     internship_date_start = models.DateTimeField()
-    ojt_hours = models.IntegerField()
+    ojt_hours = models.PositiveIntegerField()
     application_deadline = models.DateTimeField(null=True, blank=True)
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
