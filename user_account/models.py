@@ -107,7 +107,7 @@ class Applicant(models.Model):
 
     mobile_number = models.CharField(max_length=15, default='')
 
-    resume = models.FileField(storage=S3Boto3Storage, upload_to=applicant_resume, default="")
+    resume = models.FileField(storage=S3Boto3Storage, upload_to=applicant_resume)
     enrollment_record = models.FileField(storage=S3Boto3Storage,upload_to=applicant_enrollment_record,
                                          null=True, blank=True)
 
