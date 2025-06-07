@@ -105,6 +105,8 @@ class Applicant(models.Model):
     academic_program = models.CharField(max_length=100, null=True, blank=True)
     quick_introduction = models.CharField(max_length=500)
 
+    mobile_number = models.CharField(max_length=15, null=True, blank=True)
+
     resume = models.FileField(storage=S3Boto3Storage, upload_to=applicant_resume, default="")
     enrollment_record = models.FileField(storage=S3Boto3Storage,upload_to=applicant_enrollment_record,
                                          null=True, blank=True)
@@ -171,6 +173,7 @@ class OJTCoordinator(models.Model):
     ojt_coordinator_id = models.AutoField(primary_key=True)
     user = models.OneToOneField('User', on_delete=models.CASCADE, editable=False)
     program = models.ForeignKey('cea_management.Program', on_delete=models.CASCADE, null=True, blank=True)
+    department = models.ForeignKey('cea_management.Department', on_delete=models.CASCADE, default='')
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     middle_initial = models.CharField(max_length=20, null=True, blank=True)
