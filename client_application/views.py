@@ -303,6 +303,12 @@ class DropApplicationView(APIView):
             return Response({'error': 'You do not have permission to modify this application.'},
                             status=status.HTTP_403_FORBIDDEN)
 
+        if application.status not in ['Pending', 'Confirmed']:
+            return Response(
+                {'error': 'You can only drop applications that are Pending or Confirmed.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         new_status = request.data.get('status')
 
         if new_status not in ['Dropped']:
