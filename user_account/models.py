@@ -105,7 +105,7 @@ class Applicant(models.Model):
     academic_program = models.CharField(max_length=100, null=True, blank=True)
     quick_introduction = models.CharField(max_length=500)
 
-    mobile_number = models.CharField(max_length=15, null=True, blank=True)
+    mobile_number = models.CharField(max_length=15, default='')
 
     resume = models.FileField(storage=S3Boto3Storage, upload_to=applicant_resume, default="")
     enrollment_record = models.FileField(storage=S3Boto3Storage,upload_to=applicant_enrollment_record,
