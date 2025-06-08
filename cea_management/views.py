@@ -10,7 +10,7 @@ from user_account.serializers import GetOJTCoordinatorSerializer, OJTCoordinator
     GetApplicantSerializer, EditOJTCoordinatorSerializer, OJTCoordinatorDocumentSerializer
 from .models import SchoolPartnershipList, Program
 from user_account.permissions import IsCEA, IsCoordinator
-from .serializers import CompanyListSerializer, CreatePartnershipSerializer, SchoolPartnershipSerializer
+from .serializers import CompanyListSerializer, CreatePartnershipSerializer, SchoolPartnershipSerializer, CareerEmplacementAdminSerializer
 
 cea_management_tag = extend_schema(tags=["cea_management"])
 
@@ -342,4 +342,15 @@ class BulkDeleteSchoolPartnershipView(CEAMixin, generics.GenericAPIView):
 # endregion
 
 
+@cea_management_tag
+class CareerEmplacementAdminView(CEAMixin, generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CareerEmplacementAdminSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.user_role != 'cea':
+            raise ValidationError({'error': "User must be a Career Emplacement Admin."})
+
+        return CareerEmplacementAdmin.objects.filter(user=user)
 

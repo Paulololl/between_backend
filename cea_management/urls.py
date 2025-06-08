@@ -10,5 +10,6 @@ urlpatterns = [
     path('partnerships/create/', views.CreateSchoolPartnershipView.as_view(), name="partnerships-create"),
     path('partnerships/delete/', views.BulkDeleteSchoolPartnershipView.as_view(), name="partnerships-delete"),
     path('students/', views.ApplicantListView.as_view(), name="students-list"),
-    path('companies/', views.CompanyListView.as_view(), name="companies-list")
+    path('companies/', views.CompanyListView.as_view(), name="companies-list"),
+    path('cea/', views.CareerEmplacementAdminView.as_view(), name="get-cea"),
 ]

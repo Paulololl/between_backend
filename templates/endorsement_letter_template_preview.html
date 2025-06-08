@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2em; text-align: justify; }
+    .logo { text-align: center; margin-bottom: 20px; }
+    .logo img { max-height: 100px; }
+    .signature { margin-top: 50px; text-align: left; }
+    .signature img { height: 80px; }
+  </style>
+</head>
+<body>
+
+  {% if coordinator.program_logo %}
+  <div class="logo">
+     <img src="{{ coordinator.program_logo.url }}" alt="Program Logo">
+  </div>
+  {% endif %}
+
+  <p><br><strong>{{ today|date:"F d, Y" }}</strong></p>
+  
+  <p>
+    <strong>HR Personnel</strong><br>
+    <strong>[Position Placeholder]</strong><br>
+    <strong>[Name Placeholder]</strong><br>
+  </p>
+  
+  <p>Dear Sir/Madam:</p>
+
+  <p>This is to endorse <strong>[Applicant Full Name]</strong>
+     from the program <strong>[Program Name]</strong> for an internship placement.</p>
+
+  <p>The student has fulfilled the necessary requirements and is ready for deployment.</p>
+  
+  <div class="signature">
+    {% if coordinator.signature %}
+      <img src="{{ coordinator.signature.url }}" alt="Coordinator Signature">
+    {% endif %}
+    <p><strong>{{ coordinator.first_name }} {{ coordinator.last_name }}
+        <br>Practicum Coordinator - {{ coordinator.program }}
+        <br>{{ coordinator.user.email }}
+    </strong></p>
+  </div>
+
+</body>
+</html>
