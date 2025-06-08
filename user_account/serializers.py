@@ -478,6 +478,7 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
         return ojt_coordinator
 
 
+# inherit from ojt coordinator register serializer
 class EditOJTCoordinatorSerializer(OJTCoordinatorRegisterSerializer):
     ojtcoordinator_email = serializers.EmailField(required=False)
     first_name = serializers.CharField(required=False)
