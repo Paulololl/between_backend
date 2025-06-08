@@ -368,9 +368,10 @@ class GenerateEndorsementPDFView(CoordinatorMixin, APIView):
         coordinator = user.ojtcoordinator
 
         if not coordinator.program_logo or not coordinator.signature:
-            return Response(
+            return Response({
+                "message":
                     "Your program logo and signature must be uploaded before generating an endorsement preview PDF."
-            )
+            })
 
         html_string = render_to_string("endorsement_letter_template_preview.html", {
             "coordinator": coordinator,
@@ -384,7 +385,6 @@ class GenerateEndorsementPDFView(CoordinatorMixin, APIView):
             content_type='application/pdf',
             headers={'Content-Disposition': 'attachment; filename=endorsement_preview.pdf'}
         )
-
 
 
 @ojt_management_tag
@@ -543,6 +543,7 @@ class GetEnrollmentRecordView(CoordinatorMixin, generics.RetrieveAPIView):
             return applicant
         except Applicant.DoesNotExist:
             raise ValidationError({"error": f"No student found for user: {user}"})
+
 
 # endregion
 
