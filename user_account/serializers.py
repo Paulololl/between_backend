@@ -416,7 +416,6 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
             , 'department'
             , 'status'
             , 'program_logo'
-            , 'signature'
         ]
 
     def validate_password(self, value):
