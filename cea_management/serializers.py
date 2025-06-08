@@ -1,11 +1,17 @@
 from rest_framework import serializers
 
 from user_account.models import Company, CareerEmplacementAdmin
-from .models import SchoolPartnershipList, Program, Department
+from .models import SchoolPartnershipList, Program, Department, School
 
 
 # serializers for School Partnerships
 # region
+
+class SchoolSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = School
+        fields = ('school_id', 'school_name')
+
 
 class ProgramSerializer(serializers.ModelSerializer):
     class Meta:
@@ -20,7 +26,7 @@ class DepartmentSerializer(serializers.ModelSerializer):
 
 
 class CareerEmplacementAdminSerializer(serializers.ModelSerializer):
-    school = serializers.CharField(source='school.school_name')
+    school = SchoolSerializer()
 
     class Meta:
         model = CareerEmplacementAdmin
