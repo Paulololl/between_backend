@@ -21,7 +21,7 @@ from cea_management import serializers
 from client_application.models import Endorsement
 from user_account.permissions import IsCoordinator, IsApplicant
 from user_account.models import OJTCoordinator, Applicant
-from user_account.serializers import GetApplicantSerializer
+from user_account.serializers import GetApplicantSerializer, OJTCoordinatorDocumentSerializer
 from cea_management.models import SchoolPartnershipList
 from cea_management.serializers import SchoolPartnershipSerializer
 from .serializers import EndorsementDetailSerializer, RequestEndorsementSerializer, \
@@ -544,5 +544,34 @@ class GetEnrollmentRecordView(CoordinatorMixin, generics.RetrieveAPIView):
             return applicant
         except Applicant.DoesNotExist:
             raise ValidationError({"error": f"No student found for user: {user}"})
+
+# endregion
+
+
+@ojt_management_tag
+class ChangeLogoAndSignatureView(generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated, IsCoordinator]
+    serializer_class = OJTCoordinatorDocumentSerializer
+
+    def get_object(self):
+        try:
+            return self.request.user.ojtcoordinator
+        except OJTCoordinator.DoesNotExist:
+            raise ValidationError({"error": "You are not an OJT Coordinator."})
+
+    def update(self, request, *args, **kwargs):
+        try:
+            coordinator = request.user.ojtcoordinator
+
+            file_serializer = self.get_serializer(coordinator, data=request.data, partial=True)
+            if not file_serializer.is_valid():
+                return Response(file_serializer.errors)
+
+            file_serializer.save()
+
+            return super().update(request, *args, **kwargs)
+
+        except OJTCoordinator.DoesNotExist:
+            return Response({"error": "OJT Coordinator not found. Access denied."})
 
 # endregion

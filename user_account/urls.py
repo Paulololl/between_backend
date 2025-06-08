@@ -1,6 +1,4 @@
 from django.urls import path
-
-from cea_management.views import ChangeLogoAndSignatureView
 from ojt_management.views import RequestPracticumView
 from .views import ApplicantRegisterView, NestedSchoolDepartmentProgramListView, DepartmentListView, ProgramListView, \
     SchoolListView, CompanyRegisterView, CareerEmplacementAdminRegisterView, OJTCoordinatorRegisterView, \
@@ -17,7 +15,6 @@ urlpatterns = [
     path('edit-applicant/', EditApplicantView.as_view()),
     path('edit-applicant/request-practicum/', RequestPracticumView.as_view()),
     path('ojtcoordinator/', GetOJTCoordinatorView.as_view()),
-    path('ojtcoordinator/edit-logo-signature/', ChangeLogoAndSignatureView.as_view()),
     path('forgot-password/', ForgotPasswordLinkView.as_view()),
     path('forgot-password/<uidb64>/<token>/', ForgotPasswordLinkView.as_view()),
     path('reset-password/', ResetPasswordView.as_view()),

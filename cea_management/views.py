@@ -8,9 +8,9 @@ from rest_framework.response import Response
 from ojt_management.views import ojt_management_tag
 from user_account.models import CareerEmplacementAdmin, OJTCoordinator, Applicant, Company
 from user_account.serializers import GetOJTCoordinatorSerializer, OJTCoordinatorRegisterSerializer, \
-    GetApplicantSerializer, EditOJTCoordinatorSerializer, OJTCoordinatorDocumentSerializer
+    GetApplicantSerializer, EditOJTCoordinatorSerializer
 from .models import SchoolPartnershipList, Program
-from user_account.permissions import IsCEA, IsCoordinator
+from user_account.permissions import IsCEA
 from .serializers import CompanyListSerializer, CreatePartnershipSerializer, SchoolPartnershipSerializer, CareerEmplacementAdminSerializer
 
 cea_management_tag = extend_schema(tags=["cea_management"])
@@ -158,36 +158,6 @@ class RemoveOJTCoordinatorView(CEAMixin, generics.UpdateAPIView):
         return Response(
             {'message': 'The OJT Coordinator has been removed.'}
         )
-
-# endregion
-
-# region Coordinator Change Program Logo & Signature
-
-@ojt_management_tag
-class ChangeLogoAndSignatureView(generics.UpdateAPIView):
-    permission_classes = [IsAuthenticated, IsCoordinator]
-    serializer_class = OJTCoordinatorDocumentSerializer
-
-    def get_object(self):
-        try:
-            return self.request.user.ojtcoordinator
-        except OJTCoordinator.DoesNotExist:
-            raise ValidationError({"error": "You are not an OJT Coordinator."})
-
-    def update(self, request, *args, **kwargs):
-        try:
-            coordinator = request.user.ojtcoordinator
-
-            file_serializer = self.get_serializer(coordinator, data=request.data, partial=True)
-            if not file_serializer.is_valid():
-                return Response(file_serializer.errors)
-
-            file_serializer.save()
-
-            return super().update(request, *args, **kwargs)
-
-        except OJTCoordinator.DoesNotExist:
-            return Response({"error": "OJT Coordinator not found. Access denied."})
 
 # endregion
 

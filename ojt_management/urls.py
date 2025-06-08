@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
-from .views import EndorsementDetailView, RequestEndorsementView, UpdateEndorsementView, GenerateEndorsementPDFView
+from .views import EndorsementDetailView, RequestEndorsementView, UpdateEndorsementView, GenerateEndorsementPDFView, \
+    ChangeLogoAndSignatureView
 
 urlpatterns = [
     path('partnered-companies/', views.SchoolPartnershipListView.as_view(), name="partnered-companies"),
@@ -18,4 +19,5 @@ urlpatterns = [
          name='student-in-practicum-reject'),
     path('students/in_practicum/', views.GetPracticumStudentListView.as_view(), name='students-in-practicum'),
     path('students/in_practicum/end/', views.EndPracticumView.as_view(), name='student-in-practicum-end'),
+    path('ojtcoordinator/edit-logo-signature/', ChangeLogoAndSignatureView.as_view()),
 ]
