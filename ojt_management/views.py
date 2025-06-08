@@ -368,10 +368,9 @@ class GenerateEndorsementPDFView(CoordinatorMixin, APIView):
         coordinator = user.ojtcoordinator
 
         if not coordinator.program_logo or not coordinator.signature:
-            raise ValidationError({
-                "error":
+            return Response(
                     "Your program logo and signature must be uploaded before generating an endorsement preview PDF."
-            })
+            )
 
         html_string = render_to_string("endorsement_letter_template_preview.html", {
             "coordinator": coordinator,
