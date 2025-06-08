@@ -396,7 +396,8 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = OJTCoordinator
         fields = ['ojtcoordinator_email', 'first_name', 'last_name', 'middle_initial',
-                  'password', 'confirm_password', 'program', 'status', 'program_logo', 'signature']
+                  'password', 'confirm_password', 'program', 'status', 'program_logo', 'signature',
+                  'department']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -918,6 +919,7 @@ class GetOJTCoordinatorSerializer(serializers.ModelSerializer):
             'user',
             'ojt_coordinator_id',
             'program',
+            'department',
             'first_name',
             'last_name',
             'middle_initial',

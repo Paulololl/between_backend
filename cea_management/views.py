@@ -71,6 +71,7 @@ class CreateOJTCoordinatorView(CEAMixin, generics.CreateAPIView):
     def perform_create(self, serializer):
         cea = self.get_cea_or_403(self.request.user)
         program = serializer.validated_data.get('program', None)
+        department = serializer.validated_data.get('department', None)
 
         if program:
             if program.department.school != cea.school:
@@ -79,6 +80,10 @@ class CreateOJTCoordinatorView(CEAMixin, generics.CreateAPIView):
             existing_coordinators = OJTCoordinator.objects.filter(program=program, user__status__in=['Active', 'Inactive', 'Suspended']).first()
             if existing_coordinators:
                 raise ValidationError({"program": ["This program already has an assigned OJT coordinator."]})
+
+        if department:
+            if department.school != cea.school:
+                raise PermissionDenied("You can only assign coordinators to departments belonging to your school.")
 
         try:
             serializer.save()
