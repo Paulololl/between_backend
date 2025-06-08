@@ -500,6 +500,22 @@ class EditOJTCoordinatorSerializer(OJTCoordinatorRegisterSerializer):
 
         return attrs
 
+    def validate_program(self, program):
+        existing_coordinator = OJTCoordinator.objects.filter(program=program).exclude(user__status='Deleted').first()
+        if existing_coordinator:
+            raise serializers.ValidationError(
+                'The selected program already has an assigned OJT Coordinator.'
+            )
+
+        return super().validate_program(program)
+
+    def validate_ojtcoordinator_email(self, email):
+        assigned_coordinator = OJTCoordinator.objects.filter(user__email=email).exclude(user__status='Deleted').first()
+        if assigned_coordinator:
+            raise serializers.ValidationError('This email is currently in use by another OJT Coordinator.')
+
+        return super().validate_ojtcoordinator_email(email)
+
     def update(self, instance, validated_data):
         email = validated_data.pop("ojtcoordinator_email", None)
         if email:

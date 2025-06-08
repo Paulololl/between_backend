@@ -26,7 +26,7 @@ class CEAMixin:
 
 # region OJT Coordinators Management
 
-# RETRIEVE List
+
 @cea_management_tag
 class OJTCoordinatorListView(CEAMixin, generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsCEA]
@@ -40,6 +40,7 @@ class OJTCoordinatorListView(CEAMixin, generics.ListAPIView):
         , 'last_name'
         , 'user__email'
         , 'program__program_name'
+        , 'department__department_name'
     ]
 
     ordering_fields = [
@@ -72,7 +73,7 @@ class OJTCoordinatorListView(CEAMixin, generics.ListAPIView):
 
         return super().list(request, *args, **kwargs)
 
-# CREATE COORDINATOR
+
 @cea_management_tag
 class CreateOJTCoordinatorView(CEAMixin, generics.CreateAPIView):
     permission_classes = [IsAuthenticated, IsCEA]
