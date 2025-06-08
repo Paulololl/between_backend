@@ -27,7 +27,7 @@ class CEAMixin:
 
 # region OJT Coordinators Management
 
-# RETRIEVE List
+
 @cea_management_tag
 class OJTCoordinatorListView(CEAMixin, generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsCEA]
@@ -41,6 +41,7 @@ class OJTCoordinatorListView(CEAMixin, generics.ListAPIView):
         , 'last_name'
         , 'user__email'
         , 'program__program_name'
+        , 'department__department_name'
     ]
 
     ordering_fields = [
@@ -68,12 +69,12 @@ class OJTCoordinatorListView(CEAMixin, generics.ListAPIView):
         queryset = self.filter_queryset(self.get_queryset())
         if not queryset.exists():
             return Response(
-                {'message': 'No OJT Coordinators are currently available.'}
+                {'message': 'No OJT Coordinators in the list.'}
             )
 
         return super().list(request, *args, **kwargs)
 
-# CREATE COORDINATOR
+
 @cea_management_tag
 class CreateOJTCoordinatorView(CEAMixin, generics.CreateAPIView):
     permission_classes = [IsAuthenticated, IsCEA]
@@ -186,7 +187,7 @@ class ApplicantListView(CEAMixin, generics.ListAPIView):
         queryset = self.filter_queryset(self.get_queryset())
         if not queryset.exists():
             return Response(
-                {'message': 'No students currently registered in your school.'}
+                {'message': 'Student List is empty.'}
             )
 
         return super().list(request, *args, **kwargs)
@@ -201,7 +202,7 @@ class SchoolPartnershipListView(CEAMixin, generics.ListAPIView):
     serializer_class = SchoolPartnershipSerializer
 
     filter_backends = [filters.SearchFilter]
-    search_fields = [ 'company__company_name']
+    search_fields = ['company__company_name']
 
     def get_queryset(self):
         cea = self.get_cea_or_403(self.request.user)
