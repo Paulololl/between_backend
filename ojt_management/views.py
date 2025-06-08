@@ -359,32 +359,22 @@ class GenerateEndorsementPDFView(CoordinatorMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        endorsement_id = request.query_params.get('endorsement_id')
-        if not endorsement_id:
-            return Response({'error': '"endorsement_id is required", status=400'})
-
-        try:
-            endorsement = (Endorsement.objects.select_related('application', 'program_id').get
-                           (endorsement_id=endorsement_id))
-        except Endorsement.DoesNotExist:
-            raise ValidationError({'error': "Endorsement not found."})
-
         user = request.user
-        if hasattr(user, 'ojtcoordinator'):
-            coordinator = user.ojtcoordinator
 
-            if not coordinator.program_logo or not coordinator.signature:
-                raise ValidationError({
-                    "error": "Your program logo and signature must be uploaded before generating an endorsement "
-                             "PDF."
-                })
+        # Ensure user is an OJT Coordinator
+        if not hasattr(user, 'ojtcoordinator'):
+            raise PermissionDenied("Only OJT Coordinators can generate endorsement previews.")
 
-            if coordinator.program != endorsement.program_id:
-                raise PermissionDenied("You don't manage this program's endorsements.")
+        coordinator = user.ojtcoordinator
 
-        html_string = render_to_string("endorsement_letter_template.html", {
-            "endorsement": endorsement,
-            "coordinator": user.ojtcoordinator if hasattr(user, 'ojtcoordinator') else None,
+        if not coordinator.program_logo or not coordinator.signature:
+            raise ValidationError({
+                "error":
+                    "Your program logo and signature must be uploaded before generating an endorsement preview PDF."
+            })
+
+        html_string = render_to_string("endorsement_letter_template_preview.html", {
+            "coordinator": coordinator,
             "today": date.today(),
         })
 
@@ -393,8 +383,9 @@ class GenerateEndorsementPDFView(CoordinatorMixin, APIView):
         return HttpResponse(
             pdf_bytes,
             content_type='application/pdf',
-            headers={'Content-Disposition': f'attachment; filename=endorsement_{endorsement_id}.pdf'}
+            headers={'Content-Disposition': 'attachment; filename=endorsement_preview.pdf'}
         )
+
 
 
 @ojt_management_tag

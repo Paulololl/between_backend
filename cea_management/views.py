@@ -9,7 +9,8 @@ from user_account.models import CareerEmplacementAdmin, OJTCoordinator, Applican
 from user_account.serializers import GetOJTCoordinatorSerializer, OJTCoordinatorRegisterSerializer, GetApplicantSerializer, EditOJTCoordinatorSerializer
 from .models import SchoolPartnershipList
 from user_account.permissions import IsCEA
-from .serializers import CompanyListSerializer, CreatePartnershipSerializer, SchoolPartnershipSerializer
+from .serializers import CompanyListSerializer, CreatePartnershipSerializer, SchoolPartnershipSerializer, \
+    CareerEmplacementAdminSerializer
 
 cea_management_tag = extend_schema(tags=["cea_management"])
 
@@ -308,3 +309,19 @@ class CompanyListView(CEAMixin, generics.ListAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 # endregion
+
+# newregion
+
+
+@cea_management_tag
+class CareerEmplacementAdminView(CEAMixin, generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CareerEmplacementAdminSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.user_role != 'cea':
+            raise ValidationError({'error': "User must be a Career Emplacement Admin."})
+
+        return CareerEmplacementAdmin.objects.filter(user=user)
+

@@ -909,6 +909,7 @@ class ChangePasswordSerializer(serializers.Serializer):
 
 class GetOJTCoordinatorSerializer(serializers.ModelSerializer):
     program = ProgramSerializer(read_only=True)
+    department = DepartmentSerializer(read_only=True)
 
     email = serializers.EmailField(source='user.email', read_only=True)
     status = serializers.CharField(source='user.status')
