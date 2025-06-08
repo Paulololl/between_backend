@@ -5,6 +5,7 @@ from rest_framework import generics, filters, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from ojt_management.views import ojt_management_tag
 from user_account.models import CareerEmplacementAdmin, OJTCoordinator, Applicant, Company
 from user_account.serializers import GetOJTCoordinatorSerializer, OJTCoordinatorRegisterSerializer, \
     GetApplicantSerializer, EditOJTCoordinatorSerializer, OJTCoordinatorDocumentSerializer
@@ -163,6 +164,7 @@ class RemoveOJTCoordinatorView(CEAMixin, generics.UpdateAPIView):
 
 # region Coordinator Change Program Logo & Signature
 
+@ojt_management_tag
 class ChangeLogoAndSignatureView(generics.UpdateAPIView):
     permission_classes = [IsAuthenticated, IsCoordinator]
     serializer_class = OJTCoordinatorDocumentSerializer
