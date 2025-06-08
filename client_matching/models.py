@@ -1,6 +1,7 @@
 import uuid
 from decimal import Decimal
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
+from django.core.validators import MinValueValidator
 from django.db import models
 from storages.backends.s3boto3 import S3Boto3Storage
 
@@ -35,7 +36,11 @@ class InternshipPosting(models.Model):
     is_only_for_practicum = models.BooleanField(default=False)
 
     internship_date_start = models.DateTimeField()
-    ojt_hours = models.IntegerField()
+    ojt_hours = models.IntegerField(
+        validators=[
+            MinValueValidator(100)
+        ]
+    )
     application_deadline = models.DateTimeField(null=True, blank=True)
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)

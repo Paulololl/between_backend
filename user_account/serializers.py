@@ -137,6 +137,7 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
             'applicant_email', 'school', 'password', 'confirm_password',
             'department', 'program', 'academic_program', 'hard_skills', 'soft_skills',
             'address', 'preferred_modality', 'quick_introduction', 'resume', 'enrollment_record',
+            'mobile_number'
         ]
 
     def validate_password(self, value):
