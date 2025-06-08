@@ -69,7 +69,7 @@ class OJTCoordinatorListView(CEAMixin, generics.ListAPIView):
         queryset = self.filter_queryset(self.get_queryset())
         if not queryset.exists():
             return Response(
-                {'message': 'No OJT Coordinators are currently available.'}
+                {'message': 'No OJT Coordinators in the list.'}
             )
 
         return super().list(request, *args, **kwargs)
@@ -217,7 +217,7 @@ class ApplicantListView(CEAMixin, generics.ListAPIView):
         queryset = self.filter_queryset(self.get_queryset())
         if not queryset.exists():
             return Response(
-                {'message': 'No students currently registered in your school.'}
+                {'message': 'Student List is empty.'}
             )
 
         return super().list(request, *args, **kwargs)
@@ -232,7 +232,7 @@ class SchoolPartnershipListView(CEAMixin, generics.ListAPIView):
     serializer_class = SchoolPartnershipSerializer
 
     filter_backends = [filters.SearchFilter]
-    search_fields = [ 'company__company_name']
+    search_fields = ['company__company_name']
 
     def get_queryset(self):
         cea = self.get_cea_or_403(self.request.user)
