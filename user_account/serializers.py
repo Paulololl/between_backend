@@ -397,8 +397,6 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
     middle_initial = serializers.CharField(write_only=True, required=False, allow_blank=True, default='')
     password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
-    program_logo = serializers.ImageField(required=False, allow_null=True)
-    signature = serializers.ImageField(required=False, allow_null=True)
 
     status = serializers.CharField(source='user.status', default='Active')
 
@@ -466,7 +464,6 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
         email = validated_data.pop('ojtcoordinator_email')
         password = validated_data.pop('password')
         validated_data.pop('confirm_password')
-
 
         user = User.objects.create_user(
             email=email,
