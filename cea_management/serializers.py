@@ -133,7 +133,19 @@ class SchoolPartnershipSerializer(serializers.ModelSerializer):
 
 
 class CeaAuditLogSerializer(serializers.ModelSerializer):
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+
     class Meta:
         model = AuditLog
-        fields = "__all__"
+        fields = [
+            'user_email',
+            'user_role',
+            'action_type',
+            'action',
+            'model',
+            'object_id',
+            'object_repr',
+            'timestamp',
+            'details',
+        ]
 
