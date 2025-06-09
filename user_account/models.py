@@ -189,7 +189,7 @@ class OJTCoordinator(models.Model):
         verbose_name_plural = 'OJT Coordinators'
 
     def __str__(self):
-        return f"{self.user.email} | {self.user.user_id}"
+        return f"{self.user.email}"
 
 
 class AuditLog(models.Model):
