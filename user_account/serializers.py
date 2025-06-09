@@ -507,15 +507,28 @@ class EditOJTCoordinatorSerializer(OJTCoordinatorRegisterSerializer):
         if not program or (self.instance and self.instance.program_id == program.program_id):
             return program
 
-        user_school_uuid = getattr(self.context.get('school'), 'school_id', None)
-        program_school_uuid = program.department.school.school_id
+        request = self.context.get('request')
+        if not request:
+            raise serializers.ValidationError('Request context is missing.')
 
-        if program_school_uuid != user_school_uuid:
+        try:
+            cea = CareerEmplacementAdmin.objects.get(user=request.user)
+        except CareerEmplacementAdmin.DoesNotExist:
+            raise serializers.ValidationError('CEA school context is missing or invalid.')
+
+        if not cea.school:
+            raise serializers.ValidationError('CEA does not have an associated school.')
+
+        if str(program.department.school.school_id) != str(cea.school.school_id):
             raise serializers.ValidationError('The selected program does not belong to your school.')
 
-        existing = OJTCoordinator.objects.filter(program=program, user__status__in=['Active', 'Inactive'])
+        existing = OJTCoordinator.objects.filter(
+            program=program,
+            user__status__in=['Active', 'Inactive']
+        )
         if self.instance:
             existing = existing.exclude(pk=self.instance.pk)
+
         if existing.exists():
             raise serializers.ValidationError('The selected program already has an assigned OJT Coordinator.')
 
