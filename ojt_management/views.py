@@ -718,3 +718,18 @@ class GenerateEndorsementPDFView(CoordinatorMixin, APIView):
         )
 
 # endregion
+
+
+@ojt_management_tag
+class ChangeLogoAndSignatureView(CoordinatorMixin, generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = OJTCoordinatorDocumentSerializer
+
+    def get_object(self):
+        user = self.request.user
+
+        try:
+            return OJTCoordinator.objects.get(user=user)
+        except OJTCoordinator.DoesNotExist:
+            raise ValidationError({"error": "OJT Coordinator not found for the authenticated user."})
+
