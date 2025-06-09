@@ -1,3 +1,5 @@
+import email
+
 from django.conf import settings
 from django.core.mail import send_mail, EmailMessage
 from django.db import transaction
@@ -236,37 +238,49 @@ class UpdatePracticumStatusSerializer(serializers.ModelSerializer):
         model = Applicant
         fields = ['in_practicum']
 
-    def validate_in_practicum(self, value):
-        allowed_values = ['Yes', 'No', 'Pending']
-        if value not in allowed_values:
-            raise serializers.ValidationError(f"Invalid value: {value}. Allowed values are: {allowed_values}")
-        return value
+    def update(self, applicant, validated_data):
+        new_status = validated_data.get('in_practicum', applicant.in_practicum)
+        applicant.in_practicum = new_status
 
-    def update(self, instance, validated_data):
-        new_status = validated_data.get('in_practicum', instance.in_practicum)
-        instance.in_practicum = new_status
-        instance.save()
+        try:
+            applicant.save()
+        except Exception as e:
+            raise serializers.ValidationError(
+                {'error': f'An error occurred while updating Practicum status: {str(e)}. Please try again.'}
+            )
 
-        email_message = self.context.get('email_message')
         coordinator = self.context.get('coordinator')
+        subject = self.context.get('subject')
+        email_message = self.context.get('email_message')
 
         if email_message:
-            self.send_email_to_applicant(instance, coordinator, email_message)
+            try:
+                self.send_notification_email(applicant, coordinator, subject, email_message)
+            except serializers.ValidationError as e:
+                raise e
+            except Exception as e:
+                raise serializers.ValidationError({'error': f'Practicum status was updated successfully, but notification email sending failed: {str(e)}'})
 
-        return instance
+        return applicant
 
-    def send_email_to_applicant(self, applicant, coordinator, email_message):
-        subject = 'Practicum Status Update'
-        recipient_email = applicant.user.email
-        coordinator_email = coordinator.user.email
-        sender_email = 'no-reply@betweeninternships.com'
+    def send_notification_email(self,  applicant, coordinator, subject, email_message, recipient_list=None):
+        if recipient_list is None:
+            recipient_list = [applicant.user.email, coordinator.user.email]
 
-        recipient_list = [recipient_email, coordinator_email]
+        if not recipient_list:
+            return ValueError('Please provide at least one recipient.')
 
-        send_mail(
-            subject,
-            email_message,
-            sender_email,
-            recipient_list,
-            fail_silently=False,
-        )
+        try:
+            notif_email = EmailMessage(
+                subject=subject,
+                body=email_message,
+                from_email='Between_IMS <no-reply.between.internships@gmail.com>',
+                to=recipient_list
+            )
+            notif_email.content_subtype = "html"
+            notif_email.send()
+        except Exception as e:
+            raise serializers.ValidationError({'error': f'Failed to send notification email: {str(e)}'})
+
+
+
