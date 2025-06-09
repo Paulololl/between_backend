@@ -200,8 +200,7 @@ class RemoveOJTCoordinatorView(CEAMixin, generics.DestroyAPIView):
             action="Deleted OJT Coordinator",
             action_type='delete',
             obj=coordinator,
-            details=f"Deleted OJT Coordinator with user ID {coordinator.user.user_id} and name "
-                    f"{coordinator.first_name} {coordinator.last_name}"
+            details=f"Deleted OJT Coordinator: {coordinator.user.email}"
         )
 
         user.delete()
