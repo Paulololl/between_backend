@@ -632,6 +632,9 @@ class InternshipMatchSerializer(serializers.Serializer):
             posting = InternshipPosting.objects.get(internship_posting_id=item['internship_posting_id'])
             similarity_score = Decimal(str(item['similarity_score']))
 
+            if similarity_score < 0.20:
+                continue
+
             try:
                 existing = InternshipRecommendation.objects.get(
                     applicant=applicant,
