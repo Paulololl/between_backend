@@ -8,9 +8,10 @@ from django.core.mail import send_mail, EmailMessage
 from django.db import transaction
 from django.http import HttpResponse
 from django.template.loader import render_to_string
+from django_extensions.management.commands.export_emails import full_name
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import PermissionDenied, ValidationError
-from rest_framework import generics, status, filters
+from rest_framework import generics, status, filters, request
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -31,20 +32,18 @@ ojt_management_tag = extend_schema(tags=["ojt_management"])
 
 
 class CoordinatorMixin:
-    permission_class = [IsAuthenticated, IsCoordinator]
-
     def get_coordinator_or_403(self, user):
         try:
             return OJTCoordinator.objects.get(user=user)
         except OJTCoordinator.DoesNotExist:
             raise PermissionDenied('User is not an OJT Coordinator. Access denied.')
 
-
-@ojt_management_tag
-# School Partnerships
 # region School Partnerships -- KC
+@ojt_management_tag
 class SchoolPartnershipListView(CoordinatorMixin, generics.ListAPIView):
+    permission_class = [IsAuthenticated, IsCoordinator]
     serializer_class = SchoolPartnershipSerializer
+
     filter_backends = [filters.SearchFilter]
     search_fields = ['company__company_name']
 
@@ -53,14 +52,23 @@ class SchoolPartnershipListView(CoordinatorMixin, generics.ListAPIView):
         return SchoolPartnershipList.objects.filter(school=coordinator.program.department.school).select_related(
             'company', 'company__user')
 
+    def list(self, request, *args, **kwargs):
+        try:
+            queryset = self.filter_queryset(self.get_queryset())
+            if not queryset:
+                return Response({'message': 'No school partnerships found.'})
+
+            return super().list(request, *args, **kwargs)
+        except Exception as e:
+            raise ValidationError({'error': f'An error occurred while retrieving school partnerships: {str(e)}'})
+
 
 # endregion
 
 # region Student List -- KC
-
-
 @ojt_management_tag
 class ApplicantListView(CoordinatorMixin, generics.ListAPIView):
+    permission_classes = [IsAuthenticated, IsCoordinator]
     serializer_class = GetApplicantSerializer
 
     filter_backends = [filters.SearchFilter]
@@ -83,15 +91,24 @@ class ApplicantListView(CoordinatorMixin, generics.ListAPIView):
 
         return queryset
 
+    def list(self, request, *args, **kwargs):
+        try:
+            queryset = self.filter_queryset(self.get_queryset())
+            if not queryset:
+                return Response({'message': 'No students found.'})
+
+            return super().list(request, *args, **kwargs)
+        except Exception as e:
+            raise ValidationError({'error': f'An error occurred while retrieving students: {str(e)}'})
 
 # endregion
 
 # region Practicum Management
 
-
-@ojt_management_tag
 # Students In Practicum List -- KC
+@ojt_management_tag
 class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
+    permission_classes = [IsAuthenticated, IsCoordinator]
     serializer_class = GetApplicantSerializer
 
     filter_backends = [filters.SearchFilter]
@@ -117,53 +134,21 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
 
         return queryset
 
-
-@ojt_management_tag
-#  End Student's Practicum -- KC
-class EndPracticumView(CoordinatorMixin, generics.UpdateAPIView):
-    queryset = Applicant.objects.all()
-    serializer_class = UpdatePracticumStatusSerializer
-
-    def get_object(self):
-        user = self.request.query_params.get('user')
-        if not user:
-            raise ValidationError({"error": "Query parameter 'user' is required."})
+    def list(self, request, *args, **kwargs):
         try:
-            instance = self.get_queryset().get(user__user_id=user)
-        except Applicant.DoesNotExist:
-            raise ValidationError({"error": f"No student found for user: {user}"})
-        return instance
+            queryset = self.filter_queryset(self.get_queryset())
+            if not queryset:
+                return Response({'message': 'No students found.'})
 
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context['email_message'] = (
-            'Congratulations! You have successfully completed your practicum.\n\n'
-            'Best regards, \nYour OJT Coordinator'
-        )
-        context['coordinator'] = self.get_coordinator_or_403(self.request.user)
-        return context
-
-    def update(self, request, *args, **kwargs):
-        applicant = self.get_object()
-
-        if applicant.in_practicum != 'Yes':
-            return Response({'error': 'Action not allowed. Student is not currently in practicum.'})
-
-        if not applicant.enrollment_record:
-            return Response({'error': 'Action not allowed. Student has not submitted enrollment record.'})
-
-        request.data['in_practicum'] = 'No'
-
-        applicant.enrollment_record.delete(save=False)
-        applicant.enrollment_record = None
-        applicant.save(update_fields=['enrollment_record'])
-
-        return super().update(request, *args, **kwargs)
+            return super().list(request, *args, **kwargs)
+        except Exception as e:
+            raise ValidationError({'error': f'An error occurred while retrieving students: {str(e)}'})
 
 
-@ojt_management_tag
 # Students Requesting Practicum List -- KC
+@ojt_management_tag
 class GetRequestPracticumListView(CoordinatorMixin, generics.ListAPIView):
+    permission_classes = [IsAuthenticated, IsCoordinator]
     serializer_class = GetApplicantSerializer
 
     filter_backends = [filters.SearchFilter]
@@ -183,6 +168,283 @@ class GetRequestPracticumListView(CoordinatorMixin, generics.ListAPIView):
             , enrollment_record__isnull=False
         ).select_related('user')
 
+    def list(self, request, *args, **kwargs):
+        try:
+            queryset = self.filter_queryset(self.get_queryset())
+            if not queryset:
+                return Response({'message': 'No students found.'})
+
+            return super().list(request, *args, **kwargs)
+        except Exception as e:
+            raise ValidationError({'error': f'An error occurred while retrieving students: {str(e)}'})
+
+
+# Applicant: Request for Practicum -- KC
+@ojt_management_tag
+class RequestPracticumView(generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated, IsApplicant]
+    queryset = Applicant.objects.all()
+    serializer_class = UpdatePracticumStatusSerializer
+
+    def get_object(self):
+        try:
+            return self.request.user.applicant
+        except Applicant.DoesNotExist:
+            raise ValidationError({'error': 'Applicant account not found.'})
+
+    def build_email_context(self, applicant, coordinator):
+        applicant_fullname = f"{applicant.first_name} {applicant.last_name}"
+        coordinator_fullname = f"{coordinator.first_name} {coordinator.last_name}"
+        context = {
+            'subject': "New Practicum Request ",
+            'email_message': (
+                f'Dear <strong>{coordinator_fullname}</strong>,<br><br>'
+                f'A new practicum request has been submitted by <strong>{applicant_fullname}</strong>.<br><br>'
+                'Please log in to Between IMS to review the request.<br><br>'
+                'Best regards,<br><strong>Between Team</strong>'
+            )
+        }
+        return context
+
+    def get_serializer_context(self):
+        applicant = self.get_object()
+        try:
+            coordinator = OJTCoordinator.objects.get(program=applicant.program, user__status__in=['Active'])
+        except OJTCoordinator.DoesNotExist:
+            raise ValidationError({'error': 'No OJT Coordinator is currently assigned to this program. Please contact '
+                                            'your school administrator for assistance.'})
+
+        email_context = self.build_email_context(applicant, coordinator)
+
+        return {**email_context, 'coordinator': coordinator}
+
+    def update(self, request, *args, **kwargs):
+        applicant = request.user.applicant
+
+        if applicant.in_practicum == 'Yes':
+            return Response({'error': 'Action not allowed. Student is already in practicum.'})
+
+        enrollment_record_data = request.data.get('enrollment_record')
+        if not enrollment_record_data:
+            raise ValidationError({'error': 'Enrollment record is required.'})
+
+        er_serializer = EnrollmentRecordSerializer(instance=applicant, data=request.data, partial=True)
+        er_serializer.is_valid(raise_exception=True)
+        try:
+            er_serializer.save()
+        except Exception as e:
+            raise ValidationError(
+                {'error': f'An error occurred while saving the enrollment record: {str(e)}. Please try again.'},
+            )
+
+        serializer = self.get_serializer(instance=applicant, data={'in_practicum': 'Pending'}, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response({'message': 'Practicum Request Sent.'}, status=status.HTTP_200_OK)
+
+
+# View Enrollment Record -- KC
+@ojt_management_tag
+class GetEnrollmentRecordView(CoordinatorMixin, generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = EnrollmentRecordSerializer
+
+    def get_object(self):
+        user = self.request.query_params.get('user')
+        if not user:
+            raise ValidationError({"error": "Query parameter 'user' is required."})
+
+        coordinator = self.get_coordinator_or_403(self.request.user)
+        try:
+            applicant = Applicant.objects.get(
+                user__user_id=user
+                , program=coordinator.program
+                , user__status__in=['Active']
+            )
+        except Applicant.DoesNotExist:
+            raise ValidationError({"error": f"No student found for user: {user}"})
+
+        if not applicant.enrollment_record:
+            raise ValidationError({"error": "No enrollment record found for student."})
+
+        return applicant
+
+
+# Approve Practicum Request -- KC
+@ojt_management_tag
+class ApprovePracticumRequestView(CoordinatorMixin, generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated, IsCoordinator]
+    queryset = Applicant.objects.all()
+    serializer_class = UpdatePracticumStatusSerializer
+
+    def get_object(self):
+        user = self.request.query_params.get('user')
+        if not user:
+            raise ValidationError({"error": "Query parameter 'user' is required."})
+        try:
+            instance = self.get_queryset().get(user__user_id=user)
+        except Applicant.DoesNotExist:
+            raise ValidationError({"error": f"No student found for user: {user}"})
+        return instance
+
+    def build_email_context(self, applicant):
+        fullname = f"{applicant.first_name} {applicant.last_name}"
+        context = {
+            'subject': "Practicum Request Approved",
+            'email_message': (
+                f"Dear <strong>{fullname}</strong>,<br><br>"
+                "Your practicum request has been approved! We wish you great success.<br><br>"
+                "Best regards,<br><strong>Between Team</strong>"
+            )
+        }
+        return context
+
+    def get_serializer_context(self):
+        applicant = self.get_object()
+        coordinator = self.get_coordinator_or_403(self.request.user)
+
+        email_context = self.build_email_context(applicant)
+
+        return {**email_context, 'coordinator': coordinator}
+
+    def update(self, request, *args, **kwargs):
+        applicant = self.get_object()
+
+        if applicant.in_practicum != 'Pending':
+            return Response({'error': 'Action not allowed. Student has not requested to be in practicum.'})
+
+        if not applicant.enrollment_record:
+            return Response({'error': 'Action not allowed. Student has not submitted enrollment record.'})
+
+        serializer = self.get_serializer(instance=applicant, data={'in_practicum': 'Yes'}, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response({'message': 'Practicum request approved successfully.'}, status=status.HTTP_200_OK)
+
+
+# Reject Practicum Request -- KC
+@ojt_management_tag
+class RejectPracticumRequestView(CoordinatorMixin, generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated, IsCoordinator]
+    queryset = Applicant.objects.all()
+    serializer_class = UpdatePracticumStatusSerializer
+
+    def get_object(self):
+        user = self.request.query_params.get('user')
+        if not user:
+            raise ValidationError({"error": "Query parameter 'user' is required."})
+
+        try:
+            instance = self.get_queryset().get(user__user_id=user)
+        except Applicant.DoesNotExist:
+            raise ValidationError({"error": f"No student found for user: {user}"})
+        return instance
+
+    def build_email_context(self, applicant, reason):
+        fullname = f"{applicant.first_name} {applicant.last_name}"
+        context = {
+            'subject': "Practicum Request Rejected",
+            'email_message': (
+                f'Dear <strong>{fullname}</strong>,<br><br>'
+                'We regret to inform you that your practicum request has been rejected.<br><br>'
+                f'<strong>Reason:</strong> {reason}<br><br>'
+                'Please contact your program coordinator for more details.<br><br>'
+                'Best regards,<br><strong>Between Team</strong>'
+            )
+        }
+        return context
+
+    def get_serializer_context(self):
+        applicant = self.get_object()
+        coordinator = self.get_coordinator_or_403(self.request.user)
+        reason = self.request.data['reason']
+        email_context = self.build_email_context(applicant, reason=reason)
+
+        return {**email_context, 'coordinator': coordinator}
+
+    def update(self, request, *args, **kwargs):
+        applicant = self.get_object()
+
+        if applicant.in_practicum != 'Pending':
+            return Response({'error': 'Action not allowed. Student has not requested to be in practicum.'})
+
+        if not applicant.enrollment_record:
+            return Response({'error': 'Action not allowed. Student has not submitted enrollment record.'})
+
+        reason = request.data.get('reason')
+        if not reason:
+            return Response({'error': 'A reason is required to reject a practicum request.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = self.get_serializer(instance=applicant, data={'in_practicum': 'No'}, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response({'message': 'Practicum request rejected successfully.'}, status=status.HTTP_200_OK)
+
+#  End Student's Practicum -- KC
+@ojt_management_tag
+class EndPracticumView(CoordinatorMixin, generics.UpdateAPIView):
+    queryset = Applicant.objects.all()
+    serializer_class = UpdatePracticumStatusSerializer
+
+    def get_object(self):
+        user = self.request.query_params.get('user')
+        if not user:
+            raise ValidationError({"error": "Query parameter 'user' is required."})
+
+        try:
+            instance = self.get_queryset().get(user__user_id=user)
+        except Applicant.DoesNotExist:
+            raise ValidationError({"error": f"No student found for user: {user}"})
+        return instance
+
+    def build_email_context(self, applicant):
+        fullname = f"{applicant.first_name} {applicant.last_name}"
+        context = {
+            'subject': "Practicum Ended",
+            'email_message': (
+                f'<strong>{fullname}</strong>\'s practicum has been successfully marked as ended.<br><br>'
+                'This notification is for your records.<br><br>'
+                'Best regards,<br><strong>Between Team</strong>'
+            )
+        }
+        return context
+
+    def get_serializer_context(self):
+        applicant = self.get_object()
+        coordinator = self.get_coordinator_or_403(self.request.user)
+
+        email_context = self.build_email_context(applicant)
+
+        return {**email_context, 'coordinator': coordinator}
+
+    def update(self, request, *args, **kwargs):
+        applicant = self.get_object()
+
+        if applicant.in_practicum != 'Yes':
+            return Response({'error': 'Action not allowed. Student is not currently in practicum.'})
+
+        if not applicant.enrollment_record:
+            return Response({'error': 'Action not allowed. Student has not submitted enrollment record.'})
+
+        """
+        applicant.enrollment_record.delete(save=False)
+        applicant.enrollment_record = None
+        applicant.save(update_fields=['enrollment_record'])
+        """
+
+        serializer = self.get_serializer(instance=applicant, data={'in_practicum': 'No'}, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response({'message': 'Practicum was ended successfully.'}, status=status.HTTP_200_OK)
+
+# endregion
+
+
+# region Endorsement Management -- PAUL
 
 @ojt_management_tag
 class RespondedEndorsementListView(CoordinatorMixin, generics.ListAPIView):
@@ -385,193 +647,5 @@ class GenerateEndorsementPDFView(CoordinatorMixin, APIView):
             content_type='application/pdf',
             headers={'Content-Disposition': 'attachment; filename=endorsement_preview.pdf'}
         )
-
-
-@ojt_management_tag
-# Approve Practicum Request -- KC
-class ApprovePracticumRequestView(CoordinatorMixin, generics.UpdateAPIView):
-    queryset = Applicant.objects.all()
-    serializer_class = UpdatePracticumStatusSerializer
-
-    def get_object(self):
-        user = self.request.query_params.get('user')
-        if not user:
-            raise ValidationError({"error": "Query parameter 'user' is required."})
-        try:
-            instance = self.get_queryset().get(user__user_id=user)
-        except Applicant.DoesNotExist:
-            raise ValidationError({"error": f"No student found for user: {user}"})
-        return instance
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context['email_message'] = (
-            'Your request for practicum has been approved. Best of luck!\n\n'
-            'Best regards, \nYour OJT Coordinator'
-        )
-        context['coordinator'] = self.get_coordinator_or_403(self.request.user)
-        return context
-
-    def update(self, request, *args, **kwargs):
-        applicant = self.get_object()
-
-        if applicant.in_practicum != 'Pending':
-            return Response({'error': 'Action not allowed. Student has not requested to be in practicum.'})
-
-        if not applicant.enrollment_record:
-            return Response({'error': 'Action not allowed. Student has not submitted enrollment record.'})
-
-        request.data['in_practicum'] = 'Yes'
-        return super().update(request, *args, **kwargs)
-
-
-@ojt_management_tag
-# Reject Practicum Request -- KC
-class RejectPracticumRequestView(CoordinatorMixin, generics.UpdateAPIView):
-    queryset = Applicant.objects.all()
-    serializer_class = UpdatePracticumStatusSerializer
-
-    def get_object(self):
-        user = self.request.query_params.get('user')
-        if not user:
-            raise ValidationError({"error": "Query parameter 'user' is required."})
-        try:
-            instance = self.get_queryset().get(user__user_id=user)
-        except Applicant.DoesNotExist:
-            raise ValidationError({"error": f"No student found for user: {user}"})
-        return instance
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-
-        rejection_reason = self.request.data.get('reason', '').strip()
-        if not rejection_reason:
-            raise ValidationError({"error": "A reason for rejecting the request is required."})
-
-        context['email_message'] = (
-            'Your request for practicum has been rejected for the following reason:\n'
-            f'{rejection_reason} \n\n'
-            'Best regards, \nYour OJT Coordinator'
-        )
-        context['coordinator'] = self.get_coordinator_or_403(self.request.user)
-        return context
-
-    def update(self, request, *args, **kwargs):
-        applicant = self.get_object()
-
-        if applicant.in_practicum != 'Pending':
-            return Response({'error': 'Action not allowed. Student has not requested to be in practicum.'})
-
-        if not applicant.enrollment_record:
-            return Response({'error': 'Action not allowed. Student has not submitted enrollment record.'})
-
-        request.data['in_practicum'] = 'No'
-        return super().update(request, *args, **kwargs)
-
-
-# Applicant: Request for Practicum -- KC
-
-
-@ojt_management_tag
-class RequestPracticumView(generics.UpdateAPIView):
-    permission_classes = [IsAuthenticated, IsApplicant]
-
-    queryset = Applicant.objects.all()
-    serializer_class = UpdatePracticumStatusSerializer
-
-    def get_object(self):
-        try:
-            return self.request.user.applicant
-        except Applicant.DoesNotExist:
-            raise ValidationError({'error': 'Applicant account not found.'})
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        applicant = self.request.user.applicant
-        context['email_message'] = (
-            f'A new practicum request has been submitted by {applicant.first_name} {applicant.last_name}.\n\n'
-            'Best regards, \nBetween Team'
-        )
-        try:
-            context['coordinator'] = OJTCoordinator.objects.get(program=applicant.program, user__status__in=['Active'])
-        except OJTCoordinator.DoesNotExist:
-            raise ValidationError({'error': 'No OJT Coordinator is currently assigned to this program. Please contact '
-                                            'your school administrator for assistance.'})
-
-        return context
-
-    def update(self, request, *args, **kwargs):
-        try:
-            applicant = request.user.applicant
-
-            if applicant.in_practicum == 'Yes':
-                return Response({'error': 'Action not allowed. Student is already in practicum.'})
-
-            if 'enrollment_record' not in request.data:
-                return Response({'error': 'Enrollment record is required.'})
-
-            document_serializer = EnrollmentRecordSerializer(instance=applicant, data=request.data, partial=True)
-            if not document_serializer.is_valid():
-                return Response(document_serializer.errors)
-
-            document_serializer.save()
-
-            request.data['in_practicum'] = 'Pending'
-
-            return super().update(request, *args, **kwargs)
-
-        except Applicant.DoesNotExist:
-            return Response({'error': 'Applicant account not found.'})
-
-
-@ojt_management_tag
-# View Enrollment Record -- KC
-class GetEnrollmentRecordView(CoordinatorMixin, generics.RetrieveAPIView):
-    serializer_class = EnrollmentRecordSerializer
-
-    def get_object(self):
-        user = self.request.query_params.get('user')
-        if not user:
-            raise ValidationError({"error": "Query parameter 'user' is required."})
-
-        coordinator = self.get_coordinator_or_403(self.request.user)
-        try:
-            applicant = Applicant.objects.get(user__user_id=user, program=coordinator.program,
-                                              user__status__in=['Active'], in_practicum='Pending')
-            if not applicant.enrollment_record:
-                raise ValidationError({"error": "No enrollment record found for student."})
-            return applicant
-        except Applicant.DoesNotExist:
-            raise ValidationError({"error": f"No student found for user: {user}"})
-
-
-# endregion
-
-
-@ojt_management_tag
-class ChangeLogoAndSignatureView(generics.UpdateAPIView):
-    permission_classes = [IsAuthenticated, IsCoordinator]
-    serializer_class = OJTCoordinatorDocumentSerializer
-
-    def get_object(self):
-        try:
-            return self.request.user.ojtcoordinator
-        except OJTCoordinator.DoesNotExist:
-            raise ValidationError({"error": "You are not an OJT Coordinator."})
-
-    def update(self, request, *args, **kwargs):
-        try:
-            coordinator = request.user.ojtcoordinator
-
-            file_serializer = self.get_serializer(coordinator, data=request.data, partial=True)
-            if not file_serializer.is_valid():
-                return Response(file_serializer.errors)
-
-            file_serializer.save()
-
-            return super().update(request, *args, **kwargs)
-
-        except OJTCoordinator.DoesNotExist:
-            return Response({"error": "OJT Coordinator not found. Access denied."})
 
 # endregion
