@@ -216,7 +216,7 @@ class RequestPracticumView(generics.UpdateAPIView):
 
         email_context = self.build_email_context(applicant, coordinator)
 
-        return {**email_context, 'coordinator': coordinator}
+        return {**email_context, 'coordinator': coordinator, 'recipient_list': [coordinator.user.email]}
 
     def update(self, request, *args, **kwargs):
         applicant = request.user.applicant
@@ -306,7 +306,7 @@ class ApprovePracticumRequestView(CoordinatorMixin, generics.UpdateAPIView):
 
         email_context = self.build_email_context(applicant)
 
-        return {**email_context, 'coordinator': coordinator}
+        return {**email_context, 'coordinator': coordinator, 'recipient_list': [applicant.user.email]}
 
     def update(self, request, *args, **kwargs):
         applicant = self.get_object()
@@ -362,7 +362,7 @@ class RejectPracticumRequestView(CoordinatorMixin, generics.UpdateAPIView):
         reason = self.request.data['reason']
         email_context = self.build_email_context(applicant, reason=reason)
 
-        return {**email_context, 'coordinator': coordinator}
+        return {**email_context, 'coordinator': coordinator, 'recipient_list': [applicant.user.email]}
 
     def update(self, request, *args, **kwargs):
         applicant = self.get_object()
@@ -386,6 +386,7 @@ class RejectPracticumRequestView(CoordinatorMixin, generics.UpdateAPIView):
 #  End Student's Practicum -- KC
 @ojt_management_tag
 class EndPracticumView(CoordinatorMixin, generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated, IsCoordinator]
     queryset = Applicant.objects.all()
     serializer_class = UpdatePracticumStatusSerializer
 
@@ -405,8 +406,9 @@ class EndPracticumView(CoordinatorMixin, generics.UpdateAPIView):
         context = {
             'subject': "Practicum Ended",
             'email_message': (
-                f'<strong>{fullname}</strong>\'s practicum has been successfully marked as ended.<br><br>'
-                'This notification is for your records.<br><br>'
+                f'Dear <strong>{fullname}</strong>,<br><br>'
+                f'Your practicum has been successfully marked as ended.<br><br>'
+                'If you have any questions, please contact your coordinator.<br><br>'
                 'Best regards,<br><strong>Between Team</strong>'
             )
         }
@@ -418,7 +420,7 @@ class EndPracticumView(CoordinatorMixin, generics.UpdateAPIView):
 
         email_context = self.build_email_context(applicant)
 
-        return {**email_context, 'coordinator': coordinator}
+        return {**email_context, 'coordinator': coordinator, 'recipient_list': [applicant.user.email]}
 
     def update(self, request, *args, **kwargs):
         applicant = self.get_object()
@@ -440,6 +442,73 @@ class EndPracticumView(CoordinatorMixin, generics.UpdateAPIView):
         serializer.save()
 
         return Response({'message': 'Practicum was ended successfully.'}, status=status.HTTP_200_OK)
+
+class ResetPracticumView(CoordinatorMixin, generics.GenericAPIView):
+    permission_classes = [IsAuthenticated, IsCoordinator]
+    queryset = Applicant.objects.all()
+    serializer_class = UpdatePracticumStatusSerializer
+
+    def get_queryset(self):
+        coordinator = self.get_coordinator_or_403(self.request.user)
+        queryset = Applicant.objects.filter(program=coordinator.program, in_practicum='Yes')
+        return queryset
+
+    def build_email_context(self, applicant):
+        fullname = f"{applicant.first_name} {applicant.last_name}"
+        context = {
+            'subject': "Practicum Ended",
+            'email_message': (
+                f'<strong>{fullname}</strong>\'s practicum has been successfully marked as ended.<br><br>'
+                'If you have any questions, please contact your coordinator.<br><br>'
+                'Best regards,<br><strong>Between Team</strong>'
+            )
+        }
+        return context
+
+    def post(self, request, *args, **kwargs):
+        applicants = self.get_queryset()
+        if not applicants:
+            return Response({'message': 'No students are currently in practicum.'}, status=status.HTTP_200_OK)
+
+        updated_count = 0
+        failed_updates = []
+
+        for applicant in applicants:
+            if not applicant.enrollment_record:
+                failed_updates.append({
+                    'user_id': applicant.user.user_id,
+                    'error': 'No enrollment record found for student.'
+                })
+
+            email_context = self.build_email_context(applicant)
+            coordinator = self.get_coordinator_or_403(request.user)
+            serializer_context = {
+                **email_context,
+                'coordinator': coordinator,
+                'recipient_list': [applicant.user.email]
+            }
+
+            serializer = self.get_serializer(
+                instance=applicant,
+                data={'in_practicum': 'No'},
+                partial=True,
+                context=serializer_context
+            )
+
+            try:
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+                updated_count += 1
+            except Exception as e:
+                failed_updates.append({
+                    'user_id': applicant.user.user_id,
+                    'error': str(e)
+                })
+
+        return Response({
+            'message': f'Successfully ended practicum for {updated_count} students.',
+            'failures': failed_updates
+        }, status=status.HTTP_200_OK)
 
 # endregion
 

@@ -252,10 +252,11 @@ class UpdatePracticumStatusSerializer(serializers.ModelSerializer):
         coordinator = self.context.get('coordinator')
         subject = self.context.get('subject')
         email_message = self.context.get('email_message')
+        recipient_list = self.context.get('recipient_list')
 
         if email_message:
             try:
-                self.send_notification_email(applicant, coordinator, subject, email_message)
+                self.send_notification_email(applicant, coordinator, subject, email_message, recipient_list)
             except serializers.ValidationError as e:
                 raise e
             except Exception as e:
@@ -282,5 +283,30 @@ class UpdatePracticumStatusSerializer(serializers.ModelSerializer):
         except Exception as e:
             raise serializers.ValidationError({'error': f'Failed to send notification email: {str(e)}'})
 
+"""
+class BulkUpdatePracticumStatusSerializer(serializers.Serializer):
+    class Meta:
+        model = Applicant
+        fields = ['in_practicum']
+
+    def send_notification_email(self,  applicant, coordinator, subject, email_message):
+        try:
+            EmailMessage(
+                subject=subject,
+                body=email_message,
+                from_email='Between_IMS <no-reply.between.internships@gmail.com>',
+                to=[applicant.user.email, coordinator.user.email]
+            ).send(fail_silently=False)
+        except Exception as e:
+            raise serializers.ValidationError({'error': f'Failed to send notification email: {str(e)}'})
+
+    def update_practicum_status(self, applicants, new_status, coordinator):
+        failed_emails = []
+
+        update_count = applicants.update(in_practicum=new_status)
+
+        for applicant in applicants:
+            fullnem
+"""
 
 
