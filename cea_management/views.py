@@ -130,11 +130,10 @@ class CreateOJTCoordinatorView(CEAMixin, generics.CreateAPIView):
 
         log_cea_action(
             user=self.request.user,
-            action="Created new OJT Coordinator",
+            action="Added new OJT Coordinator",
             action_type='add',
             obj=coordinator,
-            details=f"Assigned to department: {department.department_name},"
-                    f" program: {program.program_name if program else 'None'}"
+            details=f"Added new OJT Coordinator: {coordinator.user.email}"
         )
 
 
