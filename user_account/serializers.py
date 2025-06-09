@@ -1079,6 +1079,7 @@ class EditApplicantSerializer(serializers.ModelSerializer):
             'enrollment_record',
             'quick_introduction',
             'preferred_modality',
+            'mobile_number'
         ]
 
     def get_displayed_hard_skills(self, obj):
