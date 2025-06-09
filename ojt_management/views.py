@@ -505,10 +505,14 @@ class ResetPracticumView(CoordinatorMixin, generics.GenericAPIView):
                     'error': str(e)
                 })
 
-        return Response({
+        response_data = {
             'message': f'Successfully ended practicum for {updated_count} students.',
-            'failures': failed_updates
-        }, status=status.HTTP_200_OK)
+        }
+
+        if failed_updates:
+            response_data['failures'] = failed_updates
+
+        return Response(response_data, status=status.HTTP_200_OK)
 
 # endregion
 
@@ -722,7 +726,7 @@ class GenerateEndorsementPDFView(CoordinatorMixin, APIView):
 
 @ojt_management_tag
 class ChangeLogoAndSignatureView(CoordinatorMixin, generics.UpdateAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsCoordinator]
     serializer_class = OJTCoordinatorDocumentSerializer
 
     def get_object(self):
