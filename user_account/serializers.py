@@ -503,24 +503,33 @@ class EditOJTCoordinatorSerializer(OJTCoordinatorRegisterSerializer):
 
         return attrs
 
-    def validate_department(self, department):
-        if department:
-            user_school = self.context.get('school')  # pass school in serializer context
-            if user_school and department.school != user_school:
-                raise serializers.ValidationError(
-                    'The selected department does not belong to your school.'
-                )
-        return department
-
     def validate_program(self, program):
-        existing_coordinator = OJTCoordinator.objects.filter(program=program).exclude(user__status='Deleted')
+        if not program or (self.instance and self.instance.program_id == program.program_id):
+            return program
+
+        user_school_uuid = getattr(self.context.get('school'), 'school_id', None)
+        program_school_uuid = program.department.school.school_id
+
+        if program_school_uuid != user_school_uuid:
+            raise serializers.ValidationError('The selected program does not belong to your school.')
+
+        existing = OJTCoordinator.objects.filter(program=program, user__status__in=['Active', 'Inactive'])
         if self.instance:
-            existing_coordinator = existing_coordinator.exclude(pk=self.instance.pk)
-        if existing_coordinator.exists():
-            raise serializers.ValidationError(
-                'The selected program already has an assigned OJT Coordinator.'
-            )
-        return super().validate_program(program)
+            existing = existing.exclude(pk=self.instance.pk)
+        if existing.exists():
+            raise serializers.ValidationError('The selected program already has an assigned OJT Coordinator.')
+
+        return program
+
+    def validate_department(self, department):
+        if not department or (self.instance and self.instance.department == department):
+            return department
+
+        user_school = self.context.get('school')
+        if department.school_id != getattr(user_school, 'id', None):
+            raise serializers.ValidationError('The selected department does not belong to your school.')
+
+        return department
 
     def validate_ojtcoordinator_email(self, email):
         if self.instance and self.instance.user.email == email:
@@ -563,7 +572,6 @@ class GetOJTCoordinatorSerializer(serializers.ModelSerializer):
     department = DepartmentSerializer(read_only=True)
     email = serializers.EmailField(source='user.email', read_only=True)
     status = serializers.CharField(source='user.status')
-    middle_initial = serializers.CharField(write_only=True, required=False, allow_blank=True, default='')
 
     class Meta:
         model = OJTCoordinator
