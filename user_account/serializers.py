@@ -445,6 +445,17 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
     def validate_program(self, program):
         if program and program.department.school != self.context.get('school'):
             raise ValidationError('The selected program does not belong to your school.')
+
+        existing = OJTCoordinator.objects.filter(
+            program=program,
+            user__status__in=['Active', 'Inactive']
+        )
+        if self.instance:
+            existing = existing.exclude(pk=self.instance.pk)
+
+        if existing.exists():
+            raise serializers.ValidationError('The selected program already has an assigned OJT Coordinator.')
+
         return program
 
     def validate_department(self, department):
@@ -744,7 +755,7 @@ class GetApplicantSerializer(serializers.ModelSerializer):
         fields = ['user', 'email', 'school', 'department', 'program', 'first_name', 'last_name',
                   'middle_initial', 'address', 'hard_skills', 'soft_skills', 'in_practicum',
                   'preferred_modality', 'academic_program', 'quick_introduction',
-                  'resume', 'enrollment_record', 'verified_at']
+                  'resume', 'enrollment_record', 'verified_at', 'mobile_number']
 
     def get_hard_skills(self, obj):
         return [
