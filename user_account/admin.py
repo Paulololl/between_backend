@@ -5,10 +5,10 @@ from django.utils.safestring import mark_safe
 
 from client_matching.admin import InternshipRecommendationInline
 from .forms import DateJoinedFilter
-from .models import (User, Applicant, Company, CareerEmplacementAdmin, OJTCoordinator)
+from .models import (User, Applicant, Company, CareerEmplacementAdmin, OJTCoordinator, AuditLog)
 
 
-model_to_register = [CareerEmplacementAdmin, OJTCoordinator]
+model_to_register = [CareerEmplacementAdmin, OJTCoordinator, AuditLog]
 
 for model in model_to_register:
     admin.site.register(model)

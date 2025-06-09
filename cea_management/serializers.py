@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from user_account.models import Company, CareerEmplacementAdmin
+from user_account.models import Company, CareerEmplacementAdmin, AuditLog
 from .models import SchoolPartnershipList, Program, Department, School
 
 
@@ -130,4 +130,10 @@ class SchoolPartnershipSerializer(serializers.ModelSerializer):
             'instagram_url',
             'other_url',
         ]
+
+
+class CeaAuditLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AuditLog
+        fields = "__all__"
 

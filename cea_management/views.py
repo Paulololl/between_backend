@@ -1,19 +1,45 @@
 from django.db import transaction, IntegrityError
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import  PermissionDenied, ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework import generics, filters, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from ojt_management.views import ojt_management_tag
-from user_account.models import CareerEmplacementAdmin, OJTCoordinator, Applicant, Company
+from user_account.models import CareerEmplacementAdmin, OJTCoordinator, Applicant, Company, AuditLog, User
 from user_account.serializers import GetOJTCoordinatorSerializer, OJTCoordinatorRegisterSerializer, \
     GetApplicantSerializer, EditOJTCoordinatorSerializer
-from .models import SchoolPartnershipList, Program
+from .models import SchoolPartnershipList
 from user_account.permissions import IsCEA
-from .serializers import CompanyListSerializer, CreatePartnershipSerializer, SchoolPartnershipSerializer, CareerEmplacementAdminSerializer
+from .serializers import CompanyListSerializer, CreatePartnershipSerializer, SchoolPartnershipSerializer, \
+    CareerEmplacementAdminSerializer, CeaAuditLogSerializer
 
 cea_management_tag = extend_schema(tags=["cea_management"])
+
+
+def log_cea_action(user, action, obj=None, details="", action_type=None):
+    if obj:
+        model_name = obj.__class__.__name__
+        object_id = str(getattr(obj, 'pk', ''))
+        object_repr = str(obj)
+    else:
+        model_name = ""
+        object_id = ""
+        object_repr = ""
+
+    if action_type not in {'add', 'change', 'delete'}:
+        action_type = None
+
+    AuditLog.objects.create(
+        user=user,
+        user_role='cea',
+        action=action,
+        model=model_name,
+        object_id=object_id,
+        object_repr=object_repr,
+        details=details,
+        action_type=action_type
+    )
 
 
 class CEAMixin:
@@ -57,7 +83,8 @@ class OJTCoordinatorListView(CEAMixin, generics.ListAPIView):
 
     def get_queryset(self):
         cea = self.get_cea_or_403(self.request.user)
-        queryset = OJTCoordinator.objects.filter(department__school=cea.school, user__status__in=['Active', 'Inactive', 'Suspended'])
+        queryset = OJTCoordinator.objects.filter(department__school=cea.school,
+                                                 user__status__in=['Active', 'Inactive', 'Suspended'])
 
         user = self.request.query_params.get('user')
         if user:
@@ -92,18 +119,23 @@ class CreateOJTCoordinatorView(CEAMixin, generics.CreateAPIView):
 
         program = serializer.validated_data.get('program', None)
         if program and program.department.school != cea.school:
-            raise PermissionDenied({'program': ["You can only assign coordinators to programs belonging to your school."]})
+            raise PermissionDenied(
+                {'program': ["You can only assign coordinators to programs belonging to your school."]})
 
         department = serializer.validated_data.get('department', None)
         if not department or department.school != cea.school:
             raise ValidationError({'department': ["The chosen department must belong to your school."]})
 
-        try:
-            serializer.save()
-        except IntegrityError as e:
-            if "Duplicate entry" in str(e):
-                raise ValidationError({"program": ["An OJT Coordinator is already assigned to this program."]})
-            raise e
+        coordinator = serializer.save()
+
+        log_cea_action(
+            user=self.request.user,
+            action="Created new OJT Coordinator",
+            action_type='add',
+            obj=coordinator,
+            details=f"Assigned to department: {department.department_name},"
+                    f" program: {program.program_name if program else 'None'}"
+        )
 
 
 @cea_management_tag
@@ -129,11 +161,19 @@ class UpdateOJTCoordinatorView(CEAMixin, generics.UpdateAPIView):
 
         serializer.save()
 
+        log_cea_action(
+            user=self.request.user,
+            action="Updated an OJT Coordinator",
+            action_type='change',
+            obj=coordinator,
+            details=f"Updated OJT Coordinator: {coordinator}"
+        )
+
         return Response(serializer.data)
 
 
 @cea_management_tag
-class RemoveOJTCoordinatorView(CEAMixin, generics.UpdateAPIView):
+class RemoveOJTCoordinatorView(CEAMixin, generics.DestroyAPIView):
     permission_classes = [IsAuthenticated, IsCEA]
 
     queryset = OJTCoordinator.objects.all()
@@ -151,14 +191,26 @@ class RemoveOJTCoordinatorView(CEAMixin, generics.UpdateAPIView):
 
         return instance
 
-    def update(self, request, *args, **kwargs):
+    def delete(self, request, *args, **kwargs):
         coordinator = self.get_object()
-        coordinator.user.status = 'Deleted'
-        coordinator.user.save()
+        user = coordinator.user
+
+        log_cea_action(
+            user=self.request.user,
+            action="Deleted OJT Coordinator",
+            action_type='delete',
+            obj=coordinator,
+            details=f"Deleted OJT Coordinator with user ID {coordinator.user.user_id} and name "
+                    f"{coordinator.first_name} {coordinator.last_name}"
+        )
+
+        user.delete()
 
         return Response(
-            {'message': 'The OJT Coordinator has been removed.'}
+            {'message': 'The OJT Coordinator has been deleted.'},
+            status=status.HTTP_204_NO_CONTENT
         )
+
 
 # endregion
 
@@ -192,6 +244,7 @@ class ApplicantListView(CEAMixin, generics.ListAPIView):
 
         return super().list(request, *args, **kwargs)
 
+
 # endregion
 
 # region Company Partnerships -- PAUL
@@ -207,8 +260,8 @@ class SchoolPartnershipListView(CEAMixin, generics.ListAPIView):
     def get_queryset(self):
         cea = self.get_cea_or_403(self.request.user)
         queryset = SchoolPartnershipList.objects.filter(
-                        school=cea.school
-                        , company__user__status__in=['Active']
+            school=cea.school
+            , company__user__status__in=['Active']
         ).select_related('company', 'company__user')
         return queryset
 
@@ -235,10 +288,23 @@ class CreateSchoolPartnershipView(CEAMixin, generics.CreateAPIView):
         context['school'] = cea.school
         return context
 
+    @transaction.atomic
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         partnerships = serializer.save()
+
+        school_name = partnerships[0].school.school_name if partnerships else "Unknown School"
+        company_names = ", ".join([p.company.company_name for p in partnerships])
+        partnership_str = f"{school_name}: {company_names}"
+
+        log_cea_action(
+            user=self.request.user,
+            action="Created School Partnership(s)",
+            action_type='add',
+            obj=company_names,
+            details=f"Created Partnerships with {partnership_str}"
+        )
 
         read_serializer = SchoolPartnershipSerializer(partnerships, many=True)
         return Response(read_serializer.data, status=status.HTTP_201_CREATED)
@@ -259,9 +325,9 @@ class CompanyListView(CEAMixin, generics.ListAPIView):
             school=cea.school
         ).values_list('company__user__user_id', flat=True)
 
-        return Company.objects.filter( user__status__in=['Active']
-                                ).exclude(user__user_id__in=partnered_company_ids
-                                ).select_related('user')
+        return Company.objects.filter(user__status__in=['Active']
+                                      ).exclude(user__user_id__in=partnered_company_ids
+                                                ).select_related('user')
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -305,12 +371,25 @@ class BulkDeleteSchoolPartnershipView(CEAMixin, generics.GenericAPIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        school_name = partnerships_qs[0].school.school_name if partnerships_qs else "Unknown School"
+        company_names = ", ".join([p.company.company_name for p in partnerships_qs])
+        partnership_str = f"{school_name}: {company_names}"
+
+        log_cea_action(
+            user=self.request.user,
+            action="Deleted School Partnership(s)",
+            action_type='delete',
+            obj=company_names,
+            details=f"Deleted Partnerships from {partnership_str}"
+        )
+
         deleted_count, _ = partnerships_qs.delete()
 
         return Response(
             {"detail": f"Successfully deleted {deleted_count} school partnership(s)."},
             status=status.HTTP_200_OK,
         )
+
 
 # endregion
 
@@ -327,3 +406,15 @@ class CareerEmplacementAdminView(CEAMixin, generics.ListAPIView):
 
         return CareerEmplacementAdmin.objects.filter(user=user)
 
+
+@cea_management_tag
+class CeaAuditLogView(CEAMixin, generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CeaAuditLogSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.user_role != 'cea':
+            raise ValidationError({'error': 'User must be a Career Emplacement Admin.'})
+
+        return AuditLog.objects.filter(user=user)

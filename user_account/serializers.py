@@ -432,10 +432,14 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
 
     def validate_ojtcoordinator_email(self, email):
         existing_user = User.objects.filter(email=email).first()
-        if existing_user and existing_user.status == 'Deleted':
-            raise ValidationError(
-                'Re-activation of OJT Coordinator account is currently not allowed. Please contact the administrator for assistance.'
-            )
+        if existing_user:
+            if existing_user.status == 'Deleted':
+                raise ValidationError(
+                    'Re-activation of OJT Coordinator account is currently not allowed. Please contact the'
+                    ' administrator for assistance.'
+                )
+            else:
+                raise ValidationError('A user with this email already exists.')
         return email
 
     def validate_program(self, program):
@@ -482,7 +486,7 @@ class EditOJTCoordinatorSerializer(OJTCoordinatorRegisterSerializer):
     ojtcoordinator_email = serializers.EmailField(required=False)
     first_name = serializers.CharField(required=False)
     last_name = serializers.CharField(required=False)
-    middle_initial = serializers.CharField(required=False, allow_blank=True, default='')
+    middle_initial = serializers.CharField(write_only=True, required=False, allow_blank=True, default='')
     password = serializers.CharField(write_only=True, required=False)
     confirm_password = serializers.CharField(write_only=True, required=False)
     status = serializers.CharField(source='user.status', required=False)
@@ -499,18 +503,35 @@ class EditOJTCoordinatorSerializer(OJTCoordinatorRegisterSerializer):
 
         return attrs
 
+    def validate_department(self, department):
+        if department:
+            user_school = self.context.get('school')  # pass school in serializer context
+            if user_school and department.school != user_school:
+                raise serializers.ValidationError(
+                    'The selected department does not belong to your school.'
+                )
+        return department
+
     def validate_program(self, program):
-        existing_coordinator = OJTCoordinator.objects.filter(program=program).exclude(user__status='Deleted').first()
-        if existing_coordinator:
+        existing_coordinator = OJTCoordinator.objects.filter(program=program).exclude(user__status='Deleted')
+        if self.instance:
+            existing_coordinator = existing_coordinator.exclude(pk=self.instance.pk)
+        if existing_coordinator.exists():
             raise serializers.ValidationError(
                 'The selected program already has an assigned OJT Coordinator.'
             )
-
         return super().validate_program(program)
 
     def validate_ojtcoordinator_email(self, email):
-        assigned_coordinator = OJTCoordinator.objects.filter(user__email=email).exclude(user__status='Deleted').first()
-        if assigned_coordinator:
+        if self.instance and self.instance.user.email == email:
+            return email
+
+        assigned_coordinator = OJTCoordinator.objects.filter(user__email=email).exclude(user__status='Deleted')
+
+        if self.instance:
+            assigned_coordinator = assigned_coordinator.exclude(pk=self.instance.pk)
+
+        if assigned_coordinator.exists():
             raise serializers.ValidationError('This email is currently in use by another OJT Coordinator.')
 
         return super().validate_ojtcoordinator_email(email)
@@ -540,9 +561,9 @@ class EditOJTCoordinatorSerializer(OJTCoordinatorRegisterSerializer):
 class GetOJTCoordinatorSerializer(serializers.ModelSerializer):
     program = ProgramSerializer(read_only=True)
     department = DepartmentSerializer(read_only=True)
-
     email = serializers.EmailField(source='user.email', read_only=True)
     status = serializers.CharField(source='user.status')
+    middle_initial = serializers.CharField(write_only=True, required=False, allow_blank=True, default='')
 
     class Meta:
         model = OJTCoordinator
