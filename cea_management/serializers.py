@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from user_account.models import Company, CareerEmplacementAdmin
+from user_account.models import Company, CareerEmplacementAdmin, AuditLog
 from .models import SchoolPartnershipList, Program, Department, School
 
 
@@ -129,5 +129,23 @@ class SchoolPartnershipSerializer(serializers.ModelSerializer):
             'linkedin_url',
             'instagram_url',
             'other_url',
+        ]
+
+
+class CeaAuditLogSerializer(serializers.ModelSerializer):
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+
+    class Meta:
+        model = AuditLog
+        fields = [
+            'user_email',
+            'user_role',
+            'action_type',
+            'action',
+            'model',
+            'object_id',
+            'object_repr',
+            'timestamp',
+            'details',
         ]
 

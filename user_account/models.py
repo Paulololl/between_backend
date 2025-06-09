@@ -2,6 +2,8 @@ import uuid
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.utils.timezone import localtime
+
 from .filepaths import applicant_resume, applicant_enrollment_record, company_profile_picture, company_background_image, \
     coordinator_program_logo, coordinator_signature
 from storages.backends.s3boto3 import S3Boto3Storage
@@ -105,7 +107,7 @@ class Applicant(models.Model):
     academic_program = models.CharField(max_length=100, null=True, blank=True)
     quick_introduction = models.CharField(max_length=500)
 
-    mobile_number = models.CharField(max_length=15, default='')
+    mobile_number = models.CharField(max_length=15)
 
     resume = models.FileField(storage=S3Boto3Storage, upload_to=applicant_resume)
     enrollment_record = models.FileField(storage=S3Boto3Storage,upload_to=applicant_enrollment_record,
@@ -173,7 +175,7 @@ class OJTCoordinator(models.Model):
     ojt_coordinator_id = models.AutoField(primary_key=True)
     user = models.OneToOneField('User', on_delete=models.CASCADE, editable=False)
     program = models.ForeignKey('cea_management.Program', on_delete=models.CASCADE, null=True, blank=True)
-    department = models.ForeignKey('cea_management.Department', on_delete=models.CASCADE, default='')
+    department = models.ForeignKey('cea_management.Department', on_delete=models.CASCADE)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     middle_initial = models.CharField(max_length=20, null=True, blank=True)
@@ -187,7 +189,35 @@ class OJTCoordinator(models.Model):
         verbose_name_plural = 'OJT Coordinators'
 
     def __str__(self):
-        return f"{self.user.email} | {self.user.user_id}"
+        return f"{self.user.email}"
+
+
+class AuditLog(models.Model):
+    auditlog_id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    user_role = models.CharField(max_length=20, choices=[
+        ('admin', 'admin'),
+        ('applicant', 'applicant'),
+        ('company', 'company'),
+        ('cea', 'cea'),
+        ('coordinator', 'coordinator'),
+    ], default='admin')
+    action_type = models.CharField(max_length=10, choices=[
+        ('add', 'add'),
+        ('change', 'change'),
+        ('delete', 'delete'),
+    ], null=True, blank=True)
+    action = models.CharField(max_length=255)
+    model = models.CharField(max_length=100)
+    object_id = models.CharField(max_length=50)
+    object_repr = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    details = models.TextField(blank=True)
+
+    def __str__(self):
+        local_time = localtime(self.timestamp)
+        return (f"{self.auditlog_id} - {local_time.strftime('%Y-%m-%d %H:%M:%S')} - {self.user.email}: {self.action}"
+                f" - {self.action_type}")
 
 
 

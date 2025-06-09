@@ -12,4 +12,5 @@ urlpatterns = [
     path('students/', views.ApplicantListView.as_view(), name="students-list"),
     path('companies/', views.CompanyListView.as_view(), name="companies-list"),
     path('cea/', views.CareerEmplacementAdminView.as_view(), name="get-cea"),
+    path('cea/audit_logs/', views.CeaAuditLogView.as_view()),
 ]
