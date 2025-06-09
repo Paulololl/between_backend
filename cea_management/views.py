@@ -417,4 +417,4 @@ class CeaAuditLogView(CEAMixin, generics.ListAPIView):
         if user.user_role != 'cea':
             raise ValidationError({'error': 'User must be a Career Emplacement Admin.'})
 
-        return AuditLog.objects.filter(user=user)
+        return AuditLog.objects.filter(user=user).order_by('-timestamp')[:10]

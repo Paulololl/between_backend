@@ -216,7 +216,8 @@ class AuditLog(models.Model):
 
     def __str__(self):
         local_time = localtime(self.timestamp)
-        return f"{local_time.strftime('%Y-%m-%d %H:%M:%S')} - {self.user.email}: {self.action} - {self.action_type}"
+        return (f"{self.auditlog_id} - {local_time.strftime('%Y-%m-%d %H:%M:%S')} - {self.user.email}: {self.action}"
+                f" - {self.action_type}")
 
 
 
