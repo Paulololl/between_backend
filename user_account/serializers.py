@@ -8,7 +8,7 @@ from jwt.exceptions import ExpiredSignatureError, DecodeError, InvalidTokenError
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.exceptions import TokenError
 
-from user_account.models import User
+from user_account.models import User, AuditLog
 import googlemaps
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
@@ -1182,3 +1182,21 @@ class GetEmailSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['user_id', 'verified_at', 'user_role', 'status']
+
+
+class AuditLogSerializer(serializers.ModelSerializer):
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+
+    class Meta:
+        model = AuditLog
+        fields = [
+            'user_email',
+            'user_role',
+            'action_type',
+            'action',
+            'model',
+            'object_id',
+            'object_repr',
+            'timestamp',
+            'details',
+        ]

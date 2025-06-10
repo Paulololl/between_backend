@@ -1,7 +1,8 @@
 from django.urls import path
 from . import views
 from .views import EndorsementDetailView, RequestEndorsementView, UpdateEndorsementView, GenerateEndorsementPDFView, \
-    ChangeLogoAndSignatureView
+    ChangeLogoAndSignatureView, CoordinatorAuditLogView
+
 urlpatterns = [
     path('partnered-companies/', views.SchoolPartnershipListView.as_view()),
     path('students/', views.ApplicantListView.as_view()),
@@ -18,4 +19,5 @@ urlpatterns = [
     path('students/in_practicum/end/', views.EndPracticumView.as_view()),
     path('students/in_practicum/reset/', views.ResetPracticumView.as_view()),
     path('ojtcoordinator/edit-logo-signature/', ChangeLogoAndSignatureView.as_view()),
+    path('ojtcoordinator/audit_logs/', CoordinatorAuditLogView.as_view()),
 ]

@@ -22,7 +22,7 @@ from cea_management import serializers
 from client_application.models import Endorsement
 from user_account.permissions import IsCoordinator, IsApplicant
 from user_account.models import OJTCoordinator, Applicant, AuditLog
-from user_account.serializers import GetApplicantSerializer, OJTCoordinatorDocumentSerializer
+from user_account.serializers import GetApplicantSerializer, OJTCoordinatorDocumentSerializer, AuditLogSerializer
 from cea_management.models import SchoolPartnershipList
 from cea_management.serializers import SchoolPartnershipSerializer
 from .serializers import EndorsementDetailSerializer, RequestEndorsementSerializer, \
@@ -823,6 +823,18 @@ class ChangeLogoAndSignatureView(CoordinatorMixin, generics.UpdateAPIView):
             obj=instance,
             details="Coordinator uploaded a new program logo and/or signature."
         )
+
+
+class CoordinatorAuditLogView(CoordinatorMixin, generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = AuditLogSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.user_role != 'coordinator':
+            raise ValidationError({'error': 'User must be an OJT Coordinator.'})
+
+        return AuditLog.objects.filter(user=user).order_by('-timestamp')[:10]
 
 
 

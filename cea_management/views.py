@@ -8,11 +8,11 @@ from rest_framework.response import Response
 from ojt_management.views import ojt_management_tag
 from user_account.models import CareerEmplacementAdmin, OJTCoordinator, Applicant, Company, AuditLog, User
 from user_account.serializers import GetOJTCoordinatorSerializer, OJTCoordinatorRegisterSerializer, \
-    GetApplicantSerializer, EditOJTCoordinatorSerializer
+    GetApplicantSerializer, EditOJTCoordinatorSerializer, AuditLogSerializer
 from .models import SchoolPartnershipList
 from user_account.permissions import IsCEA
 from .serializers import CompanyListSerializer, CreatePartnershipSerializer, SchoolPartnershipSerializer, \
-    CareerEmplacementAdminSerializer, CeaAuditLogSerializer
+    CareerEmplacementAdminSerializer
 
 cea_management_tag = extend_schema(tags=["cea_management"])
 
@@ -408,7 +408,7 @@ class CareerEmplacementAdminView(CEAMixin, generics.ListAPIView):
 @cea_management_tag
 class CeaAuditLogView(CEAMixin, generics.ListAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = CeaAuditLogSerializer
+    serializer_class = AuditLogSerializer
 
     def get_queryset(self):
         user = self.request.user
