@@ -712,7 +712,7 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
                     subject=subject,
                     body=message_html,
                     from_email=formataddr((
-                        f'{coordinator.first_name} {coordinator.middle_initial} {coordinator.last_name}',
+                        f'{coordinator.first_name} {coordinator.last_name}',
                         'between_internships@gmail.com')),
                     to=[applicant_email, coordinator.user.email],
                     reply_to=['no-reply@betweeninternships.com']
@@ -753,7 +753,7 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
                     subject=subject,
                     body=message_html,
                     from_email=formataddr(
-                        (f'{coordinator.first_name} {coordinator.middle_initial} {coordinator.last_name}',
+                        (f'{coordinator.first_name} {coordinator.last_name}',
                          'between_internships@gmail.com')),
                     to=[applicant_email],
                     reply_to=['no-reply@betweeninternships.com']
