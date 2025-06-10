@@ -26,7 +26,7 @@ from user_account.serializers import GetApplicantSerializer, OJTCoordinatorDocum
 from cea_management.models import SchoolPartnershipList
 from cea_management.serializers import SchoolPartnershipSerializer
 from .serializers import EndorsementDetailSerializer, RequestEndorsementSerializer, \
-    UpdatePracticumStatusSerializer, UpdateEndorsementSerializer, EnrollmentRecordSerializer
+    UpdatePracticumStatusSerializer, UpdateEndorsementSerializer, EnrollmentRecordSerializer, EndorsementListSerializer
 
 ojt_management_tag = extend_schema(tags=["ojt_management"])
 
@@ -835,6 +835,63 @@ class CoordinatorAuditLogView(CoordinatorMixin, generics.ListAPIView):
             raise ValidationError({'error': 'User must be an OJT Coordinator.'})
 
         return AuditLog.objects.filter(user=user).order_by('-timestamp')[:10]
+
+
+class PartneredCompaniesMetricsView(CoordinatorMixin, generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = SchoolPartnershipSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.user_role != 'coordinator':
+            raise ValidationError({'error': 'User must be an OJT Coordinator.'})
+
+        coordinator = OJTCoordinator.objects.select_related('department__school').get(user=user)
+        return SchoolPartnershipList.objects.filter(school=coordinator.department.school)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        total = len(queryset)
+        return Response({'total_partnerships': total})
+
+
+class TotalSearchingForPracticumMetricsView(CoordinatorMixin, generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = GetApplicantSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.user_role != 'coordinator':
+            raise ValidationError({'error': 'User must be an OJT Coordinator.'})
+
+        coordinator = OJTCoordinator.objects.select_related('program').get(user=user)
+        return Applicant.objects.filter(program=coordinator.program).exclude(program__isnull=True)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        total = len(queryset)
+        return Response({'total_searching_for_practicum': total})
+
+
+class EndorsementRequestMetricView(CoordinatorMixin, generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = EndorsementListSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.user_role != 'coordinator':
+            raise ValidationError({'error': 'User must be an OJT Coordinator.'})
+
+        coordinator = OJTCoordinator.objects.select_related('program').get(user=user)
+        return Endorsement.objects.filter(
+            program_id=coordinator.program_id
+        ).exclude(status__in=['Approved', 'Rejected', 'Deleted'])
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        total = len(queryset)
+        return Response({'total_endorsement_requests': total})
+
 
 
 

@@ -22,15 +22,15 @@ class GetStudentList(serializers.ModelSerializer):
         )
 
 
-# class EndorsementListSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Endorsement
-#         fields = ['endorsement_id',
-#                   'program_id',
-#                   'application',
-#                   'comments',
-#                   'date_approved',
-#                   'status']
+class EndorsementListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Endorsement
+        fields = ['endorsement_id',
+                  'program_id',
+                  'application',
+                  'comments',
+                  'date_approved',
+                  'status']
 
 
 class EndorsementDetailSerializer(serializers.ModelSerializer):
