@@ -107,7 +107,10 @@ class ApplicantListView(CoordinatorMixin, generics.ListAPIView):
 
     def get_queryset(self):
         coordinator = self.get_coordinator_or_403(self.request.user)
-        queryset = Applicant.objects.filter(program=coordinator.program, user__status__in=['Active'])
+        queryset = Applicant.objects.filter(
+            program=coordinator.program,
+            user__status__in=['Active']
+        ).exclude(program__isnull=True)
 
         user = self.request.query_params.get('user')
 
