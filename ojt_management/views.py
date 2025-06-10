@@ -21,7 +21,7 @@ from between_ims import settings
 from cea_management import serializers
 from client_application.models import Endorsement
 from user_account.permissions import IsCoordinator, IsApplicant
-from user_account.models import OJTCoordinator, Applicant
+from user_account.models import OJTCoordinator, Applicant, AuditLog
 from user_account.serializers import GetApplicantSerializer, OJTCoordinatorDocumentSerializer
 from cea_management.models import SchoolPartnershipList
 from cea_management.serializers import SchoolPartnershipSerializer
@@ -29,6 +29,31 @@ from .serializers import EndorsementDetailSerializer, RequestEndorsementSerializ
     UpdatePracticumStatusSerializer, UpdateEndorsementSerializer, EnrollmentRecordSerializer
 
 ojt_management_tag = extend_schema(tags=["ojt_management"])
+
+
+def log_coordinator_action(user, action, obj=None, details="", action_type=None):
+    if obj:
+        model_name = obj.__class__.__name__
+        object_id = str(getattr(obj, 'pk', ''))
+        object_repr = str(obj)
+    else:
+        model_name = ""
+        object_id = ""
+        object_repr = ""
+
+    if action_type not in {'add', 'change', 'delete'}:
+        action_type = None
+
+    AuditLog.objects.create(
+        user=user,
+        user_role='coordinator',
+        action=action,
+        model=model_name,
+        object_id=object_id,
+        object_repr=object_repr,
+        details=details,
+        action_type=action_type
+    )
 
 
 class CoordinatorMixin:
@@ -321,6 +346,14 @@ class ApprovePracticumRequestView(CoordinatorMixin, generics.UpdateAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
+        log_coordinator_action(
+            user=self.request.user,
+            action="Approved Practicum Request",
+            action_type='change',
+            obj=applicant,
+            details=f"Approved Practicum Request of: {applicant.user.email}"
+        )
+
         return Response({'message': 'Practicum request approved successfully.'}, status=status.HTTP_200_OK)
 
 
@@ -381,7 +414,16 @@ class RejectPracticumRequestView(CoordinatorMixin, generics.UpdateAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
+        log_coordinator_action(
+            user=self.request.user,
+            action="Rejected Practicum Request",
+            action_type='change',
+            obj=applicant,
+            details=f"Rejected Practicum Request of: {applicant.user.email}"
+        )
+
         return Response({'message': 'Practicum request rejected successfully.'}, status=status.HTTP_200_OK)
+
 
 #  End Student's Practicum -- KC
 @ojt_management_tag
@@ -441,7 +483,16 @@ class EndPracticumView(CoordinatorMixin, generics.UpdateAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
+        log_coordinator_action(
+            user=self.request.user,
+            action="Ended Practicum",
+            action_type='change',
+            obj=applicant,
+            details=f"Ended Practicum of: {applicant.user.email}"
+        )
+
         return Response({'message': 'Practicum was ended successfully.'}, status=status.HTTP_200_OK)
+
 
 class ResetPracticumView(CoordinatorMixin, generics.GenericAPIView):
     permission_classes = [IsAuthenticated, IsCoordinator]
@@ -499,6 +550,15 @@ class ResetPracticumView(CoordinatorMixin, generics.GenericAPIView):
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
                 updated_count += 1
+
+                log_coordinator_action(
+                    user=self.request.user,
+                    action="Practicum Reset",
+                    action_type='change',
+                    obj=applicant,
+                    details=f"Practicum was Reset for this Term."
+                )
+
             except Exception as e:
                 failed_updates.append({
                     'user_id': applicant.user.user_id,
@@ -656,6 +716,14 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
                 email.attach(f"endorsement_{endorsement.endorsement_id}.pdf", pdf_bytes, 'application/pdf')
                 email.send(fail_silently=False)
 
+                log_coordinator_action(
+                    user=request.user,
+                    action="Endorsement Approved",
+                    action_type="change",
+                    obj=endorsement,
+                    details=f"Approved endorsement for {applicant.user.email} - {internship_position} at {company_name}"
+                )
+
             else:
                 subject = f"Your Endorsement Has Been Rejected"
                 message_html = f"""
@@ -684,6 +752,14 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
                 )
                 email.content_subtype = 'html'
                 email.send(fail_silently=False)
+
+                log_coordinator_action(
+                    user=request.user,
+                    action="Endorsement Rejected",
+                    action_type="change",
+                    obj=endorsement,
+                    details=f"Rejected endorsement for {applicant.user.email} - {internship_position} at {company_name}"
+                )
 
         serializer = self.get_serializer(endorsement)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -731,9 +807,22 @@ class ChangeLogoAndSignatureView(CoordinatorMixin, generics.UpdateAPIView):
 
     def get_object(self):
         user = self.request.user
+        if user.user_role != 'coordinator':
+            raise ValidationError({'error': 'User must be an OJT Coordinator.'})
+        return OJTCoordinator.objects.get(user=user)
 
-        try:
-            return OJTCoordinator.objects.get(user=user)
-        except OJTCoordinator.DoesNotExist:
-            raise ValidationError({"error": "OJT Coordinator not found for the authenticated user."})
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        log_coordinator_action(
+            user=self.request.user,
+            action="Uploaded Logo and Signature",
+            action_type="change",
+            obj=instance,
+            details="Coordinator uploaded a new program logo and/or signature."
+        )
+
+
+
+
+
 
