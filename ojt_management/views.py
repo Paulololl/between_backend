@@ -676,7 +676,17 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
             applicant = endorsement.application.applicant
             company_name = endorsement.application.internship_posting.company.company_name
             internship_position = endorsement.application.internship_posting.internship_position
+            applicant_name = (
+                    applicant.first_name +
+                    (' ' + applicant.middle_initial if applicant.middle_initial else '') +
+                    ' ' + applicant.last_name
+            )
 
+            coordinator_name = (
+                    coordinator.first_name +
+                    (' ' + coordinator.middle_initial if coordinator.middle_initial else '') +
+                    ' ' + coordinator.last_name
+            )
             if endorsement_status == 'Approved':
 
                 if not coordinator.program_logo or not coordinator.signature:
@@ -688,12 +698,12 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
                 subject = f"Your Endorsement Has Been Approved"
                 message_html = f"""
                 <div>
-                    <p>Dear <strong>{applicant.first_name} {applicant.middle_initial} {applicant.last_name}</strong>,</p>
+                    <p>Dear <strong>{applicant_name}</strong>,</p>
                     <p>Your endorsement for the internship position 
                        <strong>{internship_position}</strong> at <strong>{company_name}</strong> has been <strong>approved</strong>.</p>
                     <p>
                      Best regards, <br> <strong>
-                     <br>{coordinator.first_name} {coordinator.middle_initial} {coordinator.last_name}
+                     <br>{coordinator_name}
                      <br>Practicum Coordinator - {coordinator.program}
                      <br>{coordinator.user.email} </strong>
                     </p>
@@ -712,7 +722,7 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
                     subject=subject,
                     body=message_html,
                     from_email=formataddr((
-                        f'{coordinator.first_name} {coordinator.last_name}',
+                        f'{coordinator_name}',
                         'between_internships@gmail.com')),
                     to=[applicant_email, coordinator.user.email],
                     reply_to=['no-reply@betweeninternships.com']
@@ -736,13 +746,13 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
                 subject = f"Your Endorsement Has Been Rejected"
                 message_html = f"""
                 <div>
-                    <p>Dear <strong>{applicant.first_name} {applicant.middle_initial} {applicant.last_name}</strong>,</p>
+                    <p>Dear <strong>{applicant_name}</strong>,</p>
                     <p>Your endorsement for the internship position 
                        <strong>{internship_position}</strong> at <strong>{company_name}</strong> has been <strong>rejected</strong>.</p>
                     <p><strong>Comments:</strong><br>{comments.replace('\n', '<br>')}</p>
                      <p>
                     Best regards, <br> <strong>
-                     <br>{coordinator.first_name} {coordinator.middle_initial} {coordinator.last_name}
+                     <br>{coordinator_name}
                      <br>Practicum Coordinator - {coordinator.program}
                      <br>{coordinator.user.email} </strong> 
                     </p>
@@ -753,7 +763,7 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
                     subject=subject,
                     body=message_html,
                     from_email=formataddr(
-                        (f'{coordinator.first_name} {coordinator.last_name}',
+                        (f'{coordinator_name}',
                          'between_internships@gmail.com')),
                     to=[applicant_email],
                     reply_to=['no-reply@betweeninternships.com']
