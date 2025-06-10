@@ -22,11 +22,13 @@ from cea_management import serializers
 from client_application.models import Endorsement
 from user_account.permissions import IsCoordinator, IsApplicant
 from user_account.models import OJTCoordinator, Applicant, AuditLog
-from user_account.serializers import GetApplicantSerializer, OJTCoordinatorDocumentSerializer, AuditLogSerializer
+from user_account.serializers import GetApplicantSerializer, OJTCoordinatorDocumentSerializer, AuditLogSerializer, \
+    GetOJTCoordinatorSerializer
 from cea_management.models import SchoolPartnershipList
 from cea_management.serializers import SchoolPartnershipSerializer
 from .serializers import EndorsementDetailSerializer, RequestEndorsementSerializer, \
-    UpdatePracticumStatusSerializer, UpdateEndorsementSerializer, EnrollmentRecordSerializer, EndorsementListSerializer
+    UpdatePracticumStatusSerializer, UpdateEndorsementSerializer, EnrollmentRecordSerializer, EndorsementListSerializer, \
+    GetOJTCoordinatorRespondedEndorsementsSerializer
 
 ojt_management_tag = extend_schema(tags=["ojt_management"])
 
@@ -719,6 +721,9 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
                 email.attach(f"endorsement_{endorsement.endorsement_id}.pdf", pdf_bytes, 'application/pdf')
                 email.send(fail_silently=False)
 
+                coordinator.endorsements_responded = (coordinator.endorsements_responded or 0) + 1
+                coordinator.save()
+
                 log_coordinator_action(
                     user=request.user,
                     action="Endorsement Approved",
@@ -755,6 +760,9 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
                 )
                 email.content_subtype = 'html'
                 email.send(fail_silently=False)
+
+                coordinator.endorsements_responded = (coordinator.endorsements_responded or 0) + 1
+                coordinator.save()
 
                 log_coordinator_action(
                     user=request.user,
@@ -893,6 +901,15 @@ class EndorsementRequestMetricView(CoordinatorMixin, generics.ListAPIView):
         return Response({'total_endorsement_requests': total})
 
 
+class EndorsementsRespondedMetricView(CoordinatorMixin, generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = GetOJTCoordinatorRespondedEndorsementsSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.user_role != 'coordinator':
+            raise ValidationError({'error': 'User must be an OJT Coordinator.'})
+        return OJTCoordinator.objects.filter(user=user)
 
 
 

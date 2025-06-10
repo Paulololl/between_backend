@@ -283,6 +283,13 @@ class UpdatePracticumStatusSerializer(serializers.ModelSerializer):
         except Exception as e:
             raise serializers.ValidationError({'error': f'Failed to send notification email: {str(e)}'})
 
+
+class GetOJTCoordinatorRespondedEndorsementsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OJTCoordinator
+        fields = ['endorsements_responded']
+
+
 """
 class BulkUpdatePracticumStatusSerializer(serializers.Serializer):
     class Meta:

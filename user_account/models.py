@@ -183,6 +183,7 @@ class OJTCoordinator(models.Model):
                                     null=True, blank=True)
     signature = models.FileField(storage=S3Boto3Storage, upload_to=coordinator_signature,
                                  null=True, blank=True)
+    endorsements_responded = models.IntegerField(null=True, blank=True)
 
     class Meta:
         verbose_name = 'OJT Coordinator'

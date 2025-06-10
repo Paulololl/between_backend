@@ -610,7 +610,8 @@ class GetOJTCoordinatorSerializer(serializers.ModelSerializer):
             'email',
             'status',
             'program_logo',
-            'signature'
+            'signature',
+            'endorsements_responded'
         ]
 
 
