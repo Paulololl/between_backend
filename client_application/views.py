@@ -72,7 +72,7 @@ class ApplicationListView(ListAPIView):
         internship_position = self.request.query_params.get('internship_position')
         if user.user_role in ['company', 'applicant'] and internship_position:
             queryset = queryset.filter(
-                internship_posting__internship_position__icontains=internship_position
+                internship_posting__internship_position__iexact=internship_position
             )
 
         company_name = self.request.query_params.get('company_name')
