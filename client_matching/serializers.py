@@ -226,7 +226,7 @@ class CreateInternshipPostingSerializer(serializers.ModelSerializer):
                 'internship_date_start': 'Internship start date must be a future date.'
             })
 
-        if attrs.get('application_deadline') < attrs.get('internship_date_start'):
+        if attrs.get('application_deadline') <= attrs.get('internship_date_start'):
             raise serializers.ValidationError({
                 'application_deadline': 'application deadline must be less than internship date start.'
             })
@@ -409,6 +409,11 @@ class EditInternshipPostingSerializer(serializers.ModelSerializer):
         if attrs.get('internship_date_start') and attrs['internship_date_start'] <= today:
             raise serializers.ValidationError({
                 'internship_date_start': 'Internship start date must be a future date.'
+            })
+
+        if attrs.get('application_deadline') <= attrs.get('internship_date_start'):
+            raise serializers.ValidationError({
+                'application_deadline': 'application deadline must be less than internship date start.'
             })
 
         address = attrs.get('address')
