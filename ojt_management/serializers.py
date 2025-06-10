@@ -4,6 +4,7 @@ from django.conf import settings
 from django.core.mail import send_mail, EmailMessage
 from django.db import transaction
 from rest_framework import serializers
+from rest_framework.response import Response
 
 from client_application.models import Endorsement, Application
 from user_account.models import Applicant, OJTCoordinator
@@ -315,5 +316,6 @@ class BulkUpdatePracticumStatusSerializer(serializers.Serializer):
         for applicant in applicants:
             fullnem
 """
+
 
 

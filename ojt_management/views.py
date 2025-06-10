@@ -911,15 +911,24 @@ class EndorsementRequestMetricView(CoordinatorMixin, generics.ListAPIView):
         return Response({'total_endorsement_requests': total})
 
 
-class EndorsementsRespondedMetricView(CoordinatorMixin, generics.ListAPIView):
+class EndorsementsRespondedMetricView(CoordinatorMixin, APIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = GetOJTCoordinatorRespondedEndorsementsSerializer
 
-    def get_queryset(self):
-        user = self.request.user
+    def get(self, request, *args, **kwargs):
+        user = request.user
+
         if user.user_role != 'coordinator':
             raise ValidationError({'error': 'User must be an OJT Coordinator.'})
-        return OJTCoordinator.objects.filter(user=user)
+
+        try:
+            coordinator = OJTCoordinator.objects.get(user=user)
+        except OJTCoordinator.DoesNotExist:
+            raise ValidationError({'error': 'Coordinator profile not found.'})
+
+        data = {
+            "endorsements_responded": coordinator.endorsements_responded
+        }
+        return Response(data)
 
 
 
