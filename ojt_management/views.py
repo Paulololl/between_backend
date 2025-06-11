@@ -216,6 +216,8 @@ class RequestPracticumView(generics.UpdateAPIView):
     queryset = Applicant.objects.all()
     serializer_class = UpdatePracticumStatusSerializer
 
+    no_active_coordinator = False
+
     def get_object(self):
         try:
             return self.request.user.applicant
@@ -236,6 +238,7 @@ class RequestPracticumView(generics.UpdateAPIView):
         }
         return context
 
+    """
     def get_serializer_context(self):
         applicant = self.get_object()
         try:
@@ -247,6 +250,16 @@ class RequestPracticumView(generics.UpdateAPIView):
         email_context = self.build_email_context(applicant, coordinator)
 
         return {**email_context, 'coordinator': coordinator, 'recipient_list': [coordinator.user.email]}
+    """
+    def get_serializer_context(self):
+        applicant = self.get_object()
+        try:
+            coordinator = OJTCoordinator.objects.get(program=applicant.program, user__status__in=['Active'])
+            email_context = self.build_email_context(applicant, coordinator)
+            return {**email_context, 'coordinator': coordinator, 'recipient_list': [coordinator.user.email]}
+        except OJTCoordinator.DoesNotExist:
+            self.no_active_coordinator = True
+            return {}
 
     def update(self, request, *args, **kwargs):
         applicant = request.user.applicant
@@ -270,6 +283,14 @@ class RequestPracticumView(generics.UpdateAPIView):
         serializer = self.get_serializer(instance=applicant, data={'in_practicum': 'Pending'}, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+
+        if self.no_active_coordinator:
+            return Response({
+                'message': (
+                    'Practicum status changed to Pending, but no active OJT Coordinator is assigned to your program. '
+                    'Please contact your school administrator.'
+                )
+            }, status=status.HTTP_200_OK)
 
         return Response({'message': 'Practicum Request Sent.'}, status=status.HTTP_200_OK)
 

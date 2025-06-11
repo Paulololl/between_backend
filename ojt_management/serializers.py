@@ -225,8 +225,6 @@ class UpdateEndorsementSerializer(serializers.ModelSerializer):
 
 
 class EnrollmentRecordSerializer(serializers.ModelSerializer):
-    # enrollment_record = serializers.FileField(use_url=True)
-
     class Meta:
         model = Applicant
         fields = ['enrollment_record']
@@ -289,33 +287,5 @@ class GetOJTCoordinatorRespondedEndorsementsSerializer(serializers.ModelSerializ
     class Meta:
         model = OJTCoordinator
         fields = ['endorsements_responded']
-
-
-"""
-class BulkUpdatePracticumStatusSerializer(serializers.Serializer):
-    class Meta:
-        model = Applicant
-        fields = ['in_practicum']
-
-    def send_notification_email(self,  applicant, coordinator, subject, email_message):
-        try:
-            EmailMessage(
-                subject=subject,
-                body=email_message,
-                from_email='Between_IMS <no-reply.between.internships@gmail.com>',
-                to=[applicant.user.email, coordinator.user.email]
-            ).send(fail_silently=False)
-        except Exception as e:
-            raise serializers.ValidationError({'error': f'Failed to send notification email: {str(e)}'})
-
-    def update_practicum_status(self, applicants, new_status, coordinator):
-        failed_emails = []
-
-        update_count = applicants.update(in_practicum=new_status)
-
-        for applicant in applicants:
-            fullnem
-"""
-
 
 
