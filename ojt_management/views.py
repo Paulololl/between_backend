@@ -238,19 +238,6 @@ class RequestPracticumView(generics.UpdateAPIView):
         }
         return context
 
-    """
-    def get_serializer_context(self):
-        applicant = self.get_object()
-        try:
-            coordinator = OJTCoordinator.objects.get(program=applicant.program, user__status__in=['Active'])
-        except OJTCoordinator.DoesNotExist:
-            raise ValidationError({'error': 'No OJT Coordinator is currently assigned to this program. Please contact '
-                                            'your school administrator for assistance.'})
-
-        email_context = self.build_email_context(applicant, coordinator)
-
-        return {**email_context, 'coordinator': coordinator, 'recipient_list': [coordinator.user.email]}
-    """
     def get_serializer_context(self):
         applicant = self.get_object()
         try:
