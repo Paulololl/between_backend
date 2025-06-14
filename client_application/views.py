@@ -393,7 +393,7 @@ class AcceptApplicationView(APIView):
             for app in other_applications:
                 Notification.objects.create(
                     application=app,
-                    notification_text=f'The application has been Dropped because the applicant accepted another offer.',
+                    notification_text=f'The application has been Dropped by the Applicant.',
                     notification_type='Company'
                 )
 
