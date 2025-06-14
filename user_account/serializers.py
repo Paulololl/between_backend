@@ -446,6 +446,9 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
         if program and program.department.school != self.context.get('school'):
             raise ValidationError('The selected program does not belong to your school.')
 
+        if not program:
+            return program
+
         existing = OJTCoordinator.objects.filter(
             program=program,
             user__status__in=['Active', 'Inactive']
@@ -459,8 +462,21 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
         return program
 
     def validate_department(self, department):
-        if department and department.school != self.context.get('school'):
-            raise ValidationError('The selected department does not belong to your school.')
+        request = self.context.get('request')
+        if not request:
+            raise serializers.ValidationError('Request context is missing.')
+
+        try:
+            cea = CareerEmplacementAdmin.objects.get(user=request.user)
+        except CareerEmplacementAdmin.DoesNotExist:
+            raise serializers.ValidationError('CEA school context is missing or invalid.')
+
+        if not cea.school:
+            raise serializers.ValidationError('CEA does not have an associated school.')
+
+        if department.school != cea.school:
+            raise serializers.ValidationError('The selected department does not belong to your school.')
+
         return department
 
     def validate(self, attrs):
@@ -546,11 +562,19 @@ class EditOJTCoordinatorSerializer(OJTCoordinatorRegisterSerializer):
         return program
 
     def validate_department(self, department):
-        if not department or (self.instance and self.instance.department == department):
-            return department
+        request = self.context.get('request')
+        if not request:
+            raise serializers.ValidationError('Request context is missing.')
 
-        user_school = self.context.get('school')
-        if department.school_id != getattr(user_school, 'id', None):
+        try:
+            cea = CareerEmplacementAdmin.objects.get(user=request.user)
+        except CareerEmplacementAdmin.DoesNotExist:
+            raise serializers.ValidationError('CEA school context is missing or invalid.')
+
+        if not cea.school:
+            raise serializers.ValidationError('CEA does not have an associated school.')
+
+        if department.school != cea.school:
             raise serializers.ValidationError('The selected department does not belong to your school.')
 
         return department

@@ -596,6 +596,17 @@ class ResetPracticumView(CoordinatorMixin, generics.GenericAPIView):
 class RespondedEndorsementListView(CoordinatorMixin, generics.ListAPIView):
     serializer_class = EndorsementDetailSerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+
+    search_fields = [
+        'application__applicant__user__email',
+        'application__applicant__first_name',
+        'application__applicant__last_name',
+        'application__applicant__middle_initial',
+        'application__internship_posting__company__company_name',
+        'application__internship_posting__internship_position',
+        'application__internship_posting__person_in_charge__name',
+    ]
 
     def get_queryset(self):
         coordinator = self.get_coordinator_or_403(self.request.user)
@@ -608,6 +619,17 @@ class RespondedEndorsementListView(CoordinatorMixin, generics.ListAPIView):
 class EndorsementDetailView(CoordinatorMixin, generics.ListAPIView):
     serializer_class = EndorsementDetailSerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+
+    search_fields = [
+        'application__applicant__user__email',
+        'application__applicant__first_name',
+        'application__applicant__last_name',
+        'application__applicant__middle_initial',
+        'application__internship_posting__company__company_name',
+        'application__internship_posting__internship_position',
+        'application__internship_posting__person_in_charge__name',
+    ]
 
     def get_queryset(self):
         coordinator = self.get_coordinator_or_403(self.request.user)
