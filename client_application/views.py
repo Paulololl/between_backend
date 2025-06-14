@@ -1,3 +1,4 @@
+from django.core.mail import send_mail, EmailMessage
 from django.db import transaction
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema
@@ -9,8 +10,8 @@ from rest_framework.views import APIView
 
 from client_application.models import Application, Notification, Endorsement
 from client_application.serializers import ApplicationListSerializer, ApplicationDetailSerializer, \
-    NotificationSerializer, UpdateApplicationSerializer, RequestDocumentSerializer, DropApplicationSerializer, \
-    SendDocumentSerializer
+    NotificationSerializer, UpdateApplicationSerializer, RequestDocumentSerializer, \
+    SendDocumentSerializer, ApplicationSerializer
 from client_matching.functions import run_internship_matching
 from client_matching.models import InternshipRecommendation
 from client_matching.serializers import InternshipMatchSerializer
@@ -37,7 +38,7 @@ class ApplicationListView(ListAPIView):
             return Application.objects.none()
 
         application_status = self.request.query_params.get('application_status')
-        allowed_status = ['Confirmed', 'Pending', 'Rejected', 'Dropped']
+        allowed_status = ['Onboarding', 'Pending', 'Rejected', 'Dropped']
         if application_status:
             if application_status not in allowed_status:
                 raise serializers.ValidationError({'error': 'Invalid application status'})
@@ -216,9 +217,9 @@ class UpdateApplicationView(APIView):
 
         new_status = request.data.get('status')
 
-        if new_status not in ['Confirmed', 'Rejected', 'Pending']:
+        if new_status not in ['Onboarding', 'Rejected', 'Pending']:
             return Response({'error': 'Invalid status. You can only set status to'
-                                      ' Pending, Confirmed, or Rejected.'},
+                                      ' Pending, Onboarding, or Rejected.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
         if application.status == 'Dropped':
@@ -285,8 +286,9 @@ class RequestDocumentView(CreateAPIView):
 @client_application_tag
 class DropApplicationView(APIView):
     permission_classes = [IsAuthenticated, IsApplicant]
-    serializer_class = DropApplicationSerializer
+    serializer_class = ApplicationSerializer
 
+    @transaction.atomic
     def put(self, request):
         application_id = request.query_params.get('application_id')
 
@@ -303,9 +305,9 @@ class DropApplicationView(APIView):
             return Response({'error': 'You do not have permission to modify this application.'},
                             status=status.HTTP_403_FORBIDDEN)
 
-        if application.status not in ['Pending', 'Confirmed']:
+        if application.status not in ['Pending', 'Onboarding']:
             return Response(
-                {'error': 'You can only drop applications that are Pending or Confirmed.'},
+                {'error': 'You can only drop applications that are Pending or Onboarding.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -333,6 +335,98 @@ class DropApplicationView(APIView):
             )
 
             return Response({'message': 'Application dropped successfully.'}, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@client_application_tag
+class AcceptApplicationView(APIView):
+    permission_classes = [IsAuthenticated, IsApplicant]
+    serializer_class = ApplicationSerializer
+
+    @transaction.atomic
+    def put(self, request):
+        application_id = request.query_params.get('application_id')
+
+        try:
+            application = Application.objects.get(application_id=application_id)
+        except Application.DoesNotExist:
+            return Response({'error': 'Application not found.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not application_id:
+            return Response({'error': 'application_id query parameter is required.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        if application.applicant.user != request.user:
+            return Response({'error': 'You do not have permission to modify this application.'},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        if application.status not in ['Onboarding']:
+            return Response(
+                {'error': 'You can only accept applications that are Onboarding.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        new_status = request.data.get('status')
+
+        if new_status not in ['Accepted']:
+            return Response({'error': 'Invalid status. You can only set status to'
+                                      ' Accepted.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        if application.company_status != 'Deleted':
+            application.company_status = 'Unread'
+            application.save(update_fields=['company_status'])
+
+        serializer = self.serializer_class(application, data={'status': new_status}, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+
+            other_applications = Application.objects.filter(
+                applicant=application.applicant
+            ).exclude(
+                Q(application_id=application_id) | Q(status='Deleted')
+            )
+
+            other_applications.update(status='Dropped')
+
+            for app in other_applications:
+                Notification.objects.create(
+                    application=app,
+                    notification_text=f'The application has been Dropped because the applicant accepted another offer.',
+                    notification_type='Company'
+                )
+
+            Notification.objects.create(
+                application=application,
+                notification_text=f'The application has been Accepted by the applicant.',
+                notification_type='Company'
+            )
+
+            company_email = application.internship_posting.company.user.email
+            company_name = application.internship_posting.company.company_name
+            applicant_name = f"{application.applicant.first_name} {application.applicant.last_name}"
+            position = application.internship_posting.internship_position
+
+            email_body = (
+                f'Hello {company_name},<br><br>'
+                f'The applicant <strong>{applicant_name}</strong> has accepted the application for '
+                f'<strong>{position}</strong>.<br><br>'
+                f'Please log in to your dashboard for more details.'
+            )
+
+            email = EmailMessage(
+                subject='An applicant has accepted your offer',
+                body=email_body,
+                from_email='Between_IMS <no-reply.between.internships@gmail.com>',
+                to=[company_email],
+                reply_to=['no-reply@betweeninternships.com']
+            )
+            email.content_subtype = 'html'
+            email.send(fail_silently=False)
+
+            return Response({'message': 'The Application has been accepted and the company was notified.'},
+                            status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

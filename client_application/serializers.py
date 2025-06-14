@@ -290,7 +290,6 @@ class RequestDocumentSerializer(serializers.Serializer):
         applicant_email = self.application.applicant.user.email
         company_name = self.application.internship_posting.company.company_name
 
-
         documents = self.validated_data.get("document_list")
         doc_lines = "\n".join(f"<li>{doc.strip()}</li>" for doc in documents.split(",") if doc.strip())
 
@@ -319,7 +318,7 @@ class RequestDocumentSerializer(serializers.Serializer):
         email.send(fail_silently=False)
 
 
-class DropApplicationSerializer(serializers.ModelSerializer):
+class ApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
         fields = ['application_id', 'status']
