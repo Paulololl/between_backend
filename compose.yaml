@@ -7,6 +7,8 @@ services:
       - .env
     volumes:
       - ./hf_cache:/tmp/huggingface
+    environment:
+      - HF_HOME=/tmp/huggingface
     ports:
       - "8000:8000"
     command: python manage.py runserver_plus 0.0.0.0:8000 --cert mkcert/localhost.pem --key mkcert/localhost-key.pem
