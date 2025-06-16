@@ -73,3 +73,6 @@ mkcert.exe
 
 # Weasyprint
 weasyprint-mkcert
+
+# docker caching
+hf_cache/

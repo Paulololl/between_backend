@@ -7,11 +7,14 @@ from sentence_transformers import SentenceTransformer
 import numpy as np
 from client_matching.models import InternshipPosting, InternshipRecommendation
 from user_account.models import Applicant
+import os
 
 
 @lru_cache(maxsize=1)
 def get_sentence_model():
-    return SentenceTransformer('all-MiniLM-L6-v2')
+    os.environ["HF_HOME"] = "/tmp/huggingface"
+    os.makedirs(os.environ["HF_HOME"], exist_ok=True)
+    return SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
 
 
 def get_profile_embedding(profile: dict, is_applicant: bool = True):

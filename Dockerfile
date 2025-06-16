@@ -44,6 +44,16 @@ RUN apt-get update && apt-get install -y tzdata && rm -rf /var/lib/apt/lists/*
 # Create a non-privileged user that the app will run under.
 # See https://docs.docker.com/go/dockerfile-user-best-practices/
 ARG UID=10001
+
+# add mysqlClient
+RUN apt-get update && apt-get install -y \
+    default-libmysqlclient-dev \
+    gcc \
+    build-essential \
+    pkg-config \
+ && rm -rf /var/lib/apt/lists/*
+
+# Create user or something
 RUN adduser \
     --disabled-password \
     --gecos "" \
@@ -61,6 +71,8 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     --mount=type=bind,source=requirements.txt,target=requirements.txt \
     python -m pip install -r requirements.txt
 
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')"
+
 # Switch to the non-privileged user to run the application.
 USER appuser
 
@@ -71,4 +83,5 @@ COPY . .
 EXPOSE 8000
 
 # Run the application.
-CMD gunicorn '.venv.Lib.site-packages.asgiref.wsgi' --bind=0.0.0.0:8000
+# CMD gunicorn '.venv.Lib.site-packages.asgiref.wsgi' --bind=0.0.0.0:8000
+CMD ["gunicorn", "myproject.wsgi:application", "--bind=0.0.0.0:8000"]
