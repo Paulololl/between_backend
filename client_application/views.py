@@ -199,6 +199,7 @@ class UpdateApplicationView(APIView):
     permission_classes = [IsAuthenticated, IsCompany]
     serializer_class = UpdateApplicationSerializer
 
+    @transaction.atomic
     def put(self, request):
         application_id = request.query_params.get('application_id')
 
@@ -250,6 +251,7 @@ class RequestDocumentView(CreateAPIView):
     permission_classes = [IsAuthenticated, IsCompany]
     serializer_class = RequestDocumentSerializer
 
+    @transaction.atomic
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
@@ -290,6 +292,7 @@ class DropApplicationView(APIView):
 
     @transaction.atomic
     def put(self, request):
+        user = request.user
         application_id = request.query_params.get('application_id')
 
         try:
@@ -333,6 +336,9 @@ class DropApplicationView(APIView):
                 notification_text=f'The application has been dropped by the applicant.',
                 notification_type='Company'
             )
+
+            reset_recommendations_and_tap_count(user.applicant)
+            run_internship_matching(user.applicant)
 
             return Response({'message': 'Application dropped successfully.'}, status=status.HTTP_200_OK)
 
@@ -435,6 +441,7 @@ class AcceptApplicationView(APIView):
 class RemoveFromBookmarksView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @transaction.atomic
     def put(self, request):
         user = request.user
         application_id = request.query_params.get('application_id')
@@ -460,10 +467,8 @@ class RemoveFromBookmarksView(APIView):
             InternshipRecommendation.objects.filter(
                 applicant=application.applicant,
                 internship_posting=application.internship_posting
-            ).delete()
+            ).update(status='Skipped')
 
-            serializer = InternshipMatchSerializer(context={'applicant': user.applicant})
-            serializer.create(validated_data={})
             reset_recommendations_and_tap_count(user.applicant)
             run_internship_matching(user.applicant)
 
@@ -482,6 +487,7 @@ class RemoveFromBookmarksView(APIView):
 class SendDocumentView(APIView):
     permission_classes = [IsAuthenticated, IsApplicant]
 
+    @transaction.atomic
     def post(self, request):
         serializer = SendDocumentSerializer(data=request.data)
 
@@ -499,7 +505,6 @@ class SendDocumentView(APIView):
                         status=status.HTTP_400_BAD_REQUEST
                     )
 
-            with transaction.atomic():
                 serializer.send_document_email(files)
 
                 Notification.objects.create(

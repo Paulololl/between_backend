@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core.cache import cache
 from django.core.mail import EmailMessage
+from django.db import transaction
 from django.shortcuts import redirect
 from django.utils import timezone
 from django.utils.http import urlsafe_base64_decode
@@ -153,6 +154,7 @@ class GetApplicantView(ListAPIView):
 class EditApplicantView(APIView):
     permission_classes = [IsAuthenticated, IsApplicant]
 
+    @transaction.atomic
     def put(self, request):
         applicant = request.user.applicant
         serializer = EditApplicantSerializer(instance=applicant, data=request.data, partial=True)
@@ -193,6 +195,7 @@ class GetCompanyView(ListAPIView):
 class EditCompanyView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @transaction.atomic
     def put(self, request):
         serializer = EditCompanySerializer(instance=request.user.company, data=request.data, partial=True)
         if serializer.is_valid():
@@ -232,6 +235,7 @@ class GetOJTCoordinatorView(ListAPIView):
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
 
+    @transaction.atomic
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         user = None
@@ -264,6 +268,7 @@ class EmailLoginView(APIView):
         request=EmailLoginSerializer,
         responses={200: {'message': 'Email verified'}}
     )
+    @transaction.atomic
     def post(self, request):
         delete_pending_users()
 
@@ -321,6 +326,8 @@ class SchoolEmailCheckView(APIView):
 
 @user_account_tag
 class VerifyEmailView(APIView):
+
+    @transaction.atomic
     def post(self, request):
         serializer = SendEmailVerificationSerializer(data=request.data)
         if serializer.is_valid():
@@ -328,6 +335,7 @@ class VerifyEmailView(APIView):
             return Response({"message": "Verification email sent!"}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @transaction.atomic
     def get(self, request, uidb64, token):
         try:
             uid = force_str(urlsafe_base64_decode(uidb64))
@@ -405,6 +413,8 @@ class VerifyEmailView(APIView):
 
 @user_account_tag
 class ForgotPasswordLinkView(APIView):
+
+    @transaction.atomic
     def post(self, request):
         serializer = SendForgotPasswordLinkSerializer(data=request.data)
         if serializer.is_valid():
@@ -438,6 +448,7 @@ class ForgotPasswordLinkView(APIView):
 @user_account_tag
 class ResetPasswordView(APIView):
 
+    @transaction.atomic
     def post(self, request):
         serializer = ResetPasswordSerializer(data=request.data)
         if serializer.is_valid():
@@ -450,6 +461,7 @@ class ResetPasswordView(APIView):
 class DeleteAccountView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @transaction.atomic
     def put(self, request):
         serializer = DeleteAccountSerializer(data=request.data, context={'request': request})
 
@@ -465,6 +477,7 @@ class DeleteAccountView(APIView):
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @transaction.atomic
     def put(self, request):
         serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
 

@@ -8,7 +8,7 @@ from .forms import DateJoinedFilter
 from .models import (User, Applicant, Company, CareerEmplacementAdmin, OJTCoordinator, AuditLog)
 
 
-model_to_register = [CareerEmplacementAdmin, OJTCoordinator, AuditLog]
+model_to_register = [CareerEmplacementAdmin, OJTCoordinator]
 
 for model in model_to_register:
     admin.site.register(model)
@@ -156,3 +156,49 @@ class CompanyAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return True
 
+
+@admin.register(AuditLog)
+class AuditLogAdmin(admin.ModelAdmin):
+    list_display = (
+        'get_user_email',
+        'user_role',
+        'action_type',
+        'model',
+        'timestamp',
+    )
+
+    list_filter = ('action_type', 'timestamp')
+
+    search_fields = ('user__email', 'model', 'object_id')
+
+    readonly_fields = ('user', 'action', 'action_type', 'model', 'object_id', 'object_repr', 'timestamp', 'details')
+
+    fieldsets = (
+        (None, {
+            'fields': (
+                'user',
+                'action_type',
+                'action',
+                'model',
+                'object_id',
+                'object_repr',
+                'timestamp',
+                'details',
+            )
+        }),
+    )
+
+    def get_user_email(self, obj):
+        if obj.user:
+            return obj.user.email
+        return "-"
+    get_user_email.short_description = 'User Email'
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return True

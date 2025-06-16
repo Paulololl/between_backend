@@ -158,7 +158,6 @@ class RequestEndorsementSerializer(serializers.ModelSerializer):
         program = validated_data['program_id']
 
         with transaction.atomic():
-
             existing_endorsement = Endorsement.objects.filter(application=application, program_id=program).first()
 
             if existing_endorsement:
@@ -176,33 +175,33 @@ class RequestEndorsementSerializer(serializers.ModelSerializer):
                 }
             )
 
-            try:
-                ojt_coordinator = OJTCoordinator.objects.get(program=program)
-                coordinator_email = ojt_coordinator.user.email
-                student_name = self.build_student_name(application.applicant)
+        try:
+            ojt_coordinator = OJTCoordinator.objects.get(program=program)
+            coordinator_email = ojt_coordinator.user.email
+            student_name = self.build_student_name(application.applicant)
 
-                if coordinator_email:
-                    subject = f"Endorsement Request from {student_name}"
-                    html_message = (
-                        f"Dear {ojt_coordinator.first_name},<br><br>"
-                        f"<strong>{student_name}</strong> has requested an endorsement for their internship.<br><br>"
-                        f"<strong>Program:</strong> {program.program_name}<br>"
-                        f"<strong>Company:</strong> {application.internship_posting.company.company_name}<br><br>"
-                        f"<strong>Internship Position:</strong> {application.internship_posting.internship_position}<br><br>"
-                        f"Please log in to review the request.<br><br>"
-                        f"Best regards,<br><strong>Between IMS</strong>"
-                    )
-                    email = EmailMessage(
-                        subject=subject,
-                        body=html_message,
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        to=[coordinator_email],
-                    )
-                    email.content_subtype = "html"
-                    email.send()
+            if coordinator_email:
+                subject = f"Endorsement Request from {student_name}"
+                html_message = (
+                    f"Dear {ojt_coordinator.first_name},<br><br>"
+                    f"<strong>{student_name}</strong> has requested an endorsement for their internship.<br><br>"
+                    f"<strong>Program:</strong> {program.program_name}<br>"
+                    f"<strong>Company:</strong> {application.internship_posting.company.company_name}<br><br>"
+                    f"<strong>Internship Position:</strong> {application.internship_posting.internship_position}<br><br>"
+                    f"Please log in to review the request.<br><br>"
+                    f"Best regards,<br><strong>Between IMS</strong>"
+                )
+                email = EmailMessage(
+                    subject=subject,
+                    body=html_message,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    to=[coordinator_email],
+                )
+                email.content_subtype = "html"
+                email.send()
 
-            except OJTCoordinator.DoesNotExist:
-                raise serializers.ValidationError({'message': 'no OJTCoordinator assigned to this program yet.'})
+        except OJTCoordinator.DoesNotExist:
+            raise serializers.ValidationError({'message': 'no OJTCoordinator assigned to this program yet.'})
 
         return endorsement
 

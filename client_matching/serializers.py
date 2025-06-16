@@ -5,6 +5,7 @@ from decimal import Decimal
 
 import numpy as np
 from django.core.cache import cache
+from django.db import transaction
 from django.utils.timezone import now
 from jwt.exceptions import ExpiredSignatureError, DecodeError, InvalidTokenError
 from rest_framework.exceptions import AuthenticationFailed
@@ -244,6 +245,7 @@ class CreateInternshipPostingSerializer(serializers.ModelSerializer):
 
         return attrs
 
+    @transaction.atomic
     def create(self, validated_data):
         user = self.context['request'].user
         company = getattr(user, 'company', None)
@@ -429,6 +431,7 @@ class EditInternshipPostingSerializer(serializers.ModelSerializer):
 
         return attrs
 
+    @transaction.atomic
     def update(self, instance, validated_data):
 
         key_tasks_json = validated_data.pop('key_tasks', [])
