@@ -221,8 +221,6 @@ SPECTACULAR_SETTINGS = {
     # OTHER SETTINGS
 }
 
-# Weasyprint
-WEASYPRINT_SERVICE_URL = os.getenv("WEASYPRINT_SERVICE_URL")
 
 # Session settings
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'

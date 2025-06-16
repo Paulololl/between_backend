@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import timedelta
+from datetime import timedelta, datetime
 from decimal import Decimal
 
 import numpy as np
@@ -214,7 +214,22 @@ class CreateInternshipPostingSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
-        errors = []
+        today = timezone.now()
+
+        if attrs.get('application_deadline') and attrs['application_deadline'] <= today:
+            raise serializers.ValidationError({
+                'application_deadline': 'Application deadline must be a future date.'
+            })
+
+        if attrs.get('internship_date_start') and attrs['internship_date_start'] <= today:
+            raise serializers.ValidationError({
+                'internship_date_start': 'Internship start date must be a future date.'
+            })
+
+        if attrs.get('application_deadline') > attrs.get('internship_date_start'):
+            raise serializers.ValidationError({
+                'application_deadline': 'application deadline must be less than internship date start.'
+            })
 
         address = attrs.get('address')
         if len(address) < 15:
@@ -384,6 +399,23 @@ class EditInternshipPostingSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
+        today = timezone.now()
+
+        if attrs.get('application_deadline') and attrs['application_deadline'] <= today:
+            raise serializers.ValidationError({
+                'application_deadline': 'Application deadline must be a future date.'
+            })
+
+        if attrs.get('internship_date_start') and attrs['internship_date_start'] <= today:
+            raise serializers.ValidationError({
+                'internship_date_start': 'Internship start date must be a future date.'
+            })
+
+        if attrs.get('application_deadline') > attrs.get('internship_date_start'):
+            raise serializers.ValidationError({
+                'application_deadline': 'application deadline must be less than internship date start.'
+            })
+
         address = attrs.get('address')
         if address and len(address) < 15:
             raise serializers.ValidationError({'address': 'Address must be at least 15 characters.'})
@@ -609,6 +641,9 @@ class InternshipMatchSerializer(serializers.Serializer):
         for item in ranked_result:
             posting = InternshipPosting.objects.get(internship_posting_id=item['internship_posting_id'])
             similarity_score = Decimal(str(item['similarity_score']))
+
+            if similarity_score < 0.20:
+                continue
 
             try:
                 existing = InternshipRecommendation.objects.get(

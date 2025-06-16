@@ -18,7 +18,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from cea_management.models import Department, Program, School
 from client_matching.functions import run_internship_matching
-from user_account.permissions import IsApplicant
+from user_account.permissions import IsApplicant, IsCoordinator
 from client_matching.serializers import InternshipMatchSerializer
 from client_matching.utils import reset_recommendations_and_tap_count
 from .models import Applicant, Company, CareerEmplacementAdmin, OJTCoordinator
@@ -215,18 +215,17 @@ class OJTCoordinatorRegisterView(CreateAPIView):
 
 @user_account_tag
 class GetOJTCoordinatorView(ListAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsCoordinator]
     queryset = OJTCoordinator.objects.all()
     serializer_class = GetOJTCoordinatorSerializer
 
     def get_queryset(self):
         delete_pending_users()
+        user = self.request.user
+        if user.user_role != 'coordinator':
+            raise ValidationError({'error': "User must be an OJT Coordinator."})
 
-        queryset = OJTCoordinator.objects.all()
-        user = self.request.query_params.get('user')
-        if user:
-            queryset = queryset.filter(user=user)
-        return queryset
+        return OJTCoordinator.objects.filter(user=user)
 
 
 @user_account_tag

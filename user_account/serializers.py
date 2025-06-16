@@ -8,7 +8,7 @@ from jwt.exceptions import ExpiredSignatureError, DecodeError, InvalidTokenError
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.exceptions import TokenError
 
-from user_account.models import User
+from user_account.models import User, AuditLog
 import googlemaps
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
@@ -137,6 +137,7 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
             'applicant_email', 'school', 'password', 'confirm_password',
             'department', 'program', 'academic_program', 'hard_skills', 'soft_skills',
             'address', 'preferred_modality', 'quick_introduction', 'resume', 'enrollment_record',
+            'mobile_number'
         ]
 
     def validate_password(self, value):
@@ -385,31 +386,37 @@ class CareerEmplacementAdminRegisterSerializer(serializers.ModelSerializer):
         return cea
 
 
+class OJTCoordinatorDocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OJTCoordinator
+        fields = ['program_logo', 'signature']
+
+
 class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
     ojtcoordinator_email = serializers.EmailField(write_only=True)
     middle_initial = serializers.CharField(write_only=True, required=False, allow_blank=True, default='')
     password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
+
     status = serializers.CharField(source='user.status', default='Active')
+
+    program = serializers.PrimaryKeyRelatedField(queryset=Program.objects.all(), required=False, allow_null=True)
+    department = serializers.PrimaryKeyRelatedField(queryset=Department.objects.all(), required=True, allow_null=False)
 
     class Meta:
         model = OJTCoordinator
-        fields = ['ojtcoordinator_email', 'first_name', 'last_name', 'middle_initial',
-                  'password', 'confirm_password', 'program', 'status', 'program_logo', 'signature']
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        request = self.context.get('request')
-        if request and hasattr(request, 'user') and request.user.is_authenticated:
-            try:
-                cea = CareerEmplacementAdmin.objects.get(user=request.user)
-                self.fields['program'].queryset = Program.objects.filter(department__school=cea.school)
-                self.cea = cea
-            except CareerEmplacementAdmin.DoesNotExist:
-                raise serializers.ValidationError("User is not a Career Emplacement Admin. Access denied.")
-        else:
-            self.cea = None
+        fields = [
+            'ojtcoordinator_email'
+            , 'first_name'
+            , 'last_name'
+            , 'middle_initial'
+            , 'password'
+            , 'confirm_password'
+            , 'program'
+            , 'department'
+            , 'status'
+            , 'program_logo'
+        ]
 
     def validate_password(self, value):
         user_data = {
@@ -423,23 +430,70 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(e.messages)
         return value
 
+    def validate_ojtcoordinator_email(self, email):
+        existing_user = User.objects.filter(email=email).first()
+        if existing_user:
+            if existing_user.status == 'Deleted':
+                raise ValidationError(
+                    'Re-activation of OJT Coordinator account is currently not allowed. Please contact the'
+                    ' administrator for assistance.'
+                )
+            else:
+                raise ValidationError('A user with this email already exists.')
+        return email
+
+    def validate_program(self, program):
+        if program and program.department.school != self.context.get('school'):
+            raise ValidationError('The selected program does not belong to your school.')
+
+        if not program:
+            return program
+
+        existing = OJTCoordinator.objects.filter(
+            program=program,
+            user__status__in=['Active', 'Inactive']
+        )
+        if self.instance:
+            existing = existing.exclude(pk=self.instance.pk)
+
+        if existing.exists():
+            raise serializers.ValidationError('The selected program already has an assigned OJT Coordinator.')
+
+        return program
+
+    def validate_department(self, department):
+        request = self.context.get('request')
+        if not request:
+            raise serializers.ValidationError('Request context is missing.')
+
+        try:
+            cea = CareerEmplacementAdmin.objects.get(user=request.user)
+        except CareerEmplacementAdmin.DoesNotExist:
+            raise serializers.ValidationError('CEA school context is missing or invalid.')
+
+        if not cea.school:
+            raise serializers.ValidationError('CEA does not have an associated school.')
+
+        if department.school != cea.school:
+            raise serializers.ValidationError('The selected department does not belong to your school.')
+
+        return department
+
     def validate(self, attrs):
         if attrs.get('password') != attrs.get('confirm_password'):
             raise serializers.ValidationError({'confirm_password': 'Passwords do not match.'})
-        return attrs
 
-    def validate_ojtcoordinator_email(self, value):
-        if User.objects.filter(email=value, status__in=["Active", "Inactive", 'Suspended']).exists():
-            raise ValidationError('This email is already in use.')
-        return value
+        program = attrs.get('program')
+        department = attrs.get('department')
+        if program and department and program.department_id != department.department_id:
+            raise serializers.ValidationError({'program': 'The selected program does not belong to the selected department.'})
+
+        return attrs
 
     def create(self, validated_data):
         email = validated_data.pop('ojtcoordinator_email')
         password = validated_data.pop('password')
         validated_data.pop('confirm_password')
-
-        if User.objects.filter(email=email).exists():
-            raise serializers.ValidationError({'ojtcoordinator_email': 'This email is already in use.'})
 
         user = User.objects.create_user(
             email=email,
@@ -447,71 +501,142 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
             user_role='coordinator',
             status='Active',
         )
+        validated_data['user'] = user
 
-        validated_data.pop('user', None)
+        ojt_coordinator = OJTCoordinator.objects.create(**validated_data)
 
-        ojt_coordinator = OJTCoordinator.objects.create(user=user, **validated_data)
         return ojt_coordinator
 
 
-class EditOJTCoordinatorSerializer(serializers.ModelSerializer):
-    # Only fields allowed to be edited
+# inherit from ojt coordinator register serializer
+class EditOJTCoordinatorSerializer(OJTCoordinatorRegisterSerializer):
     ojtcoordinator_email = serializers.EmailField(required=False)
     first_name = serializers.CharField(required=False)
     last_name = serializers.CharField(required=False)
-    middle_initial = serializers.CharField(required=False, allow_blank=True, default='')
+    middle_initial = serializers.CharField(write_only=True, required=False, allow_blank=True, default='')
     password = serializers.CharField(write_only=True, required=False)
     confirm_password = serializers.CharField(write_only=True, required=False)
     status = serializers.CharField(source='user.status', required=False)
 
-    class Meta:
-        model = OJTCoordinator
-        fields = [
-            "ojtcoordinator_email",
-            "first_name",
-            "last_name",
-            "middle_initial",
-            "password",
-            "confirm_password",
-            "program",
-            "status",
-            "program_logo",
-            "signature"
-        ]
-
     def validate(self, attrs):
-        # Validate Password Matching
-        password = attrs.get("password")
-        confirm_password = attrs.get("confirm_password")
-        if password and password != confirm_password:
-            raise serializers.ValidationError({"confirm_password": "Passwords do not match."})
+        attrs = super().validate(attrs)
+
+        new_status = attrs.get('user', {}).get('status')
+        instance = self.instance
+        if instance.user.status == 'Deleted' and new_status != 'Deleted':
+            raise serializers.ValidationError(
+                'Re-activation of OJT Coordinator account is currently not allowed. Please contact the administrator for assistance.'
+            )
+
         return attrs
 
-    def update(self, instance, validated_data):
-        user_data = validated_data.pop("user", {})
-        email = validated_data.pop("ojtcoordinator_email", None)
-        password = validated_data.pop("password", None)
+    def validate_program(self, program):
+        if not program or (self.instance and self.instance.program_id == program.program_id):
+            return program
 
-        # Update Email if provided
+        request = self.context.get('request')
+        if not request:
+            raise serializers.ValidationError('Request context is missing.')
+
+        try:
+            cea = CareerEmplacementAdmin.objects.get(user=request.user)
+        except CareerEmplacementAdmin.DoesNotExist:
+            raise serializers.ValidationError('CEA school context is missing or invalid.')
+
+        if not cea.school:
+            raise serializers.ValidationError('CEA does not have an associated school.')
+
+        if str(program.department.school.school_id) != str(cea.school.school_id):
+            raise serializers.ValidationError('The selected program does not belong to your school.')
+
+        existing = OJTCoordinator.objects.filter(
+            program=program,
+            user__status__in=['Active', 'Inactive']
+        )
+        if self.instance:
+            existing = existing.exclude(pk=self.instance.pk)
+
+        if existing.exists():
+            raise serializers.ValidationError('The selected program already has an assigned OJT Coordinator.')
+
+        return program
+
+    def validate_department(self, department):
+        request = self.context.get('request')
+        if not request:
+            raise serializers.ValidationError('Request context is missing.')
+
+        try:
+            cea = CareerEmplacementAdmin.objects.get(user=request.user)
+        except CareerEmplacementAdmin.DoesNotExist:
+            raise serializers.ValidationError('CEA school context is missing or invalid.')
+
+        if not cea.school:
+            raise serializers.ValidationError('CEA does not have an associated school.')
+
+        if department.school != cea.school:
+            raise serializers.ValidationError('The selected department does not belong to your school.')
+
+        return department
+
+    def validate_ojtcoordinator_email(self, email):
+        if self.instance and self.instance.user.email == email:
+            return email
+
+        assigned_coordinator = OJTCoordinator.objects.filter(user__email=email).exclude(user__status='Deleted')
+
+        if self.instance:
+            assigned_coordinator = assigned_coordinator.exclude(pk=self.instance.pk)
+
+        if assigned_coordinator.exists():
+            raise serializers.ValidationError('This email is currently in use by another OJT Coordinator.')
+
+        return super().validate_ojtcoordinator_email(email)
+
+    def update(self, instance, validated_data):
+        email = validated_data.pop("ojtcoordinator_email", None)
         if email:
             instance.user.email = email
 
-        # Update Password if provided
+        password = validated_data.pop("password", None)
         if password:
             instance.user.set_password(password)
 
-        # Update Status if provided
+        user_data = validated_data.pop("user", {})
         if "status" in user_data:
             instance.user.status = user_data["status"]
 
         instance.user.save()
 
-        # Update any remaining fields on the OJTCoordinator instance
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
 
         return instance
+
+
+class GetOJTCoordinatorSerializer(serializers.ModelSerializer):
+    program = ProgramSerializer(read_only=True)
+    department = DepartmentSerializer(read_only=True)
+    email = serializers.EmailField(source='user.email', read_only=True)
+    status = serializers.CharField(source='user.status')
+
+    class Meta:
+        model = OJTCoordinator
+        fields = [
+            'user',
+            'ojt_coordinator_id',
+            'program',
+            'department',
+            'first_name',
+            'last_name',
+            'middle_initial',
+            'email',
+            'status',
+            'program_logo',
+            'signature',
+            'endorsements_responded'
+        ]
 
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -655,7 +780,7 @@ class GetApplicantSerializer(serializers.ModelSerializer):
         fields = ['user', 'email', 'school', 'department', 'program', 'first_name', 'last_name',
                   'middle_initial', 'address', 'hard_skills', 'soft_skills', 'in_practicum',
                   'preferred_modality', 'academic_program', 'quick_introduction',
-                  'resume', 'enrollment_record', 'verified_at']
+                  'resume', 'enrollment_record', 'verified_at', 'mobile_number']
 
     def get_hard_skills(self, obj):
         return [
@@ -905,28 +1030,6 @@ class ChangePasswordSerializer(serializers.Serializer):
         return user
 
 
-class GetOJTCoordinatorSerializer(serializers.ModelSerializer):
-    program = ProgramSerializer(read_only=True)
-
-    email = serializers.EmailField(source='user.email', read_only=True)
-    status = serializers.CharField(source='user.status')
-
-    class Meta:
-        model = OJTCoordinator
-        fields = [
-            'user',
-            'ojt_coordinator_id',
-            'program',
-            'first_name',
-            'last_name',
-            'middle_initial',
-            'email',
-            'status',
-            'program_logo',
-            'signature'
-        ]
-
-
 class EditCompanySerializer(serializers.ModelSerializer):
     company_website_url = serializers.CharField(allow_blank=True, allow_null=True)
     linkedin_url = serializers.CharField(allow_blank=True, allow_null=True)
@@ -1001,6 +1104,7 @@ class EditApplicantSerializer(serializers.ModelSerializer):
             'enrollment_record',
             'quick_introduction',
             'preferred_modality',
+            'mobile_number'
         ]
 
     def get_displayed_hard_skills(self, obj):
@@ -1103,3 +1207,21 @@ class GetEmailSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['user_id', 'verified_at', 'user_role', 'status']
+
+
+class AuditLogSerializer(serializers.ModelSerializer):
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+
+    class Meta:
+        model = AuditLog
+        fields = [
+            'user_email',
+            'user_role',
+            'action_type',
+            'action',
+            'model',
+            'object_id',
+            'object_repr',
+            'timestamp',
+            'details',
+        ]

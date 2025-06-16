@@ -1,5 +1,4 @@
 from django.urls import path
-
 from ojt_management.views import RequestPracticumView
 from .views import ApplicantRegisterView, NestedSchoolDepartmentProgramListView, DepartmentListView, ProgramListView, \
     SchoolListView, CompanyRegisterView, CareerEmplacementAdminRegisterView, OJTCoordinatorRegisterView, \

@@ -13,9 +13,10 @@ class Application(models.Model):
 
     status = models.CharField(max_length=20, choices=[
         ('Pending', 'Pending'),
-        ('Confirmed', 'Confirmed'),
+        ('Onboarding', 'Onboarding'),
         ('Rejected', 'Rejected'),
-        ('Dropped', 'Dropped')
+        ('Dropped', 'Dropped'),
+        ('Accepted', 'Accepted'),
     ], default='Pending')
 
     is_bookmarked = models.BooleanField(default=True)
