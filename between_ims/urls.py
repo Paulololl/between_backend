@@ -23,7 +23,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from user_account.views import MyTokenObtainPairView
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('zxnmcbzxnmbcasjkdjaksdqwuioeiowue1289738923745982374892345srdfgsdfghkljsdfg', admin.site.urls),
     path('silk/', include('silk.urls', namespace='silk')),
     path('api/user_account/', include('user_account.urls')),
     path('api/client_matching/', include('client_matching.urls')),
