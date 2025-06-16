@@ -217,7 +217,8 @@ class AuditLog(models.Model):
 
     def __str__(self):
         local_time = localtime(self.timestamp)
-        return (f"{self.auditlog_id} - {local_time.strftime('%Y-%m-%d %H:%M:%S')} - {self.user.email}: {self.action}"
+        user_email = self.user.email if self.user else 'None'
+        return (f"{self.auditlog_id} - {local_time.strftime('%Y-%m-%d %H:%M:%S')} - {user_email}: {self.action}"
                 f" - {self.action_type}")
 
 

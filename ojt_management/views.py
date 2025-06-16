@@ -76,7 +76,7 @@ class SchoolPartnershipListView(CoordinatorMixin, generics.ListAPIView):
 
     def get_queryset(self):
         coordinator = self.get_coordinator_or_403(self.request.user)
-        return SchoolPartnershipList.objects.filter(school=coordinator.program.department.school).select_related(
+        return SchoolPartnershipList.objects.filter(school=coordinator.department.school).select_related(
             'company', 'company__user')
 
     def list(self, request, *args, **kwargs):
@@ -135,6 +135,7 @@ class ApplicantListView(CoordinatorMixin, generics.ListAPIView):
 
 # region Practicum Management
 
+
 # Students In Practicum List -- KC
 @ojt_management_tag
 class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
@@ -192,7 +193,7 @@ class GetRequestPracticumListView(CoordinatorMixin, generics.ListAPIView):
     def get_queryset(self):
         coordinator = self.get_coordinator_or_403(self.request.user)
         return Applicant.objects.filter(
-            program__department__school=coordinator.program.department.school
+            program=coordinator.program
             , user__status__in=['Active']
             , in_practicum='Pending'
             , enrollment_record__isnull=False
@@ -248,6 +249,7 @@ class RequestPracticumView(generics.UpdateAPIView):
             self.no_active_coordinator = True
             return {}
 
+    @transaction.atomic
     def update(self, request, *args, **kwargs):
         applicant = request.user.applicant
 
@@ -346,6 +348,7 @@ class ApprovePracticumRequestView(CoordinatorMixin, generics.UpdateAPIView):
 
         return {**email_context, 'coordinator': coordinator, 'recipient_list': [applicant.user.email]}
 
+    @transaction.atomic
     def update(self, request, *args, **kwargs):
         applicant = self.get_object()
 
@@ -410,6 +413,7 @@ class RejectPracticumRequestView(CoordinatorMixin, generics.UpdateAPIView):
 
         return {**email_context, 'coordinator': coordinator, 'recipient_list': [applicant.user.email]}
 
+    @transaction.atomic
     def update(self, request, *args, **kwargs):
         applicant = self.get_object()
 
@@ -477,6 +481,7 @@ class EndPracticumView(CoordinatorMixin, generics.UpdateAPIView):
 
         return {**email_context, 'coordinator': coordinator, 'recipient_list': [applicant.user.email]}
 
+    @transaction.atomic
     def update(self, request, *args, **kwargs):
         applicant = self.get_object()
 
@@ -538,45 +543,47 @@ class ResetPracticumView(CoordinatorMixin, generics.GenericAPIView):
         failed_updates = []
 
         for applicant in applicants:
-            if not applicant.enrollment_record:
-                failed_updates.append({
-                    'user_id': applicant.user.user_id,
-                    'error': 'No enrollment record found for student.'
-                })
+            with transaction.atomic():
+                if not applicant.enrollment_record:
+                    failed_updates.append({
+                        'user_id': applicant.user.user_id,
+                        'error': 'No enrollment record found for student.'
+                    })
+                    continue
 
-            email_context = self.build_email_context(applicant)
-            coordinator = self.get_coordinator_or_403(request.user)
-            serializer_context = {
-                **email_context,
-                'coordinator': coordinator,
-                'recipient_list': [applicant.user.email]
-            }
+                email_context = self.build_email_context(applicant)
+                coordinator = self.get_coordinator_or_403(request.user)
+                serializer_context = {
+                    **email_context,
+                    'coordinator': coordinator,
+                    'recipient_list': [applicant.user.email]
+                }
 
-            serializer = self.get_serializer(
-                instance=applicant,
-                data={'in_practicum': 'No'},
-                partial=True,
-                context=serializer_context
-            )
-
-            try:
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
-                updated_count += 1
-
-                log_coordinator_action(
-                    user=self.request.user,
-                    action="Practicum Reset",
-                    action_type='change',
-                    obj=applicant,
-                    details=f"Practicum was Reset for this Term."
+                serializer = self.get_serializer(
+                    instance=applicant,
+                    data={'in_practicum': 'No'},
+                    partial=True,
+                    context=serializer_context
                 )
 
-            except Exception as e:
-                failed_updates.append({
-                    'user_id': applicant.user.user_id,
-                    'error': str(e)
-                })
+                try:
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
+                    updated_count += 1
+
+                    log_coordinator_action(
+                        user=self.request.user,
+                        action="Practicum Reset",
+                        action_type='change',
+                        obj=applicant,
+                        details=f"Practicum was Reset for this Term."
+                    )
+
+                except Exception as e:
+                    failed_updates.append({
+                        'user_id': applicant.user.user_id,
+                        'error': str(e)
+                    })
 
         response_data = {
             'message': f'Successfully ended practicum for {updated_count} students.',
@@ -702,115 +709,113 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
             endorsement.comments = comments if endorsement_status == 'Rejected' else None
             endorsement.save()
 
-            applicant_email = endorsement.application.applicant.user.email
-            applicant = endorsement.application.applicant
-            company_name = endorsement.application.internship_posting.company.company_name
-            internship_position = endorsement.application.internship_posting.internship_position
-            applicant_name = (
-                    applicant.first_name +
-                    (' ' + applicant.middle_initial if applicant.middle_initial else '') +
-                    ' ' + applicant.last_name
-            )
+            coordinator.endorsements_responded = (coordinator.endorsements_responded or 0) + 1
+            coordinator.save()
 
-            coordinator_name = (
-                    coordinator.first_name +
-                    (' ' + coordinator.middle_initial if coordinator.middle_initial else '') +
-                    ' ' + coordinator.last_name
-            )
-            if endorsement_status == 'Approved':
+        applicant_email = endorsement.application.applicant.user.email
+        applicant = endorsement.application.applicant
+        company_name = endorsement.application.internship_posting.company.company_name
+        internship_position = endorsement.application.internship_posting.internship_position
+        applicant_name = (
+                applicant.first_name +
+                (' ' + applicant.middle_initial if applicant.middle_initial else '') +
+                ' ' + applicant.last_name
+        )
 
-                if not coordinator.program_logo or not coordinator.signature:
-                    raise ValidationError({
-                        "error": "Your program logo and signature must be uploaded before approving an "
-                                 "endorsement."
-                    })
+        coordinator_name = (
+                coordinator.first_name +
+                (' ' + coordinator.middle_initial if coordinator.middle_initial else '') +
+                ' ' + coordinator.last_name
+        )
 
-                subject = f"Your Endorsement Has Been Approved"
-                message_html = f"""
-                <div>
-                    <p>Dear <strong>{applicant_name}</strong>,</p>
-                    <p>Your endorsement for the internship position 
-                       <strong>{internship_position}</strong> at <strong>{company_name}</strong> has been <strong>approved</strong>.</p>
-                    <p>
-                     Best regards, <br> <strong>
-                     <br>{coordinator_name}
-                     <br>Practicum Coordinator - {coordinator.program}
-                     <br>{coordinator.user.email} </strong>
-                    </p>
-                </div>
-                """
+        if endorsement_status == 'Approved':
 
-                html_string = render_to_string("endorsement_letter_template.html", {
-                    "endorsement": endorsement,
-                    "coordinator": coordinator,
-                    "today": date.today()
+            if not coordinator.program_logo or not coordinator.signature:
+                raise ValidationError({
+                    "error": "Your program logo and signature must be uploaded before approving an "
+                             "endorsement."
                 })
 
-                pdf_bytes = HTML(string=html_string).write_pdf()
+            subject = f"Your Endorsement Has Been Approved"
+            message_html = f"""
+            <div>
+                <p>Dear <strong>{applicant_name}</strong>,</p>
+                <p>Your endorsement for the internship position 
+                   <strong>{internship_position}</strong> at <strong>{company_name}</strong> has been <strong>approved</strong>.</p>
+                <p>
+                 Best regards, <br> <strong>
+                 <br>{coordinator_name}
+                 <br>Practicum Coordinator - {coordinator.program}
+                 <br>{coordinator.user.email} </strong>
+                </p>
+            </div>
+            """
 
-                email = EmailMessage(
-                    subject=subject,
-                    body=message_html,
-                    from_email=formataddr((
-                        f'{coordinator_name}',
-                        'between_internships@gmail.com')),
-                    to=[applicant_email, coordinator.user.email],
-                    reply_to=['no-reply@betweeninternships.com']
-                )
-                email.content_subtype = 'html'
-                email.attach(f"endorsement_{endorsement.endorsement_id}.pdf", pdf_bytes, 'application/pdf')
-                email.send(fail_silently=False)
+            html_string = render_to_string("endorsement_letter_template.html", {
+                "endorsement": endorsement,
+                "coordinator": coordinator,
+                "today": date.today()
+            })
 
-                coordinator.endorsements_responded = (coordinator.endorsements_responded or 0) + 1
-                coordinator.save()
+            pdf_bytes = HTML(string=html_string).write_pdf()
 
-                log_coordinator_action(
-                    user=request.user,
-                    action="Endorsement Approved",
-                    action_type="change",
-                    obj=endorsement,
-                    details=f"Approved endorsement for {applicant.user.email} - {internship_position} at {company_name}"
-                )
+            email = EmailMessage(
+                subject=subject,
+                body=message_html,
+                from_email=formataddr((
+                    f'{coordinator_name}',
+                    'between_internships@gmail.com')),
+                to=[applicant_email, coordinator.user.email],
+                reply_to=['no-reply@betweeninternships.com']
+            )
+            email.content_subtype = 'html'
+            email.attach(f"endorsement_{endorsement.endorsement_id}.pdf", pdf_bytes, 'application/pdf')
+            email.send(fail_silently=False)
 
-            else:
-                subject = f"Your Endorsement Has Been Rejected"
-                message_html = f"""
-                <div>
-                    <p>Dear <strong>{applicant_name}</strong>,</p>
-                    <p>Your endorsement for the internship position 
-                       <strong>{internship_position}</strong> at <strong>{company_name}</strong> has been <strong>rejected</strong>.</p>
-                    <p><strong>Comments:</strong><br>{comments.replace('\n', '<br>')}</p>
-                     <p>
-                    Best regards, <br> <strong>
-                     <br>{coordinator_name}
-                     <br>Practicum Coordinator - {coordinator.program}
-                     <br>{coordinator.user.email} </strong> 
-                    </p>
-                </div>
-                """
+            log_coordinator_action(
+                user=request.user,
+                action="Endorsement Approved",
+                action_type="change",
+                obj=endorsement,
+                details=f"Approved endorsement for {applicant.user.email} - {internship_position} at {company_name}"
+            )
 
-                email = EmailMessage(
-                    subject=subject,
-                    body=message_html,
-                    from_email=formataddr(
-                        (f'{coordinator_name}',
-                         'between_internships@gmail.com')),
-                    to=[applicant_email],
-                    reply_to=['no-reply@betweeninternships.com']
-                )
-                email.content_subtype = 'html'
-                email.send(fail_silently=False)
+        else:
+            subject = f"Your Endorsement Has Been Rejected"
+            message_html = f"""
+            <div>
+                <p>Dear <strong>{applicant_name}</strong>,</p>
+                <p>Your endorsement for the internship position 
+                   <strong>{internship_position}</strong> at <strong>{company_name}</strong> has been <strong>rejected</strong>.</p>
+                <p><strong>Comments:</strong><br>{comments.replace('\n', '<br>')}</p>
+                 <p>
+                Best regards, <br> <strong>
+                 <br>{coordinator_name}
+                 <br>Practicum Coordinator - {coordinator.program}
+                 <br>{coordinator.user.email} </strong> 
+                </p>
+            </div>
+            """
 
-                coordinator.endorsements_responded = (coordinator.endorsements_responded or 0) + 1
-                coordinator.save()
+            email = EmailMessage(
+                subject=subject,
+                body=message_html,
+                from_email=formataddr(
+                    (f'{coordinator_name}',
+                     'between_internships@gmail.com')),
+                to=[applicant_email],
+                reply_to=['no-reply@betweeninternships.com']
+            )
+            email.content_subtype = 'html'
+            email.send(fail_silently=False)
 
-                log_coordinator_action(
-                    user=request.user,
-                    action="Endorsement Rejected",
-                    action_type="change",
-                    obj=endorsement,
-                    details=f"Rejected endorsement for {applicant.user.email} - {internship_position} at {company_name}"
-                )
+            log_coordinator_action(
+                user=request.user,
+                action="Endorsement Rejected",
+                action_type="change",
+                obj=endorsement,
+                details=f"Rejected endorsement for {applicant.user.email} - {internship_position} at {company_name}"
+            )
 
         serializer = self.get_serializer(endorsement)
         return Response(serializer.data, status=status.HTTP_200_OK)

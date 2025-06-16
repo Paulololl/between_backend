@@ -209,6 +209,7 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
 
         return attrs
 
+    @transaction.atomic
     def create(self, validated_data):
         email = validated_data.pop('applicant_email')
         password = validated_data.pop('password')
@@ -221,44 +222,43 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'applicant_email': 'This email is already in use.'})
 
         try:
-            with transaction.atomic():
-                user = User.objects.create_user(
-                    email=email,
-                    password=password,
-                    user_role='applicant',
-                )
+            user = User.objects.create_user(
+                email=email,
+                password=password,
+                user_role='applicant',
+            )
 
-                applicant = Applicant.objects.create(user=user, **validated_data)
+            applicant = Applicant.objects.create(user=user, **validated_data)
 
-                if hard_skills_string:
-                    try:
-                        hard_skills_json = json.loads(hard_skills_string)
-                        hard_skills = []
-                        for skill in hard_skills_json:
-                            skill_instance, _ = HardSkillsTagList.objects.get_or_create(
-                                lightcast_identifier=skill['id'],
-                                defaults={'name': skill['name']}
-                            )
-                            hard_skills.append(skill_instance)
-                        applicant.hard_skills.set(hard_skills)
-                    except json.JSONDecodeError:
-                        raise serializers.ValidationError("Invalid format for hard_skills")
+            if hard_skills_string:
+                try:
+                    hard_skills_json = json.loads(hard_skills_string)
+                    hard_skills = []
+                    for skill in hard_skills_json:
+                        skill_instance, _ = HardSkillsTagList.objects.get_or_create(
+                            lightcast_identifier=skill['id'],
+                            defaults={'name': skill['name']}
+                        )
+                        hard_skills.append(skill_instance)
+                    applicant.hard_skills.set(hard_skills)
+                except json.JSONDecodeError:
+                    raise serializers.ValidationError("Invalid format for hard_skills")
 
-                if soft_skills_string:
-                    try:
-                        soft_skills_json = json.loads(soft_skills_string)
-                        soft_skills = []
-                        for skill in soft_skills_json:
-                            skill_instance, _ = SoftSkillsTagList.objects.get_or_create(
-                                lightcast_identifier=skill['id'],
-                                defaults={'name': skill['name']}
-                            )
-                            soft_skills.append(skill_instance)
-                        applicant.soft_skills.set(soft_skills)
-                    except json.JSONDecodeError:
-                        raise serializers.ValidationError("Invalid format for soft_skills")
+            if soft_skills_string:
+                try:
+                    soft_skills_json = json.loads(soft_skills_string)
+                    soft_skills = []
+                    for skill in soft_skills_json:
+                        skill_instance, _ = SoftSkillsTagList.objects.get_or_create(
+                            lightcast_identifier=skill['id'],
+                            defaults={'name': skill['name']}
+                        )
+                        soft_skills.append(skill_instance)
+                    applicant.soft_skills.set(soft_skills)
+                except json.JSONDecodeError:
+                    raise serializers.ValidationError("Invalid format for soft_skills")
 
-                return applicant
+            return applicant
 
         except Exception:
             raise serializers.ValidationError({'non_field_errors': 'Something went wrong with the server.'})
@@ -316,6 +316,7 @@ class CompanyRegisterSerializer(serializers.ModelSerializer):
 
         return attrs
 
+    @transaction.atomic
     def create(self, validated_data):
         email = validated_data.pop('company_email')
         password = validated_data.pop('password')
@@ -326,17 +327,15 @@ class CompanyRegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'company_email': 'This email is already in use.'})
 
         try:
-            with transaction.atomic():
-                user = User.objects.create_user(
-                    email=email,
-                    password=password,
-                    user_role='company',
-                    date_joined=timezone.now(),
-                )
+            user = User.objects.create_user(
+                email=email,
+                password=password,
+                user_role='company',
+                date_joined=timezone.now(),
+            )
 
-                company = Company.objects.create(user=user, **validated_data)
-                return company
-
+            company = Company.objects.create(user=user, **validated_data)
+            return company
         except Exception:
             raise serializers.ValidationError({'non_field_errors': 'Something went wrong with the server.'})
 
@@ -367,6 +366,7 @@ class CareerEmplacementAdminRegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'confirm_password': 'Passwords do not match.'})
         return attrs
 
+    @transaction.atomic
     def create(self, validated_data):
         email = validated_data.pop('cea_email')
         password = validated_data.pop('password')
@@ -490,6 +490,7 @@ class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
 
         return attrs
 
+    @transaction.atomic
     def create(self, validated_data):
         email = validated_data.pop('ojtcoordinator_email')
         password = validated_data.pop('password')

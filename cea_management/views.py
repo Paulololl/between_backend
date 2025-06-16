@@ -153,6 +153,7 @@ class UpdateOJTCoordinatorView(CEAMixin, generics.UpdateAPIView):
         except OJTCoordinator.DoesNotExist:
             raise ValidationError({"error": f"No OJT Coordinator found for user: {user}"})
 
+    @transaction.atomic
     def update(self, request, *args, **kwargs):
         coordinator = self.get_object()
         serializer = self.get_serializer(coordinator, data=request.data, partial=True)
@@ -190,6 +191,7 @@ class RemoveOJTCoordinatorView(CEAMixin, generics.DestroyAPIView):
 
         return instance
 
+    @transaction.atomic
     def delete(self, request, *args, **kwargs):
         coordinator = self.get_object()
         user = coordinator.user
@@ -344,6 +346,7 @@ class CompanyListView(CEAMixin, generics.ListAPIView):
 class BulkDeleteSchoolPartnershipView(CEAMixin, generics.GenericAPIView):
     permission_classes = [IsAuthenticated]
 
+    @transaction.atomic
     def delete(self, request, *args, **kwargs):
         cea = self.get_cea_or_403(self.request.user)
 

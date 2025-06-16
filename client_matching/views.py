@@ -187,6 +187,7 @@ class EditPersonInChargeView(APIView):
 class BulkDeletePersonInChargeView(APIView):
     permission_classes = [IsAuthenticated, IsCompany]
 
+    @transaction.atomic
     def delete(self, request):
         serializer = BulkDeletePersonInChargeSerializer(data=request.data)
         if serializer.is_valid():
@@ -205,6 +206,7 @@ class BulkDeletePersonInChargeView(APIView):
 class BulkDeleteInternshipPostingView(APIView):
     permission_classes = [IsAuthenticated, IsCompany]
 
+    @transaction.atomic
     def put(self, request):
         serializer = BulkDeleteInternshipPostingSerializer(data=request.data)
         if serializer.is_valid():
@@ -268,6 +270,7 @@ class ToggleInternshipPostingView(APIView):
 class InternshipMatchView(APIView):
     permission_classes = [IsAuthenticated, IsApplicant]
 
+    @transaction.atomic
     def post(self, request, *args, **kwargs):
         user = request.user
 
@@ -459,6 +462,7 @@ class InternshipRecommendationListView(ListAPIView):
 class InternshipRecommendationTapView(APIView):
     permission_classes = [IsAuthenticated, IsApplicant]
 
+    @transaction.atomic
     def put(self, request):
         recommendation_id = request.query_params.get('recommendation_id')
         status_param = request.query_params.get('status')
@@ -504,22 +508,21 @@ class InternshipRecommendationTapView(APIView):
         applicant.tap_count = (applicant.tap_count or 0) + 1
         applicant.save()
 
-        with transaction.atomic():
-            if normalized_status == 'Submitted':
-                Application.objects.create(
-                    applicant=applicant,
-                    internship_posting=recommendation.internship_posting,
-                    status='Pending',
-                    is_bookmarked=True
-                )
-
-            return Response(
-                {
-                    'recommendation_id': recommendation.recommendation_id,
-                    'updated_status': recommendation.status
-                },
-                status=drf_status.HTTP_200_OK
+        if normalized_status == 'Submitted':
+            Application.objects.create(
+                applicant=applicant,
+                internship_posting=recommendation.internship_posting,
+                status='Pending',
+                is_bookmarked=True
             )
+
+        return Response(
+            {
+                'recommendation_id': recommendation.recommendation_id,
+                'updated_status': recommendation.status
+            },
+            status=drf_status.HTTP_200_OK
+        )
 
 
 @client_matching_tag
