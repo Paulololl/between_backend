@@ -1,3 +1,5 @@
+import base64
+import ssl
 import uuid
 from datetime import date
 from email.utils import formataddr
@@ -16,6 +18,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from weasyprint import HTML
+from weasyprint.text.fonts import FontConfiguration
+
+# from weasyprint import HTML
 
 from between_ims import settings
 from cea_management import serializers
@@ -751,10 +756,18 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
             </div>
             """
 
+            program_logo_data = base64.b64encode(coordinator.program_logo.read()).decode('utf-8')
+            coordinator.program_logo.seek(0)
+
+            signature_data = base64.b64encode(coordinator.signature.read()).decode('utf-8')
+            coordinator.signature.seek(0)
+
             html_string = render_to_string("endorsement_letter_template.html", {
                 "endorsement": endorsement,
                 "coordinator": coordinator,
-                "today": date.today()
+                "today": date.today(),
+                "program_logo_data": program_logo_data,
+                "signature_data": signature_data,
             })
 
             pdf_bytes = HTML(string=html_string).write_pdf()
@@ -839,15 +852,18 @@ class GenerateEndorsementPDFView(CoordinatorMixin, APIView):
                     "Your program logo and signature must be uploaded before generating an endorsement preview PDF."
             })
 
+        program_logo_data = base64.b64encode(coordinator.program_logo.read()).decode('utf-8')
+        coordinator.program_logo.seek(0)
+
+        signature_data = base64.b64encode(coordinator.signature.read()).decode('utf-8')
+        coordinator.signature.seek(0)
+
         html_string = render_to_string("endorsement_letter_template_preview.html", {
             "coordinator": coordinator,
             "today": date.today(),
+            "program_logo_data": program_logo_data,
+            "signature_data": signature_data,
         })
-
-        html_string = html_string.replace(
-            "https://localhost:9000",
-            "https://localhost:9001",
-        )
 
         pdf_bytes = HTML(string=html_string).write_pdf()
 

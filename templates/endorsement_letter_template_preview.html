@@ -13,7 +13,7 @@
 
   {% if coordinator.program_logo %}
   <div class="logo">
-     <img src="{{ coordinator.program_logo.url }}" alt="Program Logo">
+      <img src="data:image/png;base64,{{ program_logo_data }}" alt="Program Logo">
   </div>
   {% endif %}
 
@@ -34,7 +34,7 @@
   
   <div class="signature">
     {% if coordinator.signature %}
-      <img src="{{ coordinator.signature.url }}" alt="Coordinator Signature">
+      <img src="data:image/png;base64,{{ signature_data }}" alt="Coordinator Signature">
     {% endif %}
     <p><strong>{{ coordinator.first_name }} {{ coordinator.last_name }}
         <br>Practicum Coordinator - {{ coordinator.program }}
