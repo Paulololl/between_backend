@@ -11,6 +11,11 @@ services:
       - HF_HOME=/tmp/huggingface
     ports:
       - "8000:8000"
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /code
     command: python manage.py runserver_plus 0.0.0.0:8000 --cert mkcert/localhost.pem --key mkcert/localhost-key.pem
     depends_on:
       - minio
