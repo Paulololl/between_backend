@@ -35,7 +35,7 @@ from cea_management.serializers import ProgramSerializer
 
 from django.core.exceptions import ValidationError
 
-load_dotenv()
+load_dotenv(dotenv_path=os.path.join('wwwroot', '.env'))
 
 
 class SchoolSerializer(serializers.ModelSerializer):

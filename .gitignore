@@ -14,7 +14,7 @@ media/
 *.db
 
 # Environments
-.env
+wwwroot/.env
 .venv
 .venv/
 env/

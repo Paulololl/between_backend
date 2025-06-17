@@ -3,7 +3,7 @@ import requests
 from dotenv import load_dotenv
 
 # importing stuff from .env
-load_dotenv()
+load_dotenv(dotenv_path=os.path.join('wwwroot', '.env'))
 
 url = os.getenv("LIGHTCAST_TOKEN_URL")
 

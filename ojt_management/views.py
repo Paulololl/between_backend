@@ -828,7 +828,6 @@ class GenerateEndorsementPDFView(CoordinatorMixin, APIView):
     def get(self, request):
         user = request.user
 
-        # Ensure user is an OJT Coordinator
         if not hasattr(user, 'ojtcoordinator'):
             raise PermissionDenied("Only OJT Coordinators can generate endorsement previews.")
 
@@ -844,6 +843,11 @@ class GenerateEndorsementPDFView(CoordinatorMixin, APIView):
             "coordinator": coordinator,
             "today": date.today(),
         })
+
+        html_string = html_string.replace(
+            "https://localhost:9000",
+            "https://localhost:9001",
+        )
 
         pdf_bytes = HTML(string=html_string).write_pdf()
 

@@ -19,7 +19,7 @@ import storages
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-load_dotenv()
+load_dotenv(dotenv_path=os.path.join('wwwroot', '.env'))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -28,7 +28,7 @@ load_dotenv()
 SECRET_KEY = 'django-insecure-79$wxvmm3fca454ofbf-z#yvc0#t=fz0r%wbi!a#x==jwkq6un'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ["172.30.0.1", "127.0.0.1", "localhost"]
 

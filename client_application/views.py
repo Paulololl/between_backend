@@ -1,6 +1,7 @@
 from django.core.mail import send_mail, EmailMessage
 from django.db import transaction
 from django.db.models import Q
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.generics import ListAPIView, CreateAPIView
@@ -467,7 +468,10 @@ class RemoveFromBookmarksView(APIView):
             InternshipRecommendation.objects.filter(
                 applicant=application.applicant,
                 internship_posting=application.internship_posting
-            ).update(status='Skipped')
+            ).update(
+                status='Skipped',
+                time_stamp=timezone.now()
+            )
 
             reset_recommendations_and_tap_count(user.applicant)
             run_internship_matching(user.applicant)

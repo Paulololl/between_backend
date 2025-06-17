@@ -36,7 +36,7 @@ from client_matching.models import PersonInCharge, InternshipPosting, KeyTask, M
     HardSkillsTagList, SoftSkillsTagList, InternshipRecommendation, Report, Advertisement
 from django.core.exceptions import ValidationError
 
-load_dotenv()
+load_dotenv(dotenv_path=os.path.join('wwwroot', '.env'))
 
 
 # Geopy

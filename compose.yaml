@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     env_file:
-      - .env
+      - wwwroot/.env
     volumes:
       - ./hf_cache:/tmp/huggingface
     environment:
@@ -19,6 +19,8 @@ services:
     command: python manage.py runserver_plus 0.0.0.0:8000 --cert mkcert/localhost.pem --key mkcert/localhost-key.pem
     depends_on:
       - minio
+    extra_hosts:
+      - "localhost:host-gateway"
 
   minio:
     image: minio/minio:latest
@@ -29,7 +31,9 @@ services:
     environment:
       MINIO_ROOT_USER: admin
       MINIO_ROOT_PASSWORD: admin123
+    env_file:
+      - wwwroot/.env
     volumes:
-      - "${MINIO_CERTS_PATH}:/root/.minio/certs"
-      - "${MINIO_DATA_PATH}:/data"
+      - ./minio-mkcert:/root/.minio/certs
+      - ./minio-data:/data
     command: server /data --console-address ":9001"
