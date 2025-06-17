@@ -724,7 +724,7 @@ class SchoolEmailCheckSerializer(serializers.Serializer):
         email = data.get('email')
         school_id = data.get('school_id')
 
-        abstract_api_key = '02dc02a0b87547538b7e6bda6a7bfe00'
+        abstract_api_key = os.getenv('ABSTRACT_API_KEY')
         url = f"https://emailvalidation.abstractapi.com/v1/"
         params = {'api_key': abstract_api_key, 'email': email}
 
@@ -741,8 +741,8 @@ class SchoolEmailCheckSerializer(serializers.Serializer):
             if data_api.get('deliverability') != 'DELIVERABLE':
                 errors.append('Email is not deliverable.')
 
-            # if float(data_api.get('quality_score', 0)) < 0.80:
-            #     errors.append('Email may not exist.')
+            if float(data_api.get('quality_score', 0)) < 0.81:
+                errors.append('Email may not exist.')
 
             if not data_api.get('is_valid_format', {}).get('value', False):
                 errors.append('Email format is invalid.')
