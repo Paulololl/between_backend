@@ -17,26 +17,26 @@ services:
           path: .
           target: /code
     command: python manage.py runserver_plus 0.0.0.0:8000 --cert mkcert/localhost.pem --key mkcert/localhost-key.pem
-    depends_on:
-      - minio
     extra_hosts:
       - "localhost:host-gateway"
 
-  minio:
-    image: minio/minio:latest
-    container_name: minio-container
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    environment:
-      MINIO_ROOT_USER: admin
-      MINIO_ROOT_PASSWORD: admin123
-    env_file:
-      - wwwroot/.env
-    volumes:
-      - ./minio-mkcert:/root/.minio/certs
-      - ./minio-data:/data
-    command: server /data --console-address ":9001"
+
+
+#  minio:
+#    image: minio/minio:latest
+#    container_name: minio-container
+#    ports:
+#      - "9000:9000"
+#      - "9001:9001"
+#    environment:
+#      MINIO_ROOT_USER: admin
+#      MINIO_ROOT_PASSWORD: admin123
+#    env_file:
+#      - wwwroot/.env
+#    volumes:
+#      - ./minio-mkcert:/root/.minio/certs
+#      - ./minio-data:/data
+#    command: server /data --console-address ":9001"
 
 #  weasyprint:
 #    image: 4teamwork/weasyprint:latest
