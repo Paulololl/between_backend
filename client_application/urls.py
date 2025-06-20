@@ -2,7 +2,7 @@ from django.urls import path
 
 from client_application.views import ApplicationListView, ApplicationDetailView, NotificationView, \
     UpdateApplicationView, RequestDocumentView, ClearNotificationView, DropApplicationView, RemoveFromBookmarksView, \
-    SendDocumentView, AcceptApplicationView
+    SendDocumentView, AcceptApplicationView, NewNotificationsView, DroppedApplicationsView, UninterestedView
 
 urlpatterns = [
     path('get/applications/', ApplicationListView.as_view()),
@@ -15,4 +15,7 @@ urlpatterns = [
     path('remove/application/', RemoveFromBookmarksView.as_view()),
     path('application/request_document/', RequestDocumentView.as_view()),
     path('application/send_document/', SendDocumentView.as_view()),
+    path('metrics/new_notifications/', NewNotificationsView.as_view()),
+    path('metrics/dropped_applications/', DroppedApplicationsView.as_view()),
+    path('metrics/uninterested/', UninterestedView.as_view()),
 ]

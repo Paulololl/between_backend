@@ -524,3 +524,47 @@ class SendDocumentView(APIView):
                 return Response({'message': 'Documents sent successfully.'}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@client_application_tag
+class NewNotificationsView(APIView):
+    permission_classes = [IsAuthenticated, IsCompany]
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+
+        unread_count = Application.objects.filter(
+            internship_posting__company__user=user,
+            company_status='Unread'
+        ).count()
+
+        return Response({'new_notifications': unread_count})
+
+
+class DroppedApplicationsView(APIView):
+    permission_classes = [IsAuthenticated, IsCompany]
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+
+        dropped_applications = Application.objects.filter(
+            internship_posting__company__user=user,
+            status='Dropped'
+        ).count()
+
+        return Response({'dropped_applications': dropped_applications})
+
+
+class UninterestedView(APIView):
+    permission_classes = [IsAuthenticated, IsCompany]
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+
+        uninterested = InternshipRecommendation.objects.filter(
+            internship_posting__company__user=user,
+            status='Skipped'
+        ).count()
+
+        return Response({'uninterested': uninterested})
+
