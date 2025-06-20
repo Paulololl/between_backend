@@ -87,6 +87,8 @@ class Applicant(models.Model):
     last_name = models.CharField(max_length=100)
     middle_initial = models.CharField(max_length=20, null=True, blank=True)
     address = models.CharField(max_length=255)
+    latitude = models.FloatField(default=0.0)
+    longitude = models.FloatField(default=0.0)
     hard_skills = models.ManyToManyField('client_matching.HardSkillsTagList', related_name="applicant_hard_skills",
                                          blank=True)
     soft_skills = models.ManyToManyField('client_matching.SoftSkillsTagList', related_name="applicant_soft_skills",

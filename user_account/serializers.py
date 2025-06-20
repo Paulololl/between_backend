@@ -188,13 +188,13 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
         if address:
             coordinates = get_coordinates(address)
             if coordinates:
-                lat, lng = coordinates
-                attrs['coordinates'] = {'lat': lat, 'lng': lng}
+                lat = coordinates['lat']
+                lng = coordinates['lng']
+                attrs['latitude'] = lat
+                attrs['longitude'] = lng
+
             else:
                 raise serializers.ValidationError({'address': 'Unable to retrieve coordinates'})
-
-            if errors:
-                raise serializers.ValidationError({'school info': errors})
 
         # if address:
         #     coordinates = get_google_coordinates(address)
@@ -216,7 +216,6 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
         validated_data.pop('confirm_password')
         hard_skills_string = validated_data.pop('hard_skills')
         soft_skills_string = validated_data.pop('soft_skills')
-        coordinates = validated_data.pop('coordinates', None)
 
         if User.objects.filter(email=email).exists():
             raise serializers.ValidationError({'applicant_email': 'This email is already in use.'})
@@ -1131,8 +1130,11 @@ class EditApplicantSerializer(serializers.ModelSerializer):
 
         coordinates = get_coordinates(address)
         if coordinates:
-            lat, lng = coordinates
-            attrs['coordinates'] = {'lat': lat, 'lng': lng}
+            lat = coordinates['lat']
+            lng = coordinates['lng']
+            attrs['latitude'] = lat
+            attrs['longitude'] = lng
+
         else:
             raise serializers.ValidationError({'address': 'Unable to retrieve coordinates'})
 
@@ -1162,10 +1164,15 @@ class EditApplicantSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         hard_skills_json = validated_data.pop('hard_skills', None)
         soft_skills_json = validated_data.pop('soft_skills', None)
-        coordinates = validated_data.pop('coordinates', None)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
+
+        if 'latitude' in validated_data:
+            instance.latitude = validated_data['latitude']
+        if 'longitude' in validated_data:
+            instance.longitude = validated_data['longitude']
+
         instance.save()
 
         if hard_skills_json:

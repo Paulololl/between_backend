@@ -30,6 +30,8 @@ class InternshipPosting(models.Model):
 
     internship_position = models.CharField(max_length=100)
     address = models.CharField(max_length=255, null=True, blank=True)
+    latitude = models.FloatField(default=0.0)
+    longitude = models.FloatField(default=0.0)
     other_requirements = models.CharField(max_length=255, null=True, blank=True)
 
     is_paid_internship = models.BooleanField(default=False)

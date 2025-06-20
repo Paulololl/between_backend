@@ -62,7 +62,8 @@ class ApplicantAdmin(admin.ModelAdmin):
         'school', 'department', 'program',
         'academic_program', 'address', 'preferred_modality',
         'quick_introduction', 'display_hard_skills', 'display_soft_skills',
-        'resume', 'last_matched', 'last_recommendation_filter_state',  # add enrollment record after
+        'resume', 'last_matched', 'last_recommendation_filter_state', 'latitude', 'longitude'
+        # add enrollment record after
     )
 
     fieldsets = (
@@ -71,7 +72,7 @@ class ApplicantAdmin(admin.ModelAdmin):
                 'user', 'first_name', 'last_name', 'middle_initial',
                 'school', 'department', 'program',
                 'academic_program', 'address', 'preferred_modality',
-                'quick_introduction', 'in_practicum', 'mobile_number'
+                'quick_introduction', 'in_practicum', 'mobile_number', 'latitude', 'longitude'
             )
         }),
         ('Skills', {
@@ -127,7 +128,7 @@ class CompanyAdmin(admin.ModelAdmin):
         (None, {
             'fields': (
                 'company_id', 'user', 'get_email', 'company_name', 'company_address',
-                'company_information', 'business_nature',
+                'company_information', 'business_nature'
             )
         }),
         ('Web & Social Links', {

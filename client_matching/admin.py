@@ -78,7 +78,8 @@ class CustomInternshipPosting(admin.ModelAdmin):
         (None, {
             'fields': ('internship_posting_id', 'company', 'person_in_charge', 'internship_position',
                        'address', 'other_requirements', 'is_paid_internship', 'is_only_for_practicum', 'status',
-                       'ojt_hours', 'internship_date_start', 'application_deadline', 'date_created', 'date_modified'),
+                       'ojt_hours', 'internship_date_start', 'application_deadline', 'date_created', 'date_modified',
+                       'latitude', 'longitude')
         }),
         ('Benefits', {
             'fields': ('display_benefits',),

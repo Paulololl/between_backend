@@ -236,12 +236,16 @@ class CreateInternshipPostingSerializer(serializers.ModelSerializer):
         if len(address) < 15:
             raise serializers.ValidationError({'address': 'Address must be at least 15 characters.'})
 
-        coordinates = get_coordinates(address)
-        if coordinates:
-            lat, lng = coordinates
-            attrs['coordinates'] = {'lat': lat, 'lng': lng}
-        else:
-            raise serializers.ValidationError({'address': 'Unable to retrieve coordinates.'})
+        if address:
+            coordinates = get_coordinates(address)
+            if coordinates:
+                lat = coordinates['lat']
+                lng = coordinates['lng']
+                attrs['latitude'] = lat
+                attrs['longitude'] = lng
+
+            else:
+                raise serializers.ValidationError({'address': 'Unable to retrieve coordinates'})
 
         return attrs
 
@@ -258,14 +262,8 @@ class CreateInternshipPostingSerializer(serializers.ModelSerializer):
         benefits_json = validated_data.pop('benefits')
         required_hard_skills_json = validated_data.pop('required_hard_skills')
         required_soft_skills_json = validated_data.pop('required_soft_skills')
-        coordinates = validated_data.pop('coordinates', None)
 
         internship_posting = InternshipPosting.objects.create(company=company, **validated_data)
-
-        if coordinates:
-            internship_posting.latitude = coordinates['lat']
-            internship_posting.longitude = coordinates['lng']
-            internship_posting.save()
 
         if key_tasks_json:
             try:
@@ -424,10 +422,13 @@ class EditInternshipPostingSerializer(serializers.ModelSerializer):
 
         coordinates = get_coordinates(address)
         if coordinates:
-            lat, lng = coordinates
-            attrs['coordinates'] = {'lat': lat, 'lng': lng}
+            lat = coordinates['lat']
+            lng = coordinates['lng']
+            attrs['latitude'] = lat
+            attrs['longitude'] = lng
+
         else:
-            raise serializers.ValidationError({'address': 'Unable to retrieve coordinates.'})
+            raise serializers.ValidationError({'address': 'Unable to retrieve coordinates'})
 
         return attrs
 
@@ -439,14 +440,14 @@ class EditInternshipPostingSerializer(serializers.ModelSerializer):
         benefits_json = validated_data.pop('benefits', [])
         required_hard_skills_json = validated_data.pop('required_hard_skills', None)
         required_soft_skills_json = validated_data.pop('required_soft_skills', None)
-        coordinates = validated_data.pop('coordinates', None)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
-        if coordinates:
-            instance.latitude = coordinates['lat']
-            instance.longitude = coordinates['lng']
+        if 'latitude' in validated_data:
+            instance.latitude = validated_data['latitude']
+        if 'longitude' in validated_data:
+            instance.longitude = validated_data['longitude']
 
         instance.save()
 
@@ -592,9 +593,10 @@ class InternshipMatchSerializer(serializers.Serializer):
             'uuid': applicant.user_id,
             'hard_skills': applicant.hard_skills,
             'soft_skills': applicant.soft_skills,
-            'address': applicant.address,
             'preferred_modality': applicant.preferred_modality,
-            'quick_introduction': applicant.quick_introduction
+            'quick_introduction': applicant.quick_introduction,
+            'latitude': applicant.latitude,
+            'longitude': applicant.longitude,
         }
 
         internship_postings = InternshipPosting.objects.filter(status='Open')
@@ -607,11 +609,12 @@ class InternshipMatchSerializer(serializers.Serializer):
                                          posting.required_hard_skills.all()] if posting.required_hard_skills else [],
                 'required_soft_skills': [skill.name for skill in
                                          posting.required_soft_skills.all()] if posting.required_soft_skills else [],
-                'address': posting.address,
                 'modality': posting.modality,
                 'min_qualifications': [mq.min_qualification for mq in posting.min_qualifications.all()] if posting.min_qualifications else [],
                 'benefits': [b.benefit for b in posting.benefits.all()] if posting.benefits else [],
-                'key_tasks': [kt.key_task for kt in posting.key_tasks.all()] if posting.key_tasks else []
+                'key_tasks': [kt.key_task for kt in posting.key_tasks.all()] if posting.key_tasks else [],
+                'latitude': posting.latitude,
+                'longitude': posting.longitude,
             })
 
         applicant_embedding = get_profile_embedding(applicant_profile)

@@ -3,6 +3,7 @@ from functools import lru_cache
 
 from django.contrib.admin import SimpleListFilter
 from django.utils.timezone import now
+from geopy.distance import great_circle
 from sentence_transformers import SentenceTransformer
 import numpy as np
 from client_matching.models import InternshipPosting, InternshipRecommendation
@@ -50,23 +51,28 @@ def get_profile_embedding(profile: dict, is_applicant: bool = True):
     if is_applicant:
         hard_skills = extract_skill_names(profile.get("hard_skills", []))
         soft_skills = extract_skill_names(profile.get("soft_skills", []))
-        address = profile.get("address", "")
         modality = profile.get("preferred_modality", "")
         quick_introduction = profile.get("quick_introduction", "")
+        latitude = profile.get("latitude")
+        longitude = profile.get("longitude")
 
         hard_skills_emb = encode_text(" ".join(hard_skills))
         soft_skills_emb = encode_text(" ".join(soft_skills))
-        address_emb = encode_text(address)
         modality_emb = encode_text(modality)
         quick_introduction_emb = encode_text(quick_introduction)
 
+        if latitude is not None and longitude is not None:
+            location_emb = encode_text(f"{latitude} {longitude}")
+        else:
+            location_emb = np.zeros(384)
+
         embeddings = np.vstack(
             [
-             hard_skills_emb,
-             soft_skills_emb,
-             address_emb,
-             modality_emb,
-             quick_introduction_emb
+                hard_skills_emb,
+                soft_skills_emb,
+                location_emb,
+                modality_emb,
+                quick_introduction_emb
             ]
         )
         weighted_embedding = np.average(embeddings, axis=0, weights=weights)
@@ -74,24 +80,29 @@ def get_profile_embedding(profile: dict, is_applicant: bool = True):
     else:
         required_hard_skills = extract_skill_names(profile.get("required_hard_skills", []))
         required_soft_skills = extract_skill_names(profile.get("required_soft_skills", []))
-        address = profile.get("address", "")
         modality = profile.get("modality", "")
         min_qualification = ", ".join(profile.get("min_qualifications", [])) or ""
         benefit = ", ".join(profile.get("benefits", [])) or ""
         key_task = ", ".join(profile.get("key_tasks", [])) or ""
+        latitude = profile.get("latitude")
+        longitude = profile.get("longitude")
 
         hard_skills_emb = encode_text(" ".join(required_hard_skills))
         soft_skills_emb = encode_text(" ".join(required_soft_skills))
-        address_emb = encode_text(address)
         modality_emb = encode_text(modality)
         min_qual_emb = encode_text(min_qualification)
         benefit_emb = encode_text(benefit)
         key_task_emb = encode_text(key_task)
 
+        if latitude is not None and longitude is not None:
+            location_emb = encode_text(f"{latitude} {longitude}")
+        else:
+            location_emb = np.zeros(384)
+
         embeddings = np.vstack([
             hard_skills_emb,
             soft_skills_emb,
-            address_emb,
+            location_emb,
             modality_emb,
             min_qual_emb,
             benefit_emb,
@@ -108,30 +119,63 @@ def cosine_similarity(a: np.ndarray, b: np.ndarray):
     return np.dot(a_norm, b_norm)
 
 
+def calculate_distance(coord1: tuple, coord2: tuple) -> float:
+    return great_circle(coord1, coord2).km
+
+
 def cosine_compare(applicant_embedding: np.ndarray, applicant_profile: dict,
                    internship_posting_embedding: np.ndarray, internship_posting_profiles: list):
-
     if internship_posting_embedding is None or len(internship_posting_embedding) == 0:
         return []
 
     applicant_embedding = np.array(applicant_embedding).flatten()
 
+    SIMILARITY_WEIGHT = 1.0
+    DISTANCE_WEIGHT = 0.15
+
+    applicant_coords = (applicant_profile.get("latitude"), applicant_profile.get("longitude"))
     similarities = []
+    distances = []
+
     for idx, comp_emb in enumerate(internship_posting_embedding):
         comp_emb = np.array(comp_emb).flatten()
         score = cosine_similarity(applicant_embedding, comp_emb)
-        similarities.append((score, internship_posting_profiles[idx]))
 
-        # Sort descending by similarity score
-    similarities.sort(key=lambda x: x[0], reverse=True)
+        profile = internship_posting_profiles[idx]
+        profile_coords = (profile.get("latitude"), profile.get("longitude"))
+        modality = profile.get("modality", "")
+
+        if modality == "WorkFromHome" or None in applicant_coords or None in profile_coords:
+            consider_distance = False
+            distance_km = 0.0
+        else:
+            consider_distance = True
+            distance_km = calculate_distance(applicant_coords, profile_coords) or 0.0
+
+        similarities.append((score, distance_km, consider_distance, internship_posting_profiles[idx]))
+        distances.append(distance_km if consider_distance else 0.0)
+
+    max_distance = max(distances) or 1
+    ranking_json = []
+
+    # # Sort descending by similarity score
+    # similarities.sort(key=lambda x: x[0], reverse=True)
 
     ranking_json = []
-    for score, profile in similarities:
+
+    for score, distance_km, consider_distance, profile in similarities:
+        if consider_distance:
+            norm_distance_score = 1 - (distance_km / max_distance)
+            final_score = SIMILARITY_WEIGHT * score + DISTANCE_WEIGHT * norm_distance_score
+        else:
+            final_score = score
         ranking_json.append({
             "internship_posting_id": profile["uuid"],
-            "similarity_score": round(float(score), 2),
-            # "address": profile["address"],
-            # "modality": profile["modality"],
+            "similarity_score": round(final_score, 2),
+            "address_distance_km": round(distance_km, 2) if consider_distance else "Remote / Unknown",
+            "consider_distance": consider_distance,
+            "modality": profile["modality"],
+            # "final_score": round(float(score), 2),
             # "min_qualifications": profile.get("min_qualifications", []),
             # "benefits": profile.get("benefits", []),
             # "key_tasks": profile.get("key_tasks", []),
@@ -139,6 +183,7 @@ def cosine_compare(applicant_embedding: np.ndarray, applicant_profile: dict,
             # "required_soft_skills": profile.get("required_soft_skills", []),
         })
 
+    ranking_json.sort(key=lambda x: x["similarity_score"], reverse=True)
     return ranking_json
 
 
@@ -205,8 +250,3 @@ class InternshipPostingStatusFilter(SimpleListFilter):
                 ).values_list('internship_posting_id', flat=True)
                 return queryset.filter(internship_posting_id__in=posting_ids)
         return queryset
-
-
-
-
-
