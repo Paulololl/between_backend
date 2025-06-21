@@ -34,7 +34,8 @@ RUN apt-get update && \
 
 # Use pip cache if possible (Railway might ignore it, but doesn't hurt locally)
 COPY requirements.txt .
-RUN python -m pip install --upgrade pip && pip install -r requirements.txt
+RUN python -m pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Pre-load SentenceTransformer model during build
 RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')"
