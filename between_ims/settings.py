@@ -151,7 +151,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 
-STATIC_URL = f"https://{os.getenv('AWS_STORAGE_BUCKET_NAME')}.s3.ap-southeast-2.amazonaws.com/"
+STATIC_URL = "https://betweenims-bucket.s3.ap-southeast-2.amazonaws.com/"
 STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 STATIC_ROOT = "/tmp/staticfiles_tmp"
 
