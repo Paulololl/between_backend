@@ -42,36 +42,36 @@ load_dotenv(dotenv_path=os.path.join('wwwroot', '.env'))
 
 
 # Geopy
-def get_coordinates(location):
-    geolocator = Nominatim(user_agent="abcd")
-    try:
-        location = geolocator.geocode(location)
-        if location:
-            return {'lat': location.latitude, 'lng': location.longitude}
-        else:
-            print('error: Unable to get the location')
-            return None
-    except Exception as e:
-        print(f'Exception: {e}')
-        return None
-
-
-# Google Maps
-# def get_google_coordinates(location):
-#     gmaps = googlemaps.Client(key=os.getenv('GOOGLEMAPS_API_KEY'))
-#
+# def get_coordinates(location):
+#     geolocator = Nominatim(user_agent="abcd")
 #     try:
-#         location = gmaps.geocode(location)  # type: ignore[attr-defined]
+#         location = geolocator.geocode(location)
 #         if location:
-#             latitude = location[0]['geometry']['location']['lat']
-#             longitude = location[0]['geometry']['location']['lng']
-#             return latitude, longitude
+#             return {'lat': location.latitude, 'lng': location.longitude}
 #         else:
-#             print('Error: Unable to get the location')
+#             print('error: Unable to get the location')
 #             return None
 #     except Exception as e:
 #         print(f'Exception: {e}')
 #         return None
+
+
+# Google Maps
+def get_google_coordinates(location):
+    gmaps = googlemaps.Client(key=os.getenv('GOOGLEMAPS_API_KEY'))
+
+    try:
+        location = gmaps.geocode(location)  # type: ignore[attr-defined]
+        if location:
+            latitude = location[0]['geometry']['location']['lat']
+            longitude = location[0]['geometry']['location']['lng']
+            return latitude, longitude
+        else:
+            print('Error: Unable to get the location')
+            return None
+    except Exception as e:
+        print(f'Exception: {e}')
+        return None
 
 class PersonInChargeListSerializer(serializers.ModelSerializer):
     company_name = serializers.CharField(source='company.company_name', read_only=True)
@@ -238,11 +238,21 @@ class CreateInternshipPostingSerializer(serializers.ModelSerializer):
         if len(address) < 15:
             raise serializers.ValidationError({'address': 'Address must be at least 15 characters.'})
 
+        # if address:
+        #     coordinates = get_coordinates(address)
+        #     if coordinates:
+        #         lat = coordinates['lat']
+        #         lng = coordinates['lng']
+        #         attrs['latitude'] = lat
+        #         attrs['longitude'] = lng
+        #
+        #     else:
+        #         raise serializers.ValidationError({'address': 'Unable to retrieve coordinates'})
+
         if address:
-            coordinates = get_coordinates(address)
+            coordinates = get_google_coordinates(address)
             if coordinates:
-                lat = coordinates['lat']
-                lng = coordinates['lng']
+                lat, lng = coordinates
                 attrs['latitude'] = lat
                 attrs['longitude'] = lng
 
@@ -422,10 +432,19 @@ class EditInternshipPostingSerializer(serializers.ModelSerializer):
         if address and len(address) < 15:
             raise serializers.ValidationError({'address': 'Address must be at least 15 characters.'})
 
-        coordinates = get_coordinates(address)
+        # coordinates = get_coordinates(address)
+        # if coordinates:
+        #     lat = coordinates['lat']
+        #     lng = coordinates['lng']
+        #     attrs['latitude'] = lat
+        #     attrs['longitude'] = lng
+        #
+        # else:
+        #     raise serializers.ValidationError({'address': 'Unable to retrieve coordinates'})
+
+        coordinates = get_google_coordinates(address)
         if coordinates:
-            lat = coordinates['lat']
-            lng = coordinates['lng']
+            lat, lng = coordinates
             attrs['latitude'] = lat
             attrs['longitude'] = lng
 
