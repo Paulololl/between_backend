@@ -35,6 +35,8 @@ from cea_management.serializers import ProgramSerializer
 
 from django.core.exceptions import ValidationError
 
+from .utils import validate_file_size
+
 load_dotenv(dotenv_path=os.path.join('wwwroot', '.env'))
 
 
@@ -389,6 +391,29 @@ class OJTCoordinatorDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = OJTCoordinator
         fields = ['program_logo', 'signature']
+
+    def update(self, instance, validated_data):
+        new_logo = validated_data.get('program_logo')
+        new_signature = validated_data.get('signature')
+
+        if new_logo:
+            try:
+                validate_file_size(new_logo)
+            except serializers.ValidationError as e:
+                raise serializers.ValidationError({'program_logo': e.detail})
+            if instance.program_logo and instance.program_logo != new_logo:
+                instance.program_logo.delete(save=False)
+
+        if new_signature:
+            try:
+                validate_file_size(new_signature)
+            except serializers.ValidationError as e:
+                raise serializers.ValidationError({'signature': e.detail})
+            if instance.signature and instance.signature != new_signature:
+                instance.signature.delete(save=False)
+
+        return super().update(instance, validated_data)
+
 
 
 class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
@@ -1081,6 +1106,36 @@ class EditCompanySerializer(serializers.ModelSerializer):
         #         raise serializers.ValidationError({'address': 'Unable to retrieve coordinates from Google Maps.'})
 
         return attrs
+
+    def update(self, instance, validated_data):
+
+        new_background_image = validated_data.get('background_image')
+        if new_background_image:
+            try:
+                validate_file_size(new_background_image)
+            except serializers.ValidationError as e:
+                raise serializers.ValidationError({'background_image': e.detail})
+            if instance.background_image and instance.background_image != new_background_image:
+                instance.background_image.delete(save=False)
+
+        new_profile = validated_data.get('profile_picture')
+        if new_profile:
+            try:
+                validate_file_size(new_profile)
+            except serializers.ValidationError as e:
+                raise serializers.ValidationError({'profile_picture': e.detail})
+            if instance.profile_picture and instance.profile_picture != new_profile:
+                instance.profile_picture.delete(save=False)
+
+        for attr, value in validated_data.items():
+            if attr == 'coordinates':
+                instance.latitude = value['lat']
+                instance.longitude = value['lng']
+            else:
+                setattr(instance, attr, value)
+
+        instance.save()
+        return instance
 
 
 class EditApplicantSerializer(serializers.ModelSerializer):

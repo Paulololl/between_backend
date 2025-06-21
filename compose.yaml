@@ -21,32 +21,30 @@ services:
       - "localhost:host-gateway"
 
 
+  minio:
+    image: minio/minio:latest
+    container_name: minio-container
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: admin123
+    env_file:
+      - wwwroot/.env
+    volumes:
+      - ./minio-mkcert:/root/.minio/certs
+      - ./minio-data:/data
+    command: server /data --console-address ":9001"
+    extra_hosts:
+      - "localhost:host-gateway"
 
-#  minio:
-#    image: minio/minio:latest
-#    container_name: minio-container
-#    ports:
-#      - "9000:9000"
-#      - "9001:9001"
-#    environment:
-#      MINIO_ROOT_USER: admin
-#      MINIO_ROOT_PASSWORD: admin123
-#    env_file:
-#      - wwwroot/.env
-#    volumes:
-#      - ./minio-mkcert:/root/.minio/certs
-#      - ./minio-data:/data
-#    command: server /data --console-address ":9001"
-
-#  weasyprint:
-#    image: 4teamwork/weasyprint:latest
-#    container_name: weasyprint-service
-#    ports:
-#      - "8080:8080"
-#    volumes:
-#      - ./minio-mkcert:/root/.minio/certs
-#      - ./minio-data:/data
-#    extra_hosts:
-#      - "localhost:host-gateway"
-#    environment:
-#       WEASYPRINT_ALLOWED_URLS_PATTERN: ".*"
+  weasyprint:
+    image: 4teamwork/weasyprint:latest
+    container_name: weasyprint-service
+    ports:
+      - "8080:8080"
+    environment:
+       WEASYPRINT_ALLOWED_URLS_PATTERN: ".*"
+    extra_hosts:
+      - "localhost:host-gateway"

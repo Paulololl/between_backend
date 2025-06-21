@@ -36,6 +36,8 @@ from client_matching.models import PersonInCharge, InternshipPosting, KeyTask, M
     HardSkillsTagList, SoftSkillsTagList, InternshipRecommendation, Report, Advertisement
 from django.core.exceptions import ValidationError
 
+from user_account.utils import validate_file_size
+
 load_dotenv(dotenv_path=os.path.join('wwwroot', '.env'))
 
 
@@ -779,6 +781,19 @@ class UploadDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Applicant
         fields = ['resume']
+
+    def update(self, instance, validated_data):
+        new_resume = validated_data.get('resume', None)
+
+        if new_resume:
+            try:
+                validate_file_size(new_resume)
+            except serializers.ValidationError as e:
+                raise serializers.ValidationError({'resume': e.detail})
+            if instance.resume and instance.resume != new_resume:
+                instance.resume.delete(save=False)
+
+        return super().update(instance, validated_data)
 
 
 class InPracticumSerializer(serializers.ModelSerializer):

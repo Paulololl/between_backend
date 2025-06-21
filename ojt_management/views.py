@@ -1,4 +1,5 @@
 import base64
+import io
 import ssl
 import uuid
 from datetime import date
@@ -17,12 +18,11 @@ from rest_framework import generics, status, filters, request
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from weasyprint import HTML
-from weasyprint.text.fonts import FontConfiguration
 
 # from weasyprint import HTML
 
 from between_ims import settings
+from between_ims.settings import WEASYPRINT_SERVICE_URL
 from cea_management import serializers
 from client_application.models import Endorsement
 from user_account.permissions import IsCoordinator, IsApplicant
@@ -31,6 +31,7 @@ from user_account.serializers import GetApplicantSerializer, OJTCoordinatorDocum
     GetOJTCoordinatorSerializer
 from cea_management.models import SchoolPartnershipList
 from cea_management.serializers import SchoolPartnershipSerializer
+from user_account.utils import validate_file_size
 from .serializers import EndorsementDetailSerializer, RequestEndorsementSerializer, \
     UpdatePracticumStatusSerializer, UpdateEndorsementSerializer, EnrollmentRecordSerializer, EndorsementListSerializer, \
     GetOJTCoordinatorRespondedEndorsementsSerializer
@@ -264,6 +265,17 @@ class RequestPracticumView(generics.UpdateAPIView):
         enrollment_record_data = request.data.get('enrollment_record')
         if not enrollment_record_data:
             raise ValidationError({'error': 'Enrollment record is required.'})
+
+        enrollment_record_file = request.FILES.get('enrollment_record')
+        if (enrollment_record_file and applicant.enrollment_record and applicant.enrollment_record !=
+                enrollment_record_file):
+            applicant.enrollment_record.delete(save=False)
+
+        if enrollment_record_file:
+            try:
+                validate_file_size(enrollment_record_file)
+            except ValidationError as e:
+                raise ValidationError({'enrollment_record': e.detail})
 
         er_serializer = EnrollmentRecordSerializer(instance=applicant, data=request.data, partial=True)
         er_serializer.is_valid(raise_exception=True)
@@ -758,7 +770,6 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
 
             program_logo_data = base64.b64encode(coordinator.program_logo.read()).decode('utf-8')
             coordinator.program_logo.seek(0)
-
             signature_data = base64.b64encode(coordinator.signature.read()).decode('utf-8')
             coordinator.signature.seek(0)
 
@@ -770,7 +781,18 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
                 "signature_data": signature_data,
             })
 
-            pdf_bytes = HTML(string=html_string).write_pdf()
+            html_file = io.BytesIO(html_string.encode('utf-8'))
+            html_file.name = 'endorsement.html'
+
+            try:
+                pdf_response = requests.post(
+                    f'{WEASYPRINT_SERVICE_URL}',
+                    files={'html': ('endorsement.html', html_file, 'text/html')},
+                    timeout=15
+                )
+                pdf_response.raise_for_status()
+            except requests.RequestException as e:
+                raise ValidationError({"error": f"WeasyPrint PDF generation failed: {str(e)}"})
 
             email = EmailMessage(
                 subject=subject,
@@ -782,7 +804,11 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
                 reply_to=['no-reply@betweeninternships.com']
             )
             email.content_subtype = 'html'
-            email.attach(f"endorsement_{endorsement.endorsement_id}.pdf", pdf_bytes, 'application/pdf')
+            email.attach(
+                f"endorsement_{endorsement.endorsement_id}.pdf",
+                pdf_response.content,
+                'application/pdf'
+            )
             email.send(fail_silently=False)
 
             log_coordinator_action(
@@ -865,10 +891,21 @@ class GenerateEndorsementPDFView(CoordinatorMixin, APIView):
             "signature_data": signature_data,
         })
 
-        pdf_bytes = HTML(string=html_string).write_pdf()
+        html_file = io.BytesIO(html_string.encode('utf-8'))
+        html_file.name = 'endorsement.html'
+
+        try:
+            response = requests.post(
+                f'{WEASYPRINT_SERVICE_URL}',
+                files={'html': ('endorsement.html', html_file, 'text/html')},
+                timeout=15
+            )
+            response.raise_for_status()
+        except requests.RequestException as e:
+            return Response({"error": f"WeasyPrint service error: {str(e)}"}, status=500)
 
         return HttpResponse(
-            pdf_bytes,
+            response.content,
             content_type='application/pdf',
             headers={'Content-Disposition': 'attachment; filename=endorsement_preview.pdf'}
         )
