@@ -23,6 +23,7 @@ from weasyprint.text.fonts import FontConfiguration
 # from weasyprint import HTML
 
 from between_ims import settings
+from between_ims.settings import WEASYPRINT_SERVICE_URL
 from cea_management import serializers
 from client_application.models import Endorsement
 from user_account.permissions import IsCoordinator, IsApplicant
@@ -256,9 +257,6 @@ class RequestPracticumView(generics.UpdateAPIView):
             return {}
 
     @transaction.atomic
-    def validate_enrollment_record(self, file):
-        return validate_file_size(file)
-
     def update(self, request, *args, **kwargs):
         applicant = request.user.applicant
 
@@ -275,7 +273,10 @@ class RequestPracticumView(generics.UpdateAPIView):
             applicant.enrollment_record.delete(save=False)
 
         if enrollment_record_file:
-            self.validate_enrollment_record(enrollment_record_file)
+            try:
+                validate_file_size(enrollment_record_file)
+            except ValidationError as e:
+                raise ValidationError({'enrollment_record': e.detail})
 
         er_serializer = EnrollmentRecordSerializer(instance=applicant, data=request.data, partial=True)
         er_serializer.is_valid(raise_exception=True)
@@ -877,10 +878,20 @@ class GenerateEndorsementPDFView(CoordinatorMixin, APIView):
             "signature_data": signature_data,
         })
 
-        pdf_bytes = HTML(string=html_string).write_pdf()
+        try:
+            response = requests.post(
+                f"{WEASYPRINT_SERVICE_URL}/",
+                headers={"Content-Type": "text/html"},
+                data=html_string.encode("utf-8")
+            )
+            response.raise_for_status()
+        except requests.RequestException as e:
+            return Response({"error": f"WeasyPrint service error: {str(e)}"}, status=500)
+
+        # pdf_bytes = HTML(string=html_string).write_pdf()
 
         return HttpResponse(
-            pdf_bytes,
+            response.content,
             content_type='application/pdf',
             headers={'Content-Disposition': 'attachment; filename=endorsement_preview.pdf'}
         )

@@ -392,23 +392,28 @@ class OJTCoordinatorDocumentSerializer(serializers.ModelSerializer):
         model = OJTCoordinator
         fields = ['program_logo', 'signature']
 
-    def validate_program_logo(self, file):
-        return validate_file_size(file)
-
-    def validate_signature(self, file):
-        return validate_file_size(file)
-
     def update(self, instance, validated_data):
         new_logo = validated_data.get('program_logo')
         new_signature = validated_data.get('signature')
 
-        if new_logo and instance.program_logo and instance.program_logo != new_logo:
-            instance.program_logo.delete(save=False)
+        if new_logo:
+            try:
+                validate_file_size(new_logo)
+            except serializers.ValidationError as e:
+                raise serializers.ValidationError({'program_logo': e.detail})
+            if instance.program_logo and instance.program_logo != new_logo:
+                instance.program_logo.delete(save=False)
 
-        if new_signature and instance.signature and instance.signature != new_signature:
-            instance.signature.delete(save=False)
+        if new_signature:
+            try:
+                validate_file_size(new_signature)
+            except serializers.ValidationError as e:
+                raise serializers.ValidationError({'signature': e.detail})
+            if instance.signature and instance.signature != new_signature:
+                instance.signature.delete(save=False)
 
         return super().update(instance, validated_data)
+
 
 
 class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
@@ -1075,12 +1080,6 @@ class EditCompanySerializer(serializers.ModelSerializer):
             'profile_picture',
         ]
 
-    def validate_background_image(self, file):
-        return validate_file_size(file)
-
-    def validate_profile_picture(self, file):
-        return validate_file_size(file)
-
     def validate(self, attrs):
 
         address = attrs.get('company_address')
@@ -1109,13 +1108,24 @@ class EditCompanySerializer(serializers.ModelSerializer):
         return attrs
 
     def update(self, instance, validated_data):
+
         new_background_image = validated_data.get('background_image')
-        if new_background_image and instance.background_image and instance.background_image != new_background_image:
-            instance.background_image.delete(save=False)
+        if new_background_image:
+            try:
+                validate_file_size(new_background_image)
+            except serializers.ValidationError as e:
+                raise serializers.ValidationError({'background_image': e.detail})
+            if instance.background_image and instance.background_image != new_background_image:
+                instance.background_image.delete(save=False)
 
         new_profile = validated_data.get('profile_picture')
-        if new_profile and instance.profile_picture and instance.profile_picture != new_profile:
-            instance.profile_picture.delete(save=False)
+        if new_profile:
+            try:
+                validate_file_size(new_profile)
+            except serializers.ValidationError as e:
+                raise serializers.ValidationError({'profile_picture': e.detail})
+            if instance.profile_picture and instance.profile_picture != new_profile:
+                instance.profile_picture.delete(save=False)
 
         for attr, value in validated_data.items():
             if attr == 'coordinates':
@@ -1209,7 +1219,6 @@ class EditApplicantSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         hard_skills_json = validated_data.pop('hard_skills', None)
         soft_skills_json = validated_data.pop('soft_skills', None)
-
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)

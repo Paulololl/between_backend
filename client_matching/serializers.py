@@ -782,14 +782,16 @@ class UploadDocumentSerializer(serializers.ModelSerializer):
         model = Applicant
         fields = ['resume']
 
-    def validate_resume(self, file):
-        return validate_file_size(file)
-
     def update(self, instance, validated_data):
-        new_resume = validated_data.get('resume')
+        new_resume = validated_data.get('resume', None)
 
-        if new_resume and instance.resume and instance.resume != new_resume:
-            instance.resume.delete(save=False)
+        if new_resume:
+            try:
+                validate_file_size(new_resume)
+            except serializers.ValidationError as e:
+                raise serializers.ValidationError({'resume': e.detail})
+            if instance.resume and instance.resume != new_resume:
+                instance.resume.delete(save=False)
 
         return super().update(instance, validated_data)
 
