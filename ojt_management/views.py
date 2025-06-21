@@ -31,6 +31,7 @@ from user_account.serializers import GetApplicantSerializer, OJTCoordinatorDocum
     GetOJTCoordinatorSerializer
 from cea_management.models import SchoolPartnershipList
 from cea_management.serializers import SchoolPartnershipSerializer
+from user_account.utils import validate_file_size
 from .serializers import EndorsementDetailSerializer, RequestEndorsementSerializer, \
     UpdatePracticumStatusSerializer, UpdateEndorsementSerializer, EnrollmentRecordSerializer, EndorsementListSerializer, \
     GetOJTCoordinatorRespondedEndorsementsSerializer
@@ -255,6 +256,9 @@ class RequestPracticumView(generics.UpdateAPIView):
             return {}
 
     @transaction.atomic
+    def validate_enrollment_record(self, file):
+        return validate_file_size(file)
+
     def update(self, request, *args, **kwargs):
         applicant = request.user.applicant
 
@@ -264,6 +268,14 @@ class RequestPracticumView(generics.UpdateAPIView):
         enrollment_record_data = request.data.get('enrollment_record')
         if not enrollment_record_data:
             raise ValidationError({'error': 'Enrollment record is required.'})
+
+        enrollment_record_file = request.FILES.get('enrollment_record')
+        if (enrollment_record_file and applicant.enrollment_record and applicant.enrollment_record !=
+                enrollment_record_file):
+            applicant.enrollment_record.delete(save=False)
+
+        if enrollment_record_file:
+            self.validate_enrollment_record(enrollment_record_file)
 
         er_serializer = EnrollmentRecordSerializer(instance=applicant, data=request.data, partial=True)
         er_serializer.is_valid(raise_exception=True)
