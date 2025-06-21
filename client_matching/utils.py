@@ -130,8 +130,8 @@ def cosine_compare(applicant_embedding: np.ndarray, applicant_profile: dict,
 
     applicant_embedding = np.array(applicant_embedding).flatten()
 
-    SIMILARITY_WEIGHT = 1.0
-    DISTANCE_WEIGHT = 0.15
+    SIMILARITY_WEIGHT = 0.95
+    DISTANCE_WEIGHT = 0.05
 
     applicant_coords = (applicant_profile.get("latitude"), applicant_profile.get("longitude"))
     similarities = []
