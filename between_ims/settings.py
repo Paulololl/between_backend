@@ -153,7 +153,7 @@ USE_TZ = True
 
 
 STATIC_URL = '/static/'
-STATIC_ROOT = Path("/home/app/staticfiles")
+STATIC_ROOT = Path('/tmp/staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 
