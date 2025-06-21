@@ -1,4 +1,5 @@
 import base64
+import io
 import ssl
 import uuid
 from datetime import date
@@ -17,8 +18,6 @@ from rest_framework import generics, status, filters, request
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from weasyprint import HTML
-from weasyprint.text.fonts import FontConfiguration
 
 # from weasyprint import HTML
 
@@ -771,7 +770,6 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
 
             program_logo_data = base64.b64encode(coordinator.program_logo.read()).decode('utf-8')
             coordinator.program_logo.seek(0)
-
             signature_data = base64.b64encode(coordinator.signature.read()).decode('utf-8')
             coordinator.signature.seek(0)
 
@@ -783,7 +781,18 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
                 "signature_data": signature_data,
             })
 
-            pdf_bytes = HTML(string=html_string).write_pdf()
+            html_file = io.BytesIO(html_string.encode('utf-8'))
+            html_file.name = 'endorsement.html'
+
+            try:
+                pdf_response = requests.post(
+                    f'{WEASYPRINT_SERVICE_URL}',
+                    files={'html': ('endorsement.html', html_file, 'text/html')},
+                    timeout=15
+                )
+                pdf_response.raise_for_status()
+            except requests.RequestException as e:
+                raise ValidationError({"error": f"WeasyPrint PDF generation failed: {str(e)}"})
 
             email = EmailMessage(
                 subject=subject,
@@ -795,7 +804,11 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
                 reply_to=['no-reply@betweeninternships.com']
             )
             email.content_subtype = 'html'
-            email.attach(f"endorsement_{endorsement.endorsement_id}.pdf", pdf_bytes, 'application/pdf')
+            email.attach(
+                f"endorsement_{endorsement.endorsement_id}.pdf",
+                pdf_response.content,
+                'application/pdf'
+            )
             email.send(fail_silently=False)
 
             log_coordinator_action(
@@ -878,17 +891,18 @@ class GenerateEndorsementPDFView(CoordinatorMixin, APIView):
             "signature_data": signature_data,
         })
 
+        html_file = io.BytesIO(html_string.encode('utf-8'))
+        html_file.name = 'endorsement.html'
+
         try:
             response = requests.post(
-                f"{WEASYPRINT_SERVICE_URL}/",
-                headers={"Content-Type": "text/html"},
-                data=html_string.encode("utf-8")
+                f'{WEASYPRINT_SERVICE_URL}',
+                files={'html': ('endorsement.html', html_file, 'text/html')},
+                timeout=15
             )
             response.raise_for_status()
         except requests.RequestException as e:
             return Response({"error": f"WeasyPrint service error: {str(e)}"}, status=500)
-
-        # pdf_bytes = HTML(string=html_string).write_pdf()
 
         return HttpResponse(
             response.content,
