@@ -347,7 +347,7 @@ class VerifyEmailView(APIView):
             if stored_token and default_token_generator.check_token(user, token) and token == stored_token:
                 if timezone.now() > expiration_time:
                     return redirect(
-                        'https://localhost:5173/sign-up/applicant/account-verified?status=invalid')
+                        'https://between-project-web.vercel.app/sign-up/applicant/account-verified?status=invalid')
 
                 user.status = 'Active'
                 user.verified_at = timezone.now()
@@ -386,29 +386,29 @@ class VerifyEmailView(APIView):
                         except OJTCoordinator.DoesNotExist:
                             pass
 
-                    return redirect(f'https://localhost:5173/sign-up/applicant/account-verified?'
+                    return redirect(f'https://between-project-web.vercel.app/sign-up/applicant/account-verified?'
                                     f'status=success&uuid={user.pk}')
 
                 elif hasattr(user, 'company'):
-                    return redirect(f'https://localhost:5173/sign-up/company/account-verified'
+                    return redirect(f'https://between-project-web.vercel.app/sign-up/company/account-verified'
                                     f'?status=success&uuid={user.pk}')
 
                 else:
                     return redirect(
-                        f'https://localhost:5173/sign-up/account-reverify?status=invalid')
+                        f'https://between-project-web.vercel.app/sign-up/account-reverify?status=invalid')
             else:
                 if hasattr(user, 'applicant'):
-                    return redirect(f'https://localhost:5173/sign-up/applicant/account-reverify'
+                    return redirect(f'https://between-project-web.vercel.app/sign-up/applicant/account-reverify'
                                     f'?status=invalid&uuid={user.pk}')
 
                 elif hasattr(user, 'company'):
-                    return redirect(f'https://localhost:5173/sign-up/company/account-reverify'
+                    return redirect(f'https://between-project-web.vercel.app/sign-up/company/account-reverify'
                                     f'?status=invalid&uuid={user.pk}')
                 else:
-                    return redirect(f'https://localhost:5173/sign-up/account-reverify?status=invalid')
+                    return redirect(f'https://between-project-web.vercel.app/sign-up/account-reverify?status=invalid')
 
         except (User.DoesNotExist, ValueError, TypeError):
-            return redirect(f'https://localhost:5173/sign-up/account-reverify?status=invalid')
+            return redirect(f'https://between-project-web.vercel.app/sign-up/account-reverify?status=invalid')
 
 
 @user_account_tag

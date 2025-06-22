@@ -868,7 +868,9 @@ class SendEmailVerificationSerializer(serializers.Serializer):
         cache.set(f"verification_token_{user.pk}", token, timeout=900)
         cache.set(f"verification_expiration_{user.pk}", expiration_time, timeout=900)
 
-        verification_url = f'https://localhost:8000/api/user_account/verify-email/{uid}/{token}/'
+        # verification_url = f'https://localhost:8000/api/user_account/verify-email/{uid}/{token}/'
+
+        verification_url = f'https://between-backend.up.railway.app/api/user_account/verify-email/{uid}/{token}/'
 
         subject = 'Verify your email'
 
@@ -912,7 +914,9 @@ class SendForgotPasswordLinkSerializer(serializers.Serializer):
         cache.set(f"reset_token_{user.pk}", token, timeout=900)
         cache.set(f"reset_expiration_{user.pk}", expiration_time, timeout=900)
 
-        reset_url = f'https://localhost:5173/reset-password?uid={uid}&token={token}'
+        # reset_url = f'https://localhost:5173/reset-password?uid={uid}&token={token}'
+
+        reset_url = f'https://between-project-web.vercel.app/reset-password?uid={uid}&token={token}'
 
         subject = 'Reset your password'
 
