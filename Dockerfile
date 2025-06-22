@@ -37,8 +37,12 @@ COPY requirements.txt .
 RUN python -m pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Pre-load SentenceTransformer model during build
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')"
+# Set a permanent location for Hugging Face cache
+ENV HF_HOME=/app/hf_cache
+
+# Create directory and preload the model
+RUN mkdir -p $HF_HOME && \
+    python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')"
 
 # Create non-root user
 ARG UID=10001
