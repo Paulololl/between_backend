@@ -6,7 +6,7 @@ services:
     env_file:
       - wwwroot/.env
     volumes:
-      - ./hf_cache:/tmp/huggingface
+#      - ./hf_cache:/tmp/huggingface
     environment:
       - HF_HOME=/tmp/huggingface
     ports:
