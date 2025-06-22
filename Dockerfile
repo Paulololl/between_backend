@@ -38,7 +38,7 @@ RUN python -m pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Set a permanent location for Hugging Face cache
-ENV HF_HOME=/app/hf_cache
+ENV HF_HOME=/tmp/huggingface
 
 # Create directory and preload the model
 RUN mkdir -p $HF_HOME && \
