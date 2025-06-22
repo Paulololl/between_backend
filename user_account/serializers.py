@@ -329,6 +329,8 @@ class CompanyRegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'company_email': 'This email is already in use.'})
 
         try:
+            print("✅ VALIDATED DATA BEFORE CREATION:", validated_data)
+
             user = User.objects.create_user(
                 email=email,
                 password=password,
@@ -338,8 +340,9 @@ class CompanyRegisterSerializer(serializers.ModelSerializer):
 
             company = Company.objects.create(user=user, **validated_data)
             return company
-        except Exception:
-            raise serializers.ValidationError({'non_field_errors': 'Something went wrong with the server.'})
+        except Exception as e:
+            raise serializers.ValidationError({'non_field_errors': 'Something went wrong with the server.',
+                                               'debug': str(e)})
 
 
 class CareerEmplacementAdminRegisterSerializer(serializers.ModelSerializer):
