@@ -1,6 +1,5 @@
 import json
 import os
-import traceback
 from datetime import timedelta
 
 from django.core.cache import cache
@@ -307,15 +306,15 @@ class CompanyRegisterSerializer(serializers.ModelSerializer):
         #     else:
         #         raise serializers.ValidationError({'company_address': 'Unable to retrieve coordinates'})
 
-        if address:
-            coordinates = get_google_coordinates(address)
-            if coordinates:
-                lat, lng = coordinates
-                attrs['latitude'] = lat
-                attrs['longitude'] = lng
-
-            else:
-                raise serializers.ValidationError({'address': 'Unable to retrieve coordinates'})
+        # if address:
+        #     coordinates = get_google_coordinates(address)
+        #     if coordinates:
+        #         lat, lng = coordinates
+        #         attrs['latitude'] = lat
+        #         attrs['longitude'] = lng
+        #
+        #     else:
+        #         raise serializers.ValidationError({'address': 'Unable to retrieve coordinates'})
 
         return attrs
 
@@ -341,10 +340,8 @@ class CompanyRegisterSerializer(serializers.ModelSerializer):
 
             company = Company.objects.create(user=user, **validated_data)
             return company
-        except Exception as e:
-            traceback.print_exc()
-            raise serializers.ValidationError({'non_field_errors': 'Something went wrong with the server.',
-                                               'debug': str(e)})
+        except Exception:
+            raise serializers.ValidationError({'non_field_errors': 'Something went wrong with the server.'})
 
 
 class CareerEmplacementAdminRegisterSerializer(serializers.ModelSerializer):
