@@ -19,9 +19,9 @@ def run_internship_matching(applicant):
     """
     try:
         # Check for 5-minute cache lock
-        cache_key = f"matching_in_progress:{applicant.id}"
+        cache_key = f"matching_in_progress:{applicant.user.user_id}"
         if cache.get(cache_key):
-            logger.info(f"[MATCHING SKIP] Matching already in progress for applicant {applicant.id}")
+            logger.info(f"[MATCHING SKIP] Matching already in progress for applicant {applicant.user.user_id}")
             return
 
         last_matched = applicant.last_matched
@@ -38,19 +38,19 @@ def run_internship_matching(applicant):
             should_run_matching = True
 
         if not should_run_matching:
-            logger.info(f"[MATCHING SKIP] Applicant {applicant.id} has no significant changes.")
+            logger.info(f"[MATCHING SKIP] Applicant {applicant.user.user_id} has no significant changes.")
             return
 
         # Set cache lock for 5 minutes
         cache.set(cache_key, True, timeout=300)
 
         try:
-            logger.info(f"[MATCHING START] Running matching for applicant {applicant.id}")
+            logger.info(f"[MATCHING START] Running matching for applicant {applicant.user.user_id}")
             serializer = InternshipMatchSerializer(context={'applicant': applicant})
             serializer.create(validated_data={})
-            logger.info(f"[MATCHING COMPLETE] Matching complete for applicant {applicant.id}")
+            logger.info(f"[MATCHING COMPLETE] Matching complete for applicant {applicant.user.user_id}")
         except Exception as e:
-            logger.error(f"[MATCHING ERROR] Matching failed for applicant {applicant.id}: {e}")
+            logger.error(f"[MATCHING ERROR] Matching failed for applicant {applicant.user.user_id}: {e}")
             raise
         finally:
             # Ensure cache lock is cleared even if failure occurs
