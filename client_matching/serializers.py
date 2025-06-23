@@ -790,7 +790,9 @@ class InternshipMatchSerializer(serializers.Serializer):
             'modality',
             'latitude',
             'longitude',
-            'status'
+            'status',
+            'company__user_id',
+            'company__company_name'
         )
 
         profiles = []
