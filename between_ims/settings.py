@@ -77,14 +77,14 @@ CORS_ALLOWED_ORIGINS = [
     "https://127.0.0.1:5173",
     "https://172.30.0.1:5173",
     "https://betweenims-bucket.s3.ap-southeast-2.amazonaws.com",
-    "https://between-project-web.vercel.app/",
+    "https://between-project-web.vercel.app",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://localhost:5173",
     "https://127.0.0.1:5173",
     "https://172.30.0.1:5173",
-    "https://between-project-web.vercel.app/",
+    "https://between-project-web.vercel.app",
 ]
 
 ROOT_URLCONF = 'between_ims.urls'

@@ -1,7 +1,12 @@
+import hashlib
+import json
+import logging
 from datetime import timedelta
 from functools import lru_cache
+from typing import List, Optional, Tuple, Union, Dict
 
 from django.contrib.admin import SimpleListFilter
+from django.core.cache import cache
 from django.utils.timezone import now
 from geopy.distance import great_circle
 from sentence_transformers import SentenceTransformer
@@ -10,181 +15,299 @@ from client_matching.models import InternshipPosting, InternshipRecommendation
 from user_account.models import Applicant
 import os
 
+logger = logging.getLogger(__name__)
+
+SIMILARITY_THRESHOLD = 0.20
+SIMILARITY_WEIGHT = 0.95
+DISTANCE_WEIGHT = 0.05
+EMBEDDING_CACHE_TIMEOUT = 3600
+EMBEDDING_DIMENSION = 384
+
+APPLICANT_WEIGHTS = np.array([0.35, 0.35, 0.1, 0.1, 0.1])
+POSTING_WEIGHTS = np.array([0.3, 0.3, 0.05, 0.05, 0.1, 0.1, 0.1])
+
 
 @lru_cache(maxsize=1)
 def get_sentence_model():
-    os.environ["HF_HOME"] = "/tmp/huggingface"
-    os.makedirs(os.environ["HF_HOME"], exist_ok=True)
-    return SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+    try:
+        os.environ["HF_HOME"] = "/tmp/huggingface"
+        os.makedirs(os.environ["HF_HOME"], exist_ok=True)
+        model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+        logger.info("Sentence transformer model loaded successfully")
+        return model
+    except Exception as e:
+        logger.error(f"Failed to load sentence transformer model: {e}")
+        raise
 
 
-def get_profile_embedding(profile: dict, is_applicant: bool = True):
-    def extract_skill_names(skills):
+def generate_embedding_cache_key(profile_data: str, is_applicant: bool = True) -> str:
+    """Generate cache key for embeddings"""
+    profile_hash = hashlib.md5(profile_data.encode()).hexdigest()
+    prefix = "applicant" if is_applicant else "posting"
+    return f"embedding:{prefix}:{profile_hash}"
+
+
+def extract_skill_names(skills) -> List[str]:
+    """Extract skill names from Django QuerySet or list with validation"""
+    if not skills:
+        return []
+
+    try:
         if hasattr(skills, 'all'):
-            return [skill.name for skill in skills.all()]
+            # Django QuerySet
+            return [skill.name for skill in skills.all() if hasattr(skill, 'name') and skill.name]
+        elif hasattr(skills, 'values_list'):
+            # Already a QuerySet, get names directly
+            return list(skills.values_list('name', flat=True).filter(name__isnull=False))
         elif isinstance(skills, list):
             result = []
             for skill in skills:
                 if isinstance(skill, dict):
-                    result.append(skill.get("name", ""))
-                elif isinstance(skill, str):
-                    result.append(skill)
-                else:
-                    result.append(str(skill))
+                    name = skill.get("name", "").strip()
+                    if name:
+                        result.append(name)
+                elif isinstance(skill, str) and skill.strip():
+                    result.append(skill.strip())
+                elif hasattr(skill, 'name') and skill.name:
+                    result.append(str(skill.name))
             return result
-        else:
-            return []
+    except Exception as e:
+        logger.warning(f"Error extracting skill names: {e}")
 
-    # label for each weight
-    if is_applicant:
-        weights = np.array([0.35, 0.35, 0.1, 0.1, 0.1])
-    else:
-        weights = np.array([0.3, 0.3, 0.05, 0.05, 0.1, 0.1, 0.1])
+    return []
 
-    def encode_text(text):
+
+def validate_coordinates(latitude: Optional[float], longitude: Optional[float]) -> Tuple[
+    bool, Optional[float], Optional[float]]:
+    if latitude is None or longitude is None:
+        return False, None, None
+
+    try:
+        lat = float(latitude)
+        lon = float(longitude)
+
+        if -90 <= lat <= 90 and -180 <= lon <= 180:
+            return True, lat, lon
+    except (ValueError, TypeError):
+        pass
+
+    logger.warning(f"Invalid coordinates: lat={latitude}, lon={longitude}")
+    return False, None, None
+
+
+def encode_text_with_cache(text: str) -> np.ndarray:
+    """Encode text with Django cache integration"""
+    if not text or not text.strip():
+        return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
+
+    # Use Django cache
+    cache_key = f"text_embedding:{hashlib.md5(text.encode()).hexdigest()}"
+    cached_embedding = cache.get(cache_key)
+
+    if cached_embedding is not None:
+        return np.array(cached_embedding, dtype=np.float32)
+
+    try:
         model = get_sentence_model()
-        emb = model.encode(text)
-        if isinstance(emb, tuple):
-            emb = emb[0]
-        return np.array(emb)
+        embedding = model.encode(text, convert_to_numpy=True).astype(np.float32)
 
-    if is_applicant:
-        hard_skills = extract_skill_names(profile.get("hard_skills", []))
-        soft_skills = extract_skill_names(profile.get("soft_skills", []))
-        modality = profile.get("preferred_modality", "")
-        quick_introduction = profile.get("quick_introduction", "")
-        latitude = profile.get("latitude")
-        longitude = profile.get("longitude")
+        # Cache with Django cache
+        cache.set(cache_key, embedding.tolist(), EMBEDDING_CACHE_TIMEOUT)
+        return embedding
+    except Exception as e:
+        logger.error(f"Failed to encode text: {e}")
+        return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
 
-        hard_skills_emb = encode_text(" ".join(hard_skills))
-        soft_skills_emb = encode_text(" ".join(soft_skills))
-        modality_emb = encode_text(modality)
-        quick_introduction_emb = encode_text(quick_introduction)
 
-        if latitude is not None and longitude is not None:
-            location_emb = encode_text(f"{latitude} {longitude}")
-        else:
-            location_emb = np.zeros(384)
+def get_profile_embedding(profile: dict, is_applicant: bool = True) -> np.ndarray:
+    """
+    Generate profile embedding with Django-optimized caching
+    """
+    profile_str = json.dumps(profile, sort_keys=True, default=str)
+    cache_key = generate_embedding_cache_key(profile_str, is_applicant)
 
-        embeddings = np.vstack(
-            [
+    cached_embedding = cache.get(cache_key)
+    if cached_embedding is not None:
+        return np.array(cached_embedding, dtype=np.float32)
+
+    try:
+        if is_applicant:
+            hard_skills = extract_skill_names(profile.get("hard_skills", []))
+            soft_skills = extract_skill_names(profile.get("soft_skills", []))
+            modality = str(profile.get("preferred_modality", "")).strip()
+            quick_introduction = str(profile.get("quick_introduction", "")).strip()
+            latitude = profile.get("latitude")
+            longitude = profile.get("longitude")
+
+            # Generate embeddings
+            hard_skills_emb = encode_text_with_cache(" ".join(hard_skills))
+            soft_skills_emb = encode_text_with_cache(" ".join(soft_skills))
+            modality_emb = encode_text_with_cache(modality)
+            quick_introduction_emb = encode_text_with_cache(quick_introduction)
+
+            # Handle location
+            is_valid_coords, lat, lon = validate_coordinates(latitude, longitude)
+            if is_valid_coords:
+                location_emb = encode_text_with_cache(f"{lat} {lon}")
+            else:
+                location_emb = np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
+
+            embeddings = np.vstack([
                 hard_skills_emb,
                 soft_skills_emb,
                 location_emb,
                 modality_emb,
                 quick_introduction_emb
-            ]
-        )
-        weighted_embedding = np.average(embeddings, axis=0, weights=weights)
+            ])
+            weights = APPLICANT_WEIGHTS
 
-    else:
-        required_hard_skills = extract_skill_names(profile.get("required_hard_skills", []))
-        required_soft_skills = extract_skill_names(profile.get("required_soft_skills", []))
-        modality = profile.get("modality", "")
-        min_qualification = ", ".join(profile.get("min_qualifications", [])) or ""
-        benefit = ", ".join(profile.get("benefits", [])) or ""
-        key_task = ", ".join(profile.get("key_tasks", [])) or ""
-        latitude = profile.get("latitude")
-        longitude = profile.get("longitude")
-
-        hard_skills_emb = encode_text(" ".join(required_hard_skills))
-        soft_skills_emb = encode_text(" ".join(required_soft_skills))
-        modality_emb = encode_text(modality)
-        min_qual_emb = encode_text(min_qualification)
-        benefit_emb = encode_text(benefit)
-        key_task_emb = encode_text(key_task)
-
-        if latitude is not None and longitude is not None:
-            location_emb = encode_text(f"{latitude} {longitude}")
         else:
-            location_emb = np.zeros(384)
+            # Extract posting data
+            required_hard_skills = extract_skill_names(profile.get("required_hard_skills", []))
+            required_soft_skills = extract_skill_names(profile.get("required_soft_skills", []))
+            modality = str(profile.get("modality", "")).strip()
+            min_qualification = ", ".join(profile.get("min_qualifications", [])) or ""
+            benefit = ", ".join(profile.get("benefits", [])) or ""
+            key_task = ", ".join(profile.get("key_tasks", [])) or ""
+            latitude = profile.get("latitude")
+            longitude = profile.get("longitude")
 
-        embeddings = np.vstack([
-            hard_skills_emb,
-            soft_skills_emb,
-            location_emb,
-            modality_emb,
-            min_qual_emb,
-            benefit_emb,
-            key_task_emb
-        ])
+            # Generate embeddings
+            hard_skills_emb = encode_text_with_cache(" ".join(required_hard_skills))
+            soft_skills_emb = encode_text_with_cache(" ".join(required_soft_skills))
+            modality_emb = encode_text_with_cache(modality)
+            min_qual_emb = encode_text_with_cache(min_qualification)
+            benefit_emb = encode_text_with_cache(benefit)
+            key_task_emb = encode_text_with_cache(key_task)
+
+            # Handle location
+            is_valid_coords, lat, lon = validate_coordinates(latitude, longitude)
+            if is_valid_coords:
+                location_emb = encode_text_with_cache(f"{lat} {lon}")
+            else:
+                location_emb = np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
+
+            embeddings = np.vstack([
+                hard_skills_emb,
+                soft_skills_emb,
+                location_emb,
+                modality_emb,
+                min_qual_emb,
+                benefit_emb,
+                key_task_emb
+            ])
+            weights = POSTING_WEIGHTS
+
+        # Calculate weighted embedding
         weighted_embedding = np.average(embeddings, axis=0, weights=weights)
 
-    return weighted_embedding
+        # Cache the result in Django cache
+        cache.set(cache_key, weighted_embedding.tolist(), EMBEDDING_CACHE_TIMEOUT)
+
+        return weighted_embedding.astype(np.float32)
+
+    except Exception as e:
+        logger.error(f"Failed to generate profile embedding: {e}")
+        return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
 
 
-def cosine_similarity(a: np.ndarray, b: np.ndarray):
-    a_norm = a / np.linalg.norm(a)
-    b_norm = b / np.linalg.norm(b)
-    return np.dot(a_norm, b_norm)
+def cosine_similarity_vectorized(a: np.ndarray, b: np.ndarray) -> Union[float, np.ndarray]:
+    """Vectorized cosine similarity calculation"""
+    try:
+        a_norm = a / np.linalg.norm(a)
+
+        if b.ndim == 1:
+            b_norm = b / np.linalg.norm(b)
+            return np.dot(a_norm, b_norm)
+        else:
+            b_norm = b / np.linalg.norm(b, axis=1, keepdims=True)
+            return np.dot(b_norm, a_norm)
+    except Exception as e:
+        logger.error(f"Cosine similarity calculation failed: {e}")
+        if b.ndim == 1:
+            return 0.0
+        else:
+            return np.zeros(len(b))
 
 
 def calculate_distance(coord1: tuple, coord2: tuple) -> float:
-    return great_circle(coord1, coord2).km
+    """Calculate distance with error handling"""
+    try:
+        if None in coord1 or None in coord2:
+            return 0.0
+        return great_circle(coord1, coord2).km
+    except Exception as e:
+        logger.warning(f"Distance calculation failed: {e}")
+        return 0.0
 
 
 def cosine_compare(applicant_embedding: np.ndarray, applicant_profile: dict,
-                   internship_posting_embedding: np.ndarray, internship_posting_profiles: list):
+                   internship_posting_embedding: np.ndarray, internship_posting_profiles: list) -> List[Dict]:
+    """
+    Optimized comparison with vectorized operations and Django integration
+    """
     if internship_posting_embedding is None or len(internship_posting_embedding) == 0:
         return []
 
-    applicant_embedding = np.array(applicant_embedding).flatten()
+    try:
+        applicant_embedding = np.array(applicant_embedding, dtype=np.float32).flatten()
 
-    SIMILARITY_WEIGHT = 0.95
-    DISTANCE_WEIGHT = 0.05
+        # Ensure posting embeddings are properly shaped
+        if internship_posting_embedding.ndim == 1:
+            internship_posting_embedding = internship_posting_embedding.reshape(1, -1)
 
-    applicant_coords = (applicant_profile.get("latitude"), applicant_profile.get("longitude"))
-    similarities = []
-    distances = []
+        # Vectorized similarity calculation
+        similarity_scores = cosine_similarity_vectorized(applicant_embedding, internship_posting_embedding)
+        if isinstance(similarity_scores, float):
+            similarity_scores = np.array([similarity_scores])
 
-    for idx, comp_emb in enumerate(internship_posting_embedding):
-        comp_emb = np.array(comp_emb).flatten()
-        score = cosine_similarity(applicant_embedding, comp_emb)
+        applicant_coords = (applicant_profile.get("latitude"), applicant_profile.get("longitude"))
 
-        profile = internship_posting_profiles[idx]
-        profile_coords = (profile.get("latitude"), profile.get("longitude"))
-        modality = profile.get("modality", "")
+        # Calculate distances and determine distance consideration
+        similarities = []
+        distances = []
 
-        if modality == "WorkFromHome" or None in applicant_coords or None in profile_coords:
-            consider_distance = False
-            distance_km = 0.0
-        else:
-            consider_distance = True
-            distance_km = calculate_distance(applicant_coords, profile_coords) or 0.0
+        for idx, (score, profile) in enumerate(zip(similarity_scores, internship_posting_profiles)):
+            profile_coords = (profile.get("latitude"), profile.get("longitude"))
+            modality = profile.get("modality", "")
 
-        similarities.append((score, distance_km, consider_distance, internship_posting_profiles[idx]))
-        distances.append(distance_km if consider_distance else 0.0)
+            if modality == "WorkFromHome" or None in applicant_coords or None in profile_coords:
+                consider_distance = False
+                distance_km = 0.0
+            else:
+                consider_distance = True
+                distance_km = calculate_distance(applicant_coords, profile_coords)
 
-    max_distance = max(distances) or 1
-    ranking_json = []
+            similarities.append((float(score), distance_km, consider_distance, profile))
+            if consider_distance:
+                distances.append(distance_km)
 
-    # # Sort descending by similarity score
-    # similarities.sort(key=lambda x: x[0], reverse=True)
+        # Calculate final scores
+        max_distance = max(distances) if distances else 1.0
+        ranking_json = []
 
-    ranking_json = []
+        for score, distance_km, consider_distance, profile in similarities:
+            if consider_distance and max_distance > 0:
+                norm_distance_score = 1 - (distance_km / max_distance)
+                final_score = SIMILARITY_WEIGHT * score + DISTANCE_WEIGHT * norm_distance_score
+            else:
+                final_score = score
 
-    for score, distance_km, consider_distance, profile in similarities:
-        if consider_distance:
-            norm_distance_score = 1 - (distance_km / max_distance)
-            final_score = SIMILARITY_WEIGHT * score + DISTANCE_WEIGHT * norm_distance_score
-        else:
-            final_score = score
-        ranking_json.append({
-            "internship_posting_id": profile["uuid"],
-            "similarity_score": round(final_score, 2),
-            "address_distance_km": round(distance_km, 2) if consider_distance else "Remote / Unknown",
-            "consider_distance": consider_distance,
-            "modality": profile["modality"],
-            # "final_score": round(float(score), 2),
-            # "min_qualifications": profile.get("min_qualifications", []),
-            # "benefits": profile.get("benefits", []),
-            # "key_tasks": profile.get("key_tasks", []),
-            # "required_hard_skills": profile.get("required_hard_skills", []),
-            # "required_soft_skills": profile.get("required_soft_skills", []),
-        })
+            ranking_json.append({
+                "internship_posting_id": profile["uuid"],
+                "similarity_score": round(final_score, 3),
+                "address_distance_km": round(distance_km, 2) if consider_distance else "Remote / Unknown",
+                "consider_distance": consider_distance,
+                "modality": profile.get("modality", ""),
+            })
 
-    ranking_json.sort(key=lambda x: x["similarity_score"], reverse=True)
-    return ranking_json
+        # Sort by similarity score descending
+        ranking_json.sort(key=lambda x: x["similarity_score"], reverse=True)
+        return ranking_json
+
+    except Exception as e:
+        logger.error(f"Comparison failed: {e}")
+        return []
 
 
 def update_internship_posting_status(company):
@@ -250,3 +373,22 @@ class InternshipPostingStatusFilter(SimpleListFilter):
                 ).values_list('internship_posting_id', flat=True)
                 return queryset.filter(internship_posting_id__in=posting_ids)
         return queryset
+
+
+def monitor_performance(func_name: str):
+    """Decorator to monitor function performance in Django"""
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            import time
+            start_time = time.time()
+            try:
+                result = func(*args, **kwargs)
+                execution_time = time.time() - start_time
+                logger.info(f"{func_name} executed in {execution_time:.3f}s")
+                return result
+            except Exception as e:
+                execution_time = time.time() - start_time
+                logger.error(f"{func_name} failed after {execution_time:.3f}s: {e}")
+                raise
+        return wrapper
+    return decorator

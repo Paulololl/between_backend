@@ -75,3 +75,6 @@ weasyprint-mkcert
 
 # docker caching
 hf_cache/
+
+# Seed assets (placeholder images)
+seed_assets
