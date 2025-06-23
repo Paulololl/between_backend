@@ -34,8 +34,7 @@ def get_sentence_model():
         os.environ["HF_HOME"] = "/tmp/huggingface"
         os.makedirs(os.environ["HF_HOME"], exist_ok=True)
 
-        # model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
-        model = SentenceTransformer('sentence-transformers/paraphrase-MiniLM-L3-v2')
+        model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
         model._first_module().auto_model = torch.quantization.quantize_dynamic(
             model._first_module().auto_model, {torch.nn.Linear}, dtype=torch.qint8
         )
