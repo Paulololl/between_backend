@@ -148,11 +148,24 @@ def batch_encode_with_cache(texts: List[str]) -> List[np.ndarray]:
 
 def get_profile_embedding(profile: dict, is_applicant: bool = True) -> np.ndarray:
     profile_str = json.dumps(profile, sort_keys=True, default=str)
+
+    skip_cache = False
+    if is_applicant:
+        user = profile.get("_user")
+        if isinstance(user, Applicant):
+            user = user.user
+        if user:
+            date_modified = getattr(user, "date_modified", None)
+            last_matched = getattr(getattr(user, "applicant", None), "last_matched", None)
+            if date_modified and (not last_matched or date_modified > last_matched):
+                skip_cache = True
+
     cache_key = generate_embedding_cache_key(profile_str, is_applicant)
 
-    cached_embedding = cache.get(cache_key)
-    if cached_embedding is not None:
-        return np.array(cached_embedding, dtype=np.float32)
+    if not skip_cache:
+        cached_embedding = cache.get(cache_key)
+        if cached_embedding is not None:
+            return np.array(cached_embedding, dtype=np.float32)
 
     try:
         if is_applicant:
@@ -202,10 +215,11 @@ def get_profile_embedding(profile: dict, is_applicant: bool = True) -> np.ndarra
             weights = POSTING_WEIGHTS
 
         embeddings = [e if e is not None else np.zeros(EMBEDDING_DIMENSION, dtype=np.float32) for e in embeddings]
-
         weighted_embedding = np.average(embeddings, axis=0, weights=weights)
 
-        cache.set(cache_key, weighted_embedding.tolist(), EMBEDDING_CACHE_TIMEOUT)
+        if not skip_cache:
+            cache.set(cache_key, weighted_embedding.tolist(), EMBEDDING_CACHE_TIMEOUT)
+
         return weighted_embedding.astype(np.float32)
 
     except Exception as e:
