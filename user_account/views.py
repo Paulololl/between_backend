@@ -1,3 +1,5 @@
+import json
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core.cache import cache
@@ -21,7 +23,7 @@ from cea_management.models import Department, Program, School
 from client_matching.functions import run_internship_matching
 from user_account.permissions import IsApplicant, IsCoordinator
 from client_matching.serializers import InternshipMatchSerializer
-from client_matching.utils import reset_recommendations_and_tap_count
+from client_matching.utils import reset_recommendations_and_tap_count, generate_embedding_cache_key
 from .models import Applicant, Company, CareerEmplacementAdmin, OJTCoordinator
 from .serializers import (ApplicantRegisterSerializer, NestedSchoolDepartmentProgramSerializer,
                           DepartmentSerializer, ProgramNestedSerializer, SchoolSerializer, CompanyRegisterSerializer,
@@ -163,6 +165,19 @@ class EditApplicantView(APIView):
                 applicant.user.date_modified = now()
                 applicant.user.save(update_fields=['date_modified'])
                 serializer.save()
+
+            updated_profile = serializer.data
+            profile_dict = {
+                "hard_skills": updated_profile.get("hard_skills", []),
+                "soft_skills": updated_profile.get("soft_skills", []),
+                "preferred_modality": updated_profile.get("preferred_modality", ""),
+                "quick_introduction": updated_profile.get("quick_introduction", ""),
+                "latitude": updated_profile.get("latitude"),
+                "longitude": updated_profile.get("longitude")
+            }
+
+            cache_key = generate_embedding_cache_key(json.dumps(profile_dict, sort_keys=True, default=str))
+            cache.delete(cache_key)
 
             run_internship_matching(applicant)
 

@@ -46,23 +46,19 @@ def get_sentence_model():
 
 
 def generate_embedding_cache_key(profile_data: str, is_applicant: bool = True) -> str:
-    """Generate cache key for embeddings"""
     profile_hash = hashlib.md5(profile_data.encode()).hexdigest()
     prefix = "applicant" if is_applicant else "posting"
     return f"embedding:{prefix}:{profile_hash}"
 
 
 def extract_skill_names(skills) -> List[str]:
-    """Extract skill names from Django QuerySet or list with validation"""
     if not skills:
         return []
 
     try:
         if hasattr(skills, 'all'):
-            # Django QuerySet
             return [skill.name for skill in skills.all() if hasattr(skill, 'name') and skill.name]
         elif hasattr(skills, 'values_list'):
-            # Already a QuerySet, get names directly
             return list(skills.values_list('name', flat=True).filter(name__isnull=False))
         elif isinstance(skills, list):
             result = []
@@ -234,7 +230,6 @@ def get_posting_embeddings_batch(posting_profiles: List[Dict]) -> Optional[np.nd
 
 
 def cosine_similarity_vectorized(a: np.ndarray, b: np.ndarray) -> Union[float, np.ndarray]:
-    """Vectorized cosine similarity calculation"""
     try:
         a_norm = a / np.linalg.norm(a)
 
@@ -253,7 +248,6 @@ def cosine_similarity_vectorized(a: np.ndarray, b: np.ndarray) -> Union[float, n
 
 
 def calculate_distance(coord1: tuple, coord2: tuple) -> float:
-    """Calculate distance with error handling"""
     try:
         if None in coord1 or None in coord2:
             return 0.0
@@ -265,27 +259,22 @@ def calculate_distance(coord1: tuple, coord2: tuple) -> float:
 
 def cosine_compare(applicant_embedding: np.ndarray, applicant_profile: dict,
                    internship_posting_embedding: np.ndarray, internship_posting_profiles: list) -> List[Dict]:
-    """
-    Optimized comparison with vectorized operations and Django integration
-    """
+
     if internship_posting_embedding is None or len(internship_posting_embedding) == 0:
         return []
 
     try:
         applicant_embedding = np.array(applicant_embedding, dtype=np.float32).flatten()
 
-        # Ensure posting embeddings are properly shaped
         if internship_posting_embedding.ndim == 1:
             internship_posting_embedding = internship_posting_embedding.reshape(1, -1)
 
-        # Vectorized similarity calculation
         similarity_scores = cosine_similarity_vectorized(applicant_embedding, internship_posting_embedding)
         if isinstance(similarity_scores, float):
             similarity_scores = np.array([similarity_scores])
 
         applicant_coords = (applicant_profile.get("latitude"), applicant_profile.get("longitude"))
 
-        # Calculate distances and determine distance consideration
         similarities = []
         distances = []
 
@@ -304,7 +293,6 @@ def cosine_compare(applicant_embedding: np.ndarray, applicant_profile: dict,
             if consider_distance:
                 distances.append(distance_km)
 
-        # Calculate final scores
         max_distance = max(distances) if distances else 1.0
         ranking_json = []
 
@@ -323,7 +311,6 @@ def cosine_compare(applicant_embedding: np.ndarray, applicant_profile: dict,
                 "modality": profile.get("modality", ""),
             })
 
-        # Sort by similarity score descending
         ranking_json.sort(key=lambda x: x["similarity_score"], reverse=True)
         return ranking_json
 
@@ -398,7 +385,6 @@ class InternshipPostingStatusFilter(SimpleListFilter):
 
 
 def monitor_performance(func_name: str):
-    """Decorator to monitor function performance in Django"""
     def decorator(func):
         def wrapper(*args, **kwargs):
             import time
