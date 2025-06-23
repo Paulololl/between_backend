@@ -218,6 +218,21 @@ class ApplicantRegisterSerializer(serializers.ModelSerializer):
         hard_skills_string = validated_data.pop('hard_skills')
         soft_skills_string = validated_data.pop('soft_skills')
 
+        resume = validated_data.get('resume')
+        enrollment_record = validated_data.get('enrollment_record')
+
+        if resume:
+            try:
+                validate_file_size(resume)
+            except serializers.ValidationError as e:
+                raise serializers.ValidationError({'resume': e.detail})
+
+        if enrollment_record:
+            try:
+                validate_file_size(enrollment_record)
+            except serializers.ValidationError as e:
+                raise serializers.ValidationError({'enrollment_record': e.detail})
+
         if User.objects.filter(email=email).exists():
             raise serializers.ValidationError({'applicant_email': 'This email is already in use.'})
 
@@ -324,6 +339,20 @@ class CompanyRegisterSerializer(serializers.ModelSerializer):
         password = validated_data.pop('password')
         validated_data.pop('confirm_password')
         coordinates = validated_data.pop('coordinates', None),
+        profile_picture = validated_data.get('profile_picture')
+        background_image = validated_data.get('background_image')
+
+        if profile_picture:
+            try:
+                validate_file_size(profile_picture)
+            except serializers.ValidationError as e:
+                raise serializers.ValidationError({'profile_picture': e.detail})
+
+        if background_image:
+            try:
+                validate_file_size(background_image)
+            except serializers.ValidationError as e:
+                raise serializers.ValidationError({'background_image': e.detail})
 
         if User.objects.filter(email=email).exists():
             raise serializers.ValidationError({'company_email': 'This email is already in use.'})
