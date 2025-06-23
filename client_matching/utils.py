@@ -341,7 +341,7 @@ def reset_recommendations_and_tap_count(applicant):
         status='Skipped',
         time_stamp__lt=midnight_today,
     )
-
+#
     skipped_recommendations.update(status='Pending', time_stamp=now())
 
     if not applicant.tap_count_reset or applicant.tap_count_reset.date() < today:
