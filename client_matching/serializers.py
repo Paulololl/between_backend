@@ -804,12 +804,12 @@ class InternshipMatchSerializer(serializers.Serializer):
                 profile = {
                     'uuid': posting.internship_posting_id,
                     'required_hard_skills': json.dumps([
-                        {'id': hs.skill_id, 'name': hs.name}
+                        {'id': hs.lightcast_identifier, 'name': hs.name}
                         for hs in posting.required_hard_skills.all()
                         if hasattr(hs, 'name')
                     ]),
                     'required_soft_skills': json.dumps([
-                        {'id': ss.skill_id, 'name': ss.name}
+                        {'id': ss.lightcast_identifier, 'name': ss.name}
                         for ss in posting.required_soft_skills.all()
                         if hasattr(ss, 'name')
                     ]),
