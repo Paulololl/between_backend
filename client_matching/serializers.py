@@ -740,7 +740,7 @@ class InternshipMatchSerializer(serializers.Serializer):
             return ranked_results
 
         except Exception as e:
-            logger.error(f"Matching failed for applicant {self.applicant.id}: {e}")
+            logger.error(f"Matching failed for applicant {self.applicant.user.user_id}: {e}")
             raise serializers.ValidationError(f"Matching process failed: {str(e)}")
 
     def _build_applicant_profile(self) -> Dict:
