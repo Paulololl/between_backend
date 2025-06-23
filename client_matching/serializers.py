@@ -767,11 +767,11 @@ class InternshipMatchSerializer(serializers.Serializer):
         ).prefetch_related(
             Prefetch(
                 'required_hard_skills',
-                queryset=self.applicant.hard_skills.model.objects.only('name')
+                queryset=self.applicant.hard_skills.model.objects.only('name', 'lightcast_identifier')
             ),
             Prefetch(
                 'required_soft_skills',
-                queryset=self.applicant.soft_skills.model.objects.only('name')
+                queryset=self.applicant.soft_skills.model.objects.only('name', 'lightcast_identifier')
             ),
             Prefetch(
                 'min_qualifications',
@@ -798,37 +798,26 @@ class InternshipMatchSerializer(serializers.Serializer):
         profiles = []
         posting_lookup = {}
 
-        # Process querysets efficiently
         for posting in postings_queryset:
             try:
                 profile = {
                     'uuid': posting.internship_posting_id,
-                    'required_hard_skills': json.dumps([
-                        {'id': hs.lightcast_identifier, 'name': hs.name}
-                        for hs in posting.required_hard_skills.all()
-                        if hasattr(hs, 'name')
-                    ]),
-                    'required_soft_skills': json.dumps([
-                        {'id': ss.lightcast_identifier, 'name': ss.name}
-                        for ss in posting.required_soft_skills.all()
-                        if hasattr(ss, 'name')
-                    ]),
+                    'required_hard_skills': [
+                        hs.name for hs in posting.required_hard_skills.all() if hs.name
+                    ],
+                    'required_soft_skills': [
+                        ss.name for ss in posting.required_soft_skills.all() if ss.name
+                    ],
                     'modality': posting.modality or '',
-                    'min_qualifications': json.dumps([
-                        {'min_qualification': mq.min_qualification}
-                        for mq in posting.min_qualifications.all()
-                        if hasattr(mq, 'min_qualification') and mq.min_qualification
-                    ]),
-                    'benefits': json.dumps([
-                        {'benefit': b.benefit}
-                        for b in posting.benefits.all()
-                        if hasattr(b, 'benefit') and b.benefit
-                    ]),
-                    'key_tasks': json.dumps([
-                        {'key_task': kt.key_task}
-                        for kt in posting.key_tasks.all()
-                        if hasattr(kt, 'key_task') and kt.key_task
-                    ]),
+                    'min_qualifications': [
+                        mq.min_qualification for mq in posting.min_qualifications.all() if mq.min_qualification
+                    ],
+                    'benefits': [
+                        b.benefit for b in posting.benefits.all() if b.benefit
+                    ],
+                    'key_tasks': [
+                        kt.key_task for kt in posting.key_tasks.all() if kt.key_task
+                    ],
                     'latitude': posting.latitude,
                     'longitude': posting.longitude,
                 }
