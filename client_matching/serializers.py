@@ -720,7 +720,7 @@ class InternshipMatchSerializer(serializers.Serializer):
                 logger.info("No open postings available for matching")
                 return []
 
-            applicant_embedding = get_profile_embedding(applicant_profile, is_applicant=True)
+            applicant_embedding = get_profile_embedding(applicant_profile, is_applicant=True, applicant=self.applicant)
             posting_embeddings = get_posting_embeddings_batch(posting_profiles)
 
             ranked_results = cosine_compare(
