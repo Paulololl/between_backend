@@ -16,7 +16,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 
 from client_application.models import Application
 from client_matching.utils import get_profile_embedding, cosine_compare, monitor_performance, extract_skill_names, \
-    SIMILARITY_THRESHOLD
+    SIMILARITY_THRESHOLD, get_posting_embeddings_batch
 from user_account.models import Company, Applicant
 import googlemaps
 from django.contrib.auth.tokens import default_token_generator
@@ -704,7 +704,6 @@ logger = logging.getLogger(__name__)
 
 
 class InternshipMatchSerializer(serializers.Serializer):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.applicant = self.context.get('applicant')
@@ -713,12 +712,8 @@ class InternshipMatchSerializer(serializers.Serializer):
 
     @monitor_performance("InternshipMatchSerializer.create")
     def create(self, validated_data):
-        """
-        Optimized create method with proper Django ORM usage
-        """
         try:
             applicant_profile = self._build_applicant_profile()
-
             posting_profiles, posting_lookup = self._get_posting_profiles_optimized()
 
             if not posting_profiles:
@@ -726,7 +721,7 @@ class InternshipMatchSerializer(serializers.Serializer):
                 return []
 
             applicant_embedding = get_profile_embedding(applicant_profile, is_applicant=True)
-            posting_embeddings = self._get_posting_embeddings(posting_profiles)
+            posting_embeddings = get_posting_embeddings_batch(posting_profiles)
 
             ranked_results = cosine_compare(
                 applicant_embedding,
@@ -743,56 +738,30 @@ class InternshipMatchSerializer(serializers.Serializer):
             logger.error(f"Matching failed for applicant {self.applicant.user.user_id}: {e}")
             raise serializers.ValidationError(f"Matching process failed: {str(e)}")
 
+    def _safe_str(self, value):
+        return str(value).strip() if value else ""
+
     def _build_applicant_profile(self) -> Dict:
-        """Build applicant profile dict with proper data extraction"""
         return {
             'uuid': self.applicant.user_id,
             'hard_skills': self.applicant.hard_skills,
             'soft_skills': self.applicant.soft_skills,
-            'preferred_modality': self.applicant.preferred_modality,
-            'quick_introduction': self.applicant.quick_introduction,
+            'preferred_modality': self._safe_str(self.applicant.preferred_modality),
+            'quick_introduction': self._safe_str(self.applicant.quick_introduction),
             'latitude': self.applicant.latitude,
             'longitude': self.applicant.longitude,
         }
 
     def _get_posting_profiles_optimized(self) -> tuple[List[Dict], Dict]:
-        """
-        Optimized method to fetch posting profiles using Django ORM best practices
-        """
-        # Use select_related for foreign keys and prefetch_related for many-to-many
-        postings_queryset = InternshipPosting.objects.filter(
-            status='Open'
-        ).select_related(
-            'company'  # If needed for filtering or display
-        ).prefetch_related(
-            Prefetch(
-                'required_hard_skills',
-                queryset=self.applicant.hard_skills.model.objects.only('name', 'lightcast_identifier')
-            ),
-            Prefetch(
-                'required_soft_skills',
-                queryset=self.applicant.soft_skills.model.objects.only('name', 'lightcast_identifier')
-            ),
-            Prefetch(
-                'min_qualifications',
-                queryset=MinQualification.objects.only('min_qualification')
-            ),
-            Prefetch(
-                'benefits',
-                queryset=Benefit.objects.only('benefit')
-            ),
-            Prefetch(
-                'key_tasks',
-                queryset=KeyTask.objects.only('key_task')
-            )
+        postings_queryset = InternshipPosting.objects.filter(status='Open').select_related('company').prefetch_related(
+            Prefetch('required_hard_skills', queryset=self.applicant.hard_skills.model.objects.only('name')),
+            Prefetch('required_soft_skills', queryset=self.applicant.soft_skills.model.objects.only('name')),
+            Prefetch('min_qualifications', queryset=MinQualification.objects.only('min_qualification')),
+            Prefetch('benefits', queryset=Benefit.objects.only('benefit')),
+            Prefetch('key_tasks', queryset=KeyTask.objects.only('key_task')),
         ).only(
-            'internship_posting_id',
-            'modality',
-            'latitude',
-            'longitude',
-            'status',
-            'company__user_id',
-            'company__company_name'
+            'internship_posting_id', 'modality', 'latitude', 'longitude',
+            'status', 'company__user_id', 'company__company_name'
         )
 
         profiles = []
@@ -802,178 +771,88 @@ class InternshipMatchSerializer(serializers.Serializer):
             try:
                 profile = {
                     'uuid': posting.internship_posting_id,
-                    'required_hard_skills': [
-                        hs.name for hs in posting.required_hard_skills.all() if hs.name
-                    ],
-                    'required_soft_skills': [
-                        ss.name for ss in posting.required_soft_skills.all() if ss.name
-                    ],
+                    'required_hard_skills': [hs.name for hs in posting.required_hard_skills.all() if hs.name],
+                    'required_soft_skills': [ss.name for ss in posting.required_soft_skills.all() if ss.name],
                     'modality': posting.modality or '',
-                    'min_qualifications': [
-                        mq.min_qualification for mq in posting.min_qualifications.all() if mq.min_qualification
-                    ],
-                    'benefits': [
-                        b.benefit for b in posting.benefits.all() if b.benefit
-                    ],
-                    'key_tasks': [
-                        kt.key_task for kt in posting.key_tasks.all() if kt.key_task
-                    ],
+                    'min_qualifications': [mq.min_qualification for mq in posting.min_qualifications.all() if mq.min_qualification],
+                    'benefits': [b.benefit for b in posting.benefits.all() if b.benefit],
+                    'key_tasks': [kt.key_task for kt in posting.key_tasks.all() if kt.key_task],
                     'latitude': posting.latitude,
                     'longitude': posting.longitude,
                 }
                 profiles.append(profile)
                 posting_lookup[posting.internship_posting_id] = posting
-
             except Exception as e:
                 logger.warning(f"Error processing posting {posting.internship_posting_id}: {e}")
-                continue
-
         logger.info(f"Processed {len(profiles)} posting profiles")
         return profiles, posting_lookup
 
-    def _get_posting_embeddings(self, posting_profiles: List[Dict]) -> Optional[np.ndarray]:
-        """
-        Generate posting embeddings with caching
-        """
-        if not posting_profiles:
-            return None
-
-        embeddings = []
-        cache_hits = 0
-
-        for profile in posting_profiles:
-            try:
-                embedding = get_profile_embedding(profile, is_applicant=False)
-                embeddings.append(embedding)
-
-                # Check if this was a cache hit (for monitoring)
-                import json
-                import hashlib
-                profile_str = json.dumps(profile, sort_keys=True, default=str)
-                cache_key = f"embedding:posting:{hashlib.md5(profile_str.encode()).hexdigest()}"
-                if cache.get(cache_key) is not None:
-                    cache_hits += 1
-
-            except Exception as e:
-                logger.error(f"Failed to generate embedding for posting {profile.get('uuid')}: {e}")
-                # Use zero embedding as fallback
-                embeddings.append(np.zeros(384, dtype=np.float32))
-
-        logger.info(f"Generated embeddings: {len(embeddings)} total, {cache_hits} cache hits")
-
-        if embeddings:
-            return np.vstack(embeddings)
-        return None
-
     @transaction.atomic
     def _update_applicant_and_recommendations(self, ranked_results: List[Dict], posting_lookup: Dict):
-        """
-        Update applicant and recommendations using Django best practices
-        """
-        try:
-            # Update applicant last matched time
-            self.applicant.last_matched = now()
-            self.applicant.save(update_fields=['last_matched'])
+        from decimal import Decimal
 
-            # Clean up recommendations for deleted postings
-            deleted_count = InternshipRecommendation.objects.filter(
+        self.applicant.last_matched = now()
+        self.applicant.save(update_fields=['last_matched'])
+
+        InternshipRecommendation.objects.filter(
+            applicant=self.applicant,
+            internship_posting__status='Deleted'
+        ).delete()
+
+        valid_results = [
+            result for result in ranked_results
+            if result['similarity_score'] >= SIMILARITY_THRESHOLD
+        ]
+
+        if not valid_results:
+            logger.info(f"No valid results above threshold {SIMILARITY_THRESHOLD}")
+            return
+
+        posting_ids = [result['internship_posting_id'] for result in valid_results]
+        existing_recommendations = {
+            rec.internship_posting_id: rec
+            for rec in InternshipRecommendation.objects.filter(
                 applicant=self.applicant,
-                internship_posting__status='Deleted'
-            ).delete()[0]
+                internship_posting_id__in=posting_ids
+            ).select_related('internship_posting')
+        }
 
-            if deleted_count > 0:
-                logger.info(f"Cleaned up {deleted_count} recommendations for deleted postings")
+        recs_to_create = []
+        recs_to_update = []
 
-            # Filter valid results
-            valid_results = [
-                result for result in ranked_results
-                if result['similarity_score'] >= SIMILARITY_THRESHOLD
-            ]
+        for result in valid_results:
+            posting_id = result['internship_posting_id']
+            similarity_score = Decimal(str(result['similarity_score']))
+            posting = posting_lookup.get(posting_id)
+            if not posting:
+                continue
 
-            if not valid_results:
-                logger.info(f"No results above similarity threshold {SIMILARITY_THRESHOLD}")
-                return
-
-            # Get existing recommendations efficiently
-            posting_ids = [result['internship_posting_id'] for result in valid_results]
-            existing_recommendations = {
-                rec.internship_posting_id: rec
-                for rec in InternshipRecommendation.objects.filter(
+            if posting_id in existing_recommendations:
+                existing = existing_recommendations[posting_id]
+                status = existing.status if existing.status in ['Submitted', 'Skipped'] else 'Pending'
+                existing.similarity_score = similarity_score
+                existing.status = status
+                recs_to_update.append(existing)
+            else:
+                recs_to_create.append(InternshipRecommendation(
                     applicant=self.applicant,
-                    internship_posting_id__in=posting_ids
-                ).select_related('internship_posting')
-            }
+                    internship_posting=posting,
+                    similarity_score=similarity_score,
+                    status='Pending'
+                ))
 
-            # Prepare bulk operations
-            recommendations_to_create = []
-            recommendations_to_update = []
-
-            for result in valid_results:
-                posting_id = result['internship_posting_id']
-                similarity_score = Decimal(str(result['similarity_score']))
-
-                posting = posting_lookup.get(posting_id)
-                if not posting:
-                    logger.warning(f"Posting {posting_id} not found in lookup")
-                    continue
-
-                if posting_id in existing_recommendations:
-                    # Update existing recommendation
-                    existing = existing_recommendations[posting_id]
-
-                    # Preserve status if already submitted or skipped
-                    if existing.status in ['Submitted', 'Skipped']:
-                        status_to_set = existing.status
-                    else:
-                        status_to_set = 'Pending'
-
-                    existing.similarity_score = similarity_score
-                    existing.status = status_to_set
-                    recommendations_to_update.append(existing)
-
-                else:
-                    # Create new recommendation
-                    recommendations_to_create.append(
-                        InternshipRecommendation(
-                            applicant=self.applicant,
-                            internship_posting=posting,
-                            similarity_score=similarity_score,
-                            status='Pending'
-                        )
-                    )
-
-            # Perform bulk operations
-            if recommendations_to_create:
-                created_recs = InternshipRecommendation.objects.bulk_create(
-                    recommendations_to_create,
-                    batch_size=100  # Process in batches for large datasets
-                )
-                logger.info(f"Created {len(created_recs)} new recommendations")
-
-            if recommendations_to_update:
-                InternshipRecommendation.objects.bulk_update(
-                    recommendations_to_update,
-                    ['similarity_score', 'status'],
-                    batch_size=100
-                )
-                logger.info(f"Updated {len(recommendations_to_update)} existing recommendations")
-
-        except Exception as e:
-            logger.error(f"Failed to update recommendations: {e}")
-            raise serializers.ValidationError(f"Failed to update recommendations: {str(e)}")
+        if recs_to_create:
+            InternshipRecommendation.objects.bulk_create(recs_to_create, batch_size=100)
+        if recs_to_update:
+            InternshipRecommendation.objects.bulk_update(recs_to_update, ['similarity_score', 'status'], batch_size=100)
 
     def validate(self, attrs):
         if not self.applicant:
             raise serializers.ValidationError("No applicant found in context")
-
-        # Add any additional validation logic here
         return attrs
 
     def to_representation(self, instance):
-        if not instance:
-            return []
-
-        return instance
+        return instance or []
 
 
 class InternshipRecommendationListSerializer(serializers.ModelSerializer):

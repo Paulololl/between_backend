@@ -42,7 +42,7 @@ ENV HF_HOME=/tmp/huggingface
 
 # Create directory and preload the model
 RUN mkdir -p $HF_HOME && \
-        python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')" && \
+        python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/paraphrase-MiniLM-L3-v2')" && \
     chown -R 10001:10001 $HF_HOME
 
 # Create non-root user

@@ -5,6 +5,7 @@ from datetime import timedelta
 from functools import lru_cache
 from typing import List, Optional, Tuple, Union, Dict
 
+import torch
 from django.contrib.admin import SimpleListFilter
 from django.core.cache import cache
 from django.utils.timezone import now
@@ -32,8 +33,13 @@ def get_sentence_model():
     try:
         os.environ["HF_HOME"] = "/tmp/huggingface"
         os.makedirs(os.environ["HF_HOME"], exist_ok=True)
-        model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
-        logger.info("Sentence transformer model loaded successfully")
+
+        # model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+        model = SentenceTransformer('sentence-transformers/paraphrase-MiniLM-L3-v2')
+        model._first_module().auto_model = torch.quantization.quantize_dynamic(
+            model._first_module().auto_model, {torch.nn.Linear}, dtype=torch.qint8
+        )
+        logger.info("Sentence transformer model loaded with quantization")
         return model
     except Exception as e:
         logger.error(f"Failed to load sentence transformer model: {e}")
@@ -96,11 +102,9 @@ def validate_coordinates(latitude: Optional[float], longitude: Optional[float]) 
 
 
 def encode_text_with_cache(text: str) -> np.ndarray:
-    """Encode text with Django cache integration"""
     if not text or not text.strip():
         return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
 
-    # Use Django cache
     cache_key = f"text_embedding:{hashlib.md5(text.encode()).hexdigest()}"
     cached_embedding = cache.get(cache_key)
 
@@ -111,7 +115,6 @@ def encode_text_with_cache(text: str) -> np.ndarray:
         model = get_sentence_model()
         embedding = model.encode(text, convert_to_numpy=True).astype(np.float32)
 
-        # Cache with Django cache
         cache.set(cache_key, embedding.tolist(), EMBEDDING_CACHE_TIMEOUT)
         return embedding
     except Exception as e:
@@ -119,10 +122,36 @@ def encode_text_with_cache(text: str) -> np.ndarray:
         return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
 
 
+def batch_encode_with_cache(texts: List[str]) -> List[np.ndarray]:
+    results = []
+    texts_to_encode = []
+    indexes_to_encode = []
+
+    for i, text in enumerate(texts):
+        cache_key = f"text_embedding:{hashlib.md5(text.encode()).hexdigest()}"
+        cached = cache.get(cache_key)
+        if cached:
+            results.append(np.array(cached, dtype=np.float32))
+        else:
+            results.append(None)
+            texts_to_encode.append(text)
+            indexes_to_encode.append(i)
+
+    if texts_to_encode:
+        model = get_sentence_model()
+        encodings = model.encode(texts_to_encode, convert_to_numpy=True).astype(np.float32)
+        for idx, encoding in zip(indexes_to_encode, encodings):
+            results[idx] = encoding
+            cache.set(
+                f"text_embedding:{hashlib.md5(texts[idx].encode()).hexdigest()}",
+                encoding.tolist(),
+                EMBEDDING_CACHE_TIMEOUT
+            )
+
+    return results
+
+
 def get_profile_embedding(profile: dict, is_applicant: bool = True) -> np.ndarray:
-    """
-    Generate profile embedding with Django-optimized caching
-    """
     profile_str = json.dumps(profile, sort_keys=True, default=str)
     cache_key = generate_embedding_cache_key(profile_str, is_applicant)
 
@@ -139,30 +168,20 @@ def get_profile_embedding(profile: dict, is_applicant: bool = True) -> np.ndarra
             latitude = profile.get("latitude")
             longitude = profile.get("longitude")
 
-            # Generate embeddings
-            hard_skills_emb = encode_text_with_cache(" ".join(hard_skills))
-            soft_skills_emb = encode_text_with_cache(" ".join(soft_skills))
-            modality_emb = encode_text_with_cache(modality)
-            quick_introduction_emb = encode_text_with_cache(quick_introduction)
-
-            # Handle location
             is_valid_coords, lat, lon = validate_coordinates(latitude, longitude)
-            if is_valid_coords:
-                location_emb = encode_text_with_cache(f"{lat} {lon}")
-            else:
-                location_emb = np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
+            location_text = f"{lat} {lon}" if is_valid_coords else None
 
-            embeddings = np.vstack([
-                hard_skills_emb,
-                soft_skills_emb,
-                location_emb,
-                modality_emb,
-                quick_introduction_emb
-            ])
+            texts = [
+                str(" ".join(hard_skills) or ""),
+                str(" ".join(soft_skills) or ""),
+                str(location_text or ""),
+                str(modality or ""),
+                str(quick_introduction or "")
+            ]
+            embeddings = batch_encode_with_cache(texts)
             weights = APPLICANT_WEIGHTS
 
         else:
-            # Extract posting data
             required_hard_skills = extract_skill_names(profile.get("required_hard_skills", []))
             required_soft_skills = extract_skill_names(profile.get("required_soft_skills", []))
             modality = str(profile.get("modality", "")).strip()
@@ -172,43 +191,47 @@ def get_profile_embedding(profile: dict, is_applicant: bool = True) -> np.ndarra
             latitude = profile.get("latitude")
             longitude = profile.get("longitude")
 
-            # Generate embeddings
-            hard_skills_emb = encode_text_with_cache(" ".join(required_hard_skills))
-            soft_skills_emb = encode_text_with_cache(" ".join(required_soft_skills))
-            modality_emb = encode_text_with_cache(modality)
-            min_qual_emb = encode_text_with_cache(min_qualification)
-            benefit_emb = encode_text_with_cache(benefit)
-            key_task_emb = encode_text_with_cache(key_task)
-
-            # Handle location
             is_valid_coords, lat, lon = validate_coordinates(latitude, longitude)
-            if is_valid_coords:
-                location_emb = encode_text_with_cache(f"{lat} {lon}")
-            else:
-                location_emb = np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
+            location_text = f"{lat} {lon}" if is_valid_coords else None
 
-            embeddings = np.vstack([
-                hard_skills_emb,
-                soft_skills_emb,
-                location_emb,
-                modality_emb,
-                min_qual_emb,
-                benefit_emb,
-                key_task_emb
-            ])
+            texts = [
+                str(" ".join(required_hard_skills) or ""),
+                str(" ".join(required_soft_skills) or ""),
+                str(location_text or ""),
+                str(modality or ""),
+                str(min_qualification or ""),
+                str(benefit or ""),
+                str(key_task or "")
+            ]
+            embeddings = batch_encode_with_cache(texts)
             weights = POSTING_WEIGHTS
 
-        # Calculate weighted embedding
+        embeddings = [e if e is not None else np.zeros(EMBEDDING_DIMENSION, dtype=np.float32) for e in embeddings]
+
         weighted_embedding = np.average(embeddings, axis=0, weights=weights)
 
-        # Cache the result in Django cache
         cache.set(cache_key, weighted_embedding.tolist(), EMBEDDING_CACHE_TIMEOUT)
-
         return weighted_embedding.astype(np.float32)
 
     except Exception as e:
         logger.error(f"Failed to generate profile embedding: {e}")
         return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
+
+
+def get_posting_embeddings_batch(posting_profiles: List[Dict]) -> Optional[np.ndarray]:
+    if not posting_profiles:
+        return None
+
+    embeddings = []
+    for profile in posting_profiles:
+        try:
+            emb = get_profile_embedding(profile, is_applicant=False)
+            embeddings.append(emb)
+        except Exception as e:
+            logger.warning(f"Failed to embed posting profile: {e}")
+            embeddings.append(np.zeros(EMBEDDING_DIMENSION, dtype=np.float32))
+
+    return np.vstack(embeddings) if embeddings else None
 
 
 def cosine_similarity_vectorized(a: np.ndarray, b: np.ndarray) -> Union[float, np.ndarray]:
