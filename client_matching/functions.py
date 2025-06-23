@@ -6,46 +6,40 @@ from django.db.models import Max
 from client_matching.models import InternshipPosting
 from client_matching.serializers import InternshipMatchSerializer
 import random
+from django.db.models import Max
 
 
 logger = logging.getLogger(__name__)
 
 
 def run_internship_matching(applicant):
-    """
-    Efficient and safe trigger for internship matching:
-    - Avoids unnecessary runs if applicant or postings haven't changed
-    - Locks matching per applicant using Django cache
-    """
     try:
-        # Check for 5-minute cache lock
         cache_key = f"matching_in_progress:{applicant.user.user_id}"
+
         if cache.get(cache_key):
             logger.info(f"[MATCHING SKIP] Matching already in progress for applicant {applicant.user.user_id}")
             return
 
         last_matched = applicant.last_matched
         user_modified = getattr(applicant.user, 'date_modified', None)
-
         latest_modified = InternshipPosting.objects.exclude(status='Deleted') \
             .aggregate(Max('date_modified'))['date_modified__max']
 
         should_run_matching = False
 
-        if latest_modified and (not last_matched or latest_modified > last_matched):
+        if latest_modified and (last_matched is None or latest_modified > last_matched):
             should_run_matching = True
-        if user_modified and (not last_matched or user_modified > last_matched):
+        if user_modified and (last_matched is None or user_modified > last_matched):
             should_run_matching = True
 
         if not should_run_matching:
             logger.info(f"[MATCHING SKIP] Applicant {applicant.user.user_id} has no significant changes.")
             return
 
-        # Set cache lock for 5 minutes
+        logger.info(f"[MATCHING START] Running matching for applicant {applicant.user.user_id}")
         cache.set(cache_key, True, timeout=300)
 
         try:
-            logger.info(f"[MATCHING START] Running matching for applicant {applicant.user.user_id}")
             serializer = InternshipMatchSerializer(context={'applicant': applicant})
             serializer.create(validated_data={})
             logger.info(f"[MATCHING COMPLETE] Matching complete for applicant {applicant.user.user_id}")
@@ -53,7 +47,6 @@ def run_internship_matching(applicant):
             logger.error(f"[MATCHING ERROR] Matching failed for applicant {applicant.user.user_id}: {e}")
             raise
         finally:
-            # Ensure cache lock is cleared even if failure occurs
             cache.delete(cache_key)
 
     except Exception as e:
@@ -67,4 +60,3 @@ def fisher_yates_shuffle(queryset):
         j = random.randint(0, i)
         items[i], items[j] = items[j], items[i]
     return items
-
