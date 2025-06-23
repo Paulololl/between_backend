@@ -8,12 +8,11 @@ from django.db import transaction
 
 from user_account.models import User, Company
 from client_matching.models import PersonInCharge
-from client_matching.models import InternshipPosting, KeyTask, MinQualification, Benefit, HardSkillsTagList, SoftSkillsTagList
+from client_matching.models import InternshipPosting, KeyTask, MinQualification, Benefit, HardSkillsTagList, \
+    SoftSkillsTagList
 
-# Global placeholder image path
-SEED_IMAGE_PATH = Path(__file__).resolve().parent.parent.parent.parent / 'seed_assets' / 'landscape-placeholder.svg'
+SEED_ASSETS = Path(__file__).resolve().parent.parent.parent.parent / 'seed_assets'
 
-# Sample skill data for IT-related internships
 HARD_SKILLS = [
     {"id": "KS1219N6Z3XQ19V0HSKR", "name": "C# (Programming Language)"},
     {"id": "KS1232D6PH6SBVWWPQWC", "name": "Django (Web Framework)"},
@@ -30,7 +29,6 @@ SOFT_SKILLS = [
     {"id": "KS1211ASDQWE192BCYUR", "name": "Critical Thinking"},
 ]
 
-# Philippines addresses
 PH_ADDRESSES = [
     "SM Megamall, Metro Manila",
     "Bonifacio Global City, Taguig",
@@ -39,10 +37,17 @@ PH_ADDRESSES = [
     "Ayala Avenue, Makati"
 ]
 
-# Internship tasks and qualifications
 TASKS = ["Develop UI components using React", "Collaborate with backend team for API integration"]
 QUALIFICATIONS = ["Currently enrolled in BSIT or related field", "Completed at least 3rd year"]
 BENEFITS = ["Certificate of Completion", "Meal Allowance"]
+
+COMPANY_IMAGES = {
+    "apple": ("Apple-Logo.png", "apple branch center.jpg"),
+    "google": ("google logo.webp", "google store.jpg"),
+    "microsoft": ("microsoft logo.avif", "microsoft store.jpg"),
+    "samsung": ("samsuing.png", "samsung store.avif"),
+    "xiaomi": ("XIAOMI.png", "SIAOMI.jpg")
+}
 
 
 class Command(BaseCommand):
@@ -54,8 +59,9 @@ class Command(BaseCommand):
         for company_name in companies:
             self.stdout.write(f"Creating company: {company_name}")
             with transaction.atomic():
+                slug = company_name.lower()
                 user = User.objects.create_user(
-                    email=f"{company_name.lower()}@example.com",
+                    email=f"{slug}@example.com",
                     password="@A123456",
                     user_role="company"
                 )
@@ -67,29 +73,28 @@ class Command(BaseCommand):
                     company_name=f"{company_name} Philippines",
                     company_address=random.choice(PH_ADDRESSES),
                     company_information=f"{company_name} specializes in tech solutions for Filipino businesses.",
-                    company_website_url=f"https://{company_name.lower()}.ph",
+                    company_website_url=f"https://{slug}.ph",
                     business_nature="Technology"
                 )
 
-                with open(SEED_IMAGE_PATH, 'rb') as img:
-                    company.profile_picture.save('profile.svg', File(img), save=True)
-                with open(SEED_IMAGE_PATH, 'rb') as bg:
-                    company.background_image.save('background.svg', File(bg), save=True)
+                profile_name, background_name = COMPANY_IMAGES[slug]
+                with open(SEED_ASSETS / profile_name, 'rb') as img:
+                    company.profile_picture.save(profile_name, File(img), save=True)
+                with open(SEED_ASSETS / background_name, 'rb') as bg:
+                    company.background_image.save(background_name, File(bg), save=True)
 
-                # Add 1-2 PICs
                 for i in range(1, 3):
                     PersonInCharge.objects.create(
                         company=company,
                         name=f"{company_name} PIC {i}",
                         position="HR Officer",
-                        email=f"{company_name.lower()}_pic{i}@example.com",
+                        email=f"{slug}_pic{i}@example.com",
                         mobile_number="09171234567" if i == 1 else "",
                         landline_number="(02) 8123 4567" if i == 2 else ""
                     )
 
                 pics = company.personincharge_set.all()
 
-                # Add 1-2 internship postings
                 for j in range(1, 3):
                     pic = random.choice(pics)
                     posting = InternshipPosting.objects.create(
@@ -121,13 +126,14 @@ class Command(BaseCommand):
                         b = Benefit.objects.create(internship_posting=posting, benefit=benefit)
                         posting.benefits.add(b)
 
-                    # Assign random hard/soft skills
                     for hs in random.sample(HARD_SKILLS, 2):
-                        skill, _ = HardSkillsTagList.objects.get_or_create(lightcast_identifier=hs['id'], defaults={'name': hs['name']})
+                        skill, _ = HardSkillsTagList.objects.get_or_create(lightcast_identifier=hs['id'],
+                                                                           defaults={'name': hs['name']})
                         posting.required_hard_skills.add(skill)
 
                     for ss in random.sample(SOFT_SKILLS, 2):
-                        skill, _ = SoftSkillsTagList.objects.get_or_create(lightcast_identifier=ss['id'], defaults={'name': ss['name']})
+                        skill, _ = SoftSkillsTagList.objects.get_or_create(lightcast_identifier=ss['id'],
+                                                                           defaults={'name': ss['name']})
                         posting.required_soft_skills.add(skill)
 
                     posting.save()
