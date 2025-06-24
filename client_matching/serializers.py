@@ -722,9 +722,6 @@ class InternshipMatchSerializer(serializers.Serializer):
 
             applicant_embedding = get_profile_embedding(applicant_profile, is_applicant=True, applicant=self.applicant)
 
-            self.applicant.last_matched = now()
-            self.applicant.save(update_fields=['last_matched'])
-
             posting_embeddings = get_posting_embeddings_batch(posting_profiles)
 
             ranked_results = cosine_compare(
@@ -735,6 +732,9 @@ class InternshipMatchSerializer(serializers.Serializer):
             )
 
             self._update_applicant_and_recommendations(ranked_results, posting_lookup)
+
+            self.applicant.last_matched = now()
+            self.applicant.save(update_fields=['last_matched'])
 
             return ranked_results
 
