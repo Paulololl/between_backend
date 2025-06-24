@@ -721,6 +721,10 @@ class InternshipMatchSerializer(serializers.Serializer):
                 return []
 
             applicant_embedding = get_profile_embedding(applicant_profile, is_applicant=True, applicant=self.applicant)
+
+            self.applicant.last_matched = now()
+            self.applicant.save(update_fields=['last_matched'])
+
             posting_embeddings = get_posting_embeddings_batch(posting_profiles)
 
             ranked_results = cosine_compare(
@@ -790,9 +794,6 @@ class InternshipMatchSerializer(serializers.Serializer):
     @transaction.atomic
     def _update_applicant_and_recommendations(self, ranked_results: List[Dict], posting_lookup: Dict):
         from decimal import Decimal
-
-        self.applicant.last_matched = now()
-        self.applicant.save(update_fields=['last_matched'])
 
         InternshipRecommendation.objects.filter(
             applicant=self.applicant,

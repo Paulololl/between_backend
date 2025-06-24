@@ -149,7 +149,6 @@ def batch_encode_with_cache(texts: List[str]) -> List[np.ndarray]:
 def get_profile_embedding(profile: dict, is_applicant: bool = True, applicant: Optional[Applicant] = None) -> np.ndarray:
     use_cache = True
 
-    # 🔁 If an applicant is provided, override the profile dict with fresh DB data
     if is_applicant and applicant:
         user = applicant.user
         profile = {
@@ -162,7 +161,6 @@ def get_profile_embedding(profile: dict, is_applicant: bool = True, applicant: O
             "longitude": applicant.longitude,
         }
 
-        # 🧠 Invalidate cache if applicant has modified their profile since last match
         date_modified = getattr(user, "date_modified", None)
         last_matched = applicant.last_matched
         if not date_modified or last_matched is None or date_modified >= last_matched:
