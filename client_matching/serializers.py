@@ -713,6 +713,9 @@ class InternshipMatchSerializer(serializers.Serializer):
     @monitor_performance("InternshipMatchSerializer.create")
     def create(self, validated_data):
         try:
+            self.applicant.last_matched = now()
+            self.applicant.save(update_fields=['last_matched'])
+
             applicant_profile = self._build_applicant_profile()
             posting_profiles, posting_lookup = self._get_posting_profiles_optimized()
 
@@ -732,9 +735,6 @@ class InternshipMatchSerializer(serializers.Serializer):
             )
 
             self._update_applicant_and_recommendations(ranked_results, posting_lookup)
-
-            self.applicant.last_matched = now()
-            self.applicant.save(update_fields=['last_matched'])
 
             return ranked_results
 
