@@ -1,12 +1,12 @@
 import random
-import uuid
+from pathlib import Path
+
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 from django.db import transaction
-import json
+from django.core.files.base import ContentFile
 
 from user_account.models import User, Applicant
-from cea_management.models import School, Department, Program
+from cea_management.models import School
 from client_matching.models import HardSkillsTagList, SoftSkillsTagList
 
 IT_HARD_SKILLS = [
@@ -34,6 +34,8 @@ ADDRESSES = [
     "BGC, Taguig"
 ]
 
+DUMMY_FILE = Path(__file__).resolve().parent.parent.parent.parent / "seed_assets" / "landscape-placeholder.svg"
+
 
 class Command(BaseCommand):
     help = "Populate 8 dummy applicants (5 .edu.ph, 3 gmail)"
@@ -43,70 +45,26 @@ class Command(BaseCommand):
             schools = {s.school_acronym: s for s in School.objects.prefetch_related('departments__programs')}
 
             applicants_data = [
-                # Institutional (.edu.ph) - with school, department, program
-                {
-                    "first_name": "Alex",
-                    "last_name": "Santos",
-                    "middle_initial": "R.",
-                    "applicant_email": "alex.santos@benilde.edu.ph",
-                    "school_acronym": "DLS-CSB",
-                    "academic_program": None
-                },
-                {
-                    "first_name": "Jamie",
-                    "last_name": "Reyes",
-                    "middle_initial": "T.",
-                    "applicant_email": "jamie.reyes@ust.edu.ph",
-                    "school_acronym": "UST",
-                    "academic_program": None
-                },
-                {
-                    "first_name": "Miguel",
-                    "last_name": "Tan",
-                    "middle_initial": "L.",
-                    "applicant_email": "miguel.tan@dlsu.edu.ph",
-                    "school_acronym": "DLSU",
-                    "academic_program": None
-                },
-                {
-                    "first_name": "Erika",
-                    "last_name": "Cruz",
-                    "middle_initial": "B.",
-                    "applicant_email": "erika.cruz@feu.edu.ph",
-                    "school_acronym": "FEU",
-                    "academic_program": None
-                },
-                {
-                    "first_name": "Leo",
-                    "last_name": "Garcia",
-                    "middle_initial": "D.",
-                    "applicant_email": "leo.garcia@ateneo.edu.ph",
-                    "school_acronym": "ADMU",
-                    "academic_program": None
-                },
-                # Gmail (manual academic_program only)
-                {
-                    "first_name": "Isabel",
-                    "last_name": "Lopez",
-                    "middle_initial": "M.",
-                    "applicant_email": "isabel.lopez@gmail.com",
-                    "academic_program": "BS Information Technology"
-                },
-                {
-                    "first_name": "Kevin",
-                    "last_name": "Chua",
-                    "middle_initial": "N.",
-                    "applicant_email": "kevin.chua@gmail.com",
-                    "academic_program": "BS Computer Science"
-                },
-                {
-                    "first_name": "Trisha",
-                    "last_name": "Lim",
-                    "middle_initial": "P.",
-                    "applicant_email": "trisha.lim@gmail.com",
-                    "academic_program": "BS Information Systems"
-                }
+                {"first_name": "Alex", "last_name": "Santos", "middle_initial": "R.",
+                 "applicant_email": "alex.santos@benilde.edu.ph", "school_acronym": "DLS-CSB",
+                 "academic_program": None},
+                {"first_name": "Jamie", "last_name": "Reyes", "middle_initial": "T.",
+                 "applicant_email": "jamie.reyes@ust.edu.ph", "school_acronym": "UST", "academic_program": None},
+                {"first_name": "Miguel", "last_name": "Tan", "middle_initial": "L.",
+                 "applicant_email": "miguel.tan@dlsu.edu.ph", "school_acronym": "DLSU", "academic_program": None},
+                {"first_name": "Erika", "last_name": "Cruz", "middle_initial": "B.",
+                 "applicant_email": "erika.cruz@feu.edu.ph", "school_acronym": "FEU", "academic_program": None},
+                {"first_name": "Leo", "last_name": "Garcia", "middle_initial": "D.",
+                 "applicant_email": "leo.garcia@ateneo.edu.ph", "school_acronym": "ADMU", "academic_program": None},
+                {"first_name": "Isabel", "last_name": "Lopez", "middle_initial": "M.",
+                 "applicant_email": "isabel.lopez@gmail.com", "academic_program": "BS Information Technology"},
+                {"first_name": "Kevin", "last_name": "Chua", "middle_initial": "N.",
+                 "applicant_email": "kevin.chua@gmail.com", "academic_program": "BS Computer Science"},
+                {"first_name": "Trisha", "last_name": "Lim", "middle_initial": "P.",
+                 "applicant_email": "trisha.lim@gmail.com", "academic_program": "BS Information Systems"}
             ]
+
+            dummy_file_bytes = DUMMY_FILE.read_bytes()
 
             for data in applicants_data:
                 email = data["applicant_email"]
@@ -122,7 +80,6 @@ class Command(BaseCommand):
                 user.status = "Active"
                 user.save()
 
-                # Resolve hard and soft skill objects
                 selected_hard_skills = random.sample(IT_HARD_SKILLS, 2)
                 selected_soft_skills = random.sample(IT_SOFT_SKILLS, 2)
 
@@ -144,13 +101,14 @@ class Command(BaseCommand):
                     quick_introduction="I'm excited to intern in IT!",
                     preferred_modality="Hybrid",
                     mobile_number="09" + "".join(str(random.randint(0, 9)) for _ in range(9)),
+                    resume=ContentFile(dummy_file_bytes, name=f"resume-{user.email}.svg")
                 )
 
                 if is_institutional:
                     school = schools.get(data["school_acronym"])
                     if school:
-                        dept = random.choice(school.departments.all())
-                        prog = random.choice(dept.programs.all())
+                        dept = random.choice(list(school.departments.all()))
+                        prog = random.choice(list(dept.programs.all()))
                         applicant_kwargs.update(
                             school=school,
                             department=dept,
@@ -158,12 +116,10 @@ class Command(BaseCommand):
                             academic_program=None
                         )
                 else:
-                    applicant_kwargs.update(
-                        academic_program=data["academic_program"]
-                    )
+                    applicant_kwargs["academic_program"] = data["academic_program"]
 
                 applicant = Applicant.objects.create(**applicant_kwargs)
                 applicant.hard_skills.set(hard_skill_objs)
                 applicant.soft_skills.set(soft_skill_objs)
 
-        self.stdout.write(self.style.SUCCESS("8 Applicants successfully created."))
+        self.stdout.write(self.style.SUCCESS("✅ 8 Applicants successfully created."))

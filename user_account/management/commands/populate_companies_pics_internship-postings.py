@@ -138,4 +138,4 @@ class Command(BaseCommand):
 
                     posting.save()
 
-        self.stdout.write(self.style.SUCCESS("Successfully populated all companies, PICs, and internships."))
+        self.stdout.write(self.style.SUCCESS("✅ Successfully populated all companies, PICs, and internships."))
