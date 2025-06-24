@@ -147,16 +147,28 @@ def batch_encode_with_cache(texts: List[str]) -> List[np.ndarray]:
 
 
 def get_profile_embedding(profile: dict, is_applicant: bool = True, applicant: Optional[Applicant] = None) -> np.ndarray:
-    profile_str = json.dumps(profile, sort_keys=True, default=str)
-
     use_cache = True
+
+    # 🔁 If an applicant is provided, override the profile dict with fresh DB data
     if is_applicant and applicant:
         user = applicant.user
+        profile = {
+            "uuid": applicant.user_id,
+            "hard_skills": applicant.hard_skills,
+            "soft_skills": applicant.soft_skills,
+            "preferred_modality": str(applicant.preferred_modality or "").strip(),
+            "quick_introduction": str(applicant.quick_introduction or "").strip(),
+            "latitude": applicant.latitude,
+            "longitude": applicant.longitude,
+        }
+
+        # 🧠 Invalidate cache if applicant has modified their profile since last match
         date_modified = getattr(user, "date_modified", None)
         last_matched = applicant.last_matched
         if not date_modified or (last_matched is None or date_modified > last_matched):
             use_cache = False
 
+    profile_str = json.dumps(profile, sort_keys=True, default=str)
     cache_key = generate_embedding_cache_key(profile_str, is_applicant)
 
     if use_cache:
@@ -168,8 +180,8 @@ def get_profile_embedding(profile: dict, is_applicant: bool = True, applicant: O
         if is_applicant:
             hard_skills = extract_skill_names(profile.get("hard_skills", []))
             soft_skills = extract_skill_names(profile.get("soft_skills", []))
-            modality = str(profile.get("preferred_modality", "")).strip()
-            quick_introduction = str(profile.get("quick_introduction", "")).strip()
+            modality = profile.get("preferred_modality", "")
+            quick_introduction = profile.get("quick_introduction", "")
             latitude = profile.get("latitude")
             longitude = profile.get("longitude")
 
@@ -177,22 +189,21 @@ def get_profile_embedding(profile: dict, is_applicant: bool = True, applicant: O
             location_text = f"{lat} {lon}" if is_valid_coords else None
 
             texts = [
-                str(" ".join(hard_skills) or ""),
-                str(" ".join(soft_skills) or ""),
-                str(location_text or ""),
-                str(modality or ""),
-                str(quick_introduction or "")
+                " ".join(hard_skills),
+                " ".join(soft_skills),
+                location_text or "",
+                modality,
+                quick_introduction
             ]
-            embeddings = batch_encode_with_cache(texts)
             weights = APPLICANT_WEIGHTS
 
         else:
             required_hard_skills = extract_skill_names(profile.get("required_hard_skills", []))
             required_soft_skills = extract_skill_names(profile.get("required_soft_skills", []))
-            modality = str(profile.get("modality", "")).strip()
-            min_qualification = ", ".join(profile.get("min_qualifications", [])) or ""
-            benefit = ", ".join(profile.get("benefits", [])) or ""
-            key_task = ", ".join(profile.get("key_tasks", [])) or ""
+            modality = profile.get("modality", "")
+            min_qualification = ", ".join(profile.get("min_qualifications", []))
+            benefit = ", ".join(profile.get("benefits", []))
+            key_task = ", ".join(profile.get("key_tasks", []))
             latitude = profile.get("latitude")
             longitude = profile.get("longitude")
 
@@ -200,17 +211,17 @@ def get_profile_embedding(profile: dict, is_applicant: bool = True, applicant: O
             location_text = f"{lat} {lon}" if is_valid_coords else None
 
             texts = [
-                str(" ".join(required_hard_skills) or ""),
-                str(" ".join(required_soft_skills) or ""),
-                str(location_text or ""),
-                str(modality or ""),
-                str(min_qualification or ""),
-                str(benefit or ""),
-                str(key_task or "")
+                " ".join(required_hard_skills),
+                " ".join(required_soft_skills),
+                location_text or "",
+                modality,
+                min_qualification,
+                benefit,
+                key_task
             ]
-            embeddings = batch_encode_with_cache(texts)
             weights = POSTING_WEIGHTS
 
+        embeddings = batch_encode_with_cache(texts)
         embeddings = [e if e is not None else np.zeros(EMBEDDING_DIMENSION, dtype=np.float32) for e in embeddings]
         weighted_embedding = np.average(embeddings, axis=0, weights=weights)
 
