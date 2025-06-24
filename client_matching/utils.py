@@ -151,10 +151,13 @@ def get_profile_embedding(profile: dict, is_applicant: bool = True, applicant: O
 
     if is_applicant and applicant:
         user = applicant.user
+        hard_skills = extract_skill_names(applicant.hard_skills)
+        soft_skills = extract_skill_names(applicant.soft_skills)
+
         profile = {
             "uuid": applicant.user_id,
-            "hard_skills": applicant.hard_skills,
-            "soft_skills": applicant.soft_skills,
+            "hard_skills": hard_skills,
+            "soft_skills": soft_skills,
             "preferred_modality": str(applicant.preferred_modality or "").strip(),
             "quick_introduction": str(applicant.quick_introduction or "").strip(),
             "latitude": applicant.latitude,
@@ -223,8 +226,7 @@ def get_profile_embedding(profile: dict, is_applicant: bool = True, applicant: O
         embeddings = [e if e is not None else np.zeros(EMBEDDING_DIMENSION, dtype=np.float32) for e in embeddings]
         weighted_embedding = np.average(embeddings, axis=0, weights=weights)
 
-        if use_cache:
-            cache.set(cache_key, weighted_embedding.tolist(), EMBEDDING_CACHE_TIMEOUT)
+        cache.set(cache_key, weighted_embedding.tolist(), EMBEDDING_CACHE_TIMEOUT)
 
         return weighted_embedding.astype(np.float32)
 

@@ -160,7 +160,7 @@ class EditApplicantView(APIView):
 
         if serializer.is_valid():
             with transaction.atomic():
-                applicant.user.date_modified = now()
+                applicant.user.date_modified = timezone.now()
                 applicant.user.save(update_fields=['date_modified'])
                 serializer.save()
 
