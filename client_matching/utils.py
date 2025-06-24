@@ -149,17 +149,17 @@ def batch_encode_with_cache(texts: List[str]) -> List[np.ndarray]:
 def get_profile_embedding(profile: dict, is_applicant: bool = True, applicant: Optional[Applicant] = None) -> np.ndarray:
     profile_str = json.dumps(profile, sort_keys=True, default=str)
 
-    skip_cache = False
+    use_cache = True
     if is_applicant and applicant:
         user = applicant.user
         date_modified = getattr(user, "date_modified", None)
         last_matched = applicant.last_matched
-        if date_modified and (not last_matched or date_modified > last_matched):
-            skip_cache = True
+        if not date_modified or (last_matched is None or date_modified > last_matched):
+            use_cache = False
 
     cache_key = generate_embedding_cache_key(profile_str, is_applicant)
 
-    if not skip_cache:
+    if use_cache:
         cached_embedding = cache.get(cache_key)
         if cached_embedding is not None:
             return np.array(cached_embedding, dtype=np.float32)
@@ -214,7 +214,7 @@ def get_profile_embedding(profile: dict, is_applicant: bool = True, applicant: O
         embeddings = [e if e is not None else np.zeros(EMBEDDING_DIMENSION, dtype=np.float32) for e in embeddings]
         weighted_embedding = np.average(embeddings, axis=0, weights=weights)
 
-        if not skip_cache:
+        if use_cache:
             cache.set(cache_key, weighted_embedding.tolist(), EMBEDDING_CACHE_TIMEOUT)
 
         return weighted_embedding.astype(np.float32)
@@ -222,7 +222,6 @@ def get_profile_embedding(profile: dict, is_applicant: bool = True, applicant: O
     except Exception as e:
         logger.error(f"Failed to generate profile embedding: {e}")
         return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
-
 
 
 def get_posting_embeddings_batch(posting_profiles: List[Dict]) -> Optional[np.ndarray]:
