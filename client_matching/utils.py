@@ -163,7 +163,7 @@ def get_profile_embedding(profile: dict, is_applicant: bool = True, applicant: O
 
         date_modified = getattr(user, "date_modified", None)
         last_matched = applicant.last_matched
-        if not date_modified or last_matched is None or date_modified >= last_matched:
+        if not date_modified or last_matched is None or date_modified > last_matched:
             use_cache = False
 
     profile_str = json.dumps(profile, sort_keys=True, default=str)
