@@ -26,7 +26,7 @@ class UserAdmin(BaseUserAdmin):
     list_filter = ('status', 'user_role', 'is_staff', 'date_joined')
 
     readonly_fields = (
-        'email', 'user_id', 'date_joined', 'date_modified',
+        'user_id', 'date_joined', 'date_modified',  # 'email'
         'user_role', 'is_staff', 'is_superuser',
         'groups', 'user_permissions'
     )
@@ -59,11 +59,11 @@ class ApplicantAdmin(admin.ModelAdmin):
 
     readonly_fields = (
         'user', 'first_name', 'last_name', 'middle_initial',
-        # School, Department, Program was here
+        # school, department, program,
         'academic_program', 'address', 'preferred_modality',
         'quick_introduction', 'display_hard_skills', 'display_soft_skills',
         'resume', 'last_matched', 'last_recommendation_filter_state', 'latitude', 'longitude'
-        # add enrollment record after
+        # enrollment_record after
     )
 
     fieldsets = (

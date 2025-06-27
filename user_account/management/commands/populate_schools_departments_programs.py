@@ -13,7 +13,7 @@ PH_SCHOOLS = [
             {
                 "name": "School of Management and Information Technology",
                 "programs": [
-                    "BS in Information Systems",
+                    "BSIS",
                     "BS in Interactive Entertainment and Multimedia Computing",
                     "BS in Business Administration major in Computer Applications"
                 ]
@@ -82,7 +82,6 @@ PH_SCHOOLS = [
         ]
     }
 ]
-
 
 class Command(BaseCommand):
     help = "Populate sample schools, departments, and programs in the Philippines"
