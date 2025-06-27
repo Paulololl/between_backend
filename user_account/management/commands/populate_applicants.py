@@ -49,7 +49,7 @@ class Command(BaseCommand):
                  "applicant_email": "alex.santos@benilde.edu.ph", "school_acronym": "DLS-CSB",
                  "academic_program": None},
                 {"first_name": "Jamie", "last_name": "Reyes", "middle_initial": "T.",
-                 "applicant_email": "jamie.reyes@ust.edu.ph", "school_acronym": "UST", "academic_program": None},
+                 "applicant_email": "jamie.reyes@benilde.edu.ph", "school_acronym": "DLS-CSB", "academic_program": None},
                 {"first_name": "Miguel", "last_name": "Tan", "middle_initial": "L.",
                  "applicant_email": "miguel.tan@dlsu.edu.ph", "school_acronym": "DLSU", "academic_program": None},
                 {"first_name": "Erika", "last_name": "Cruz", "middle_initial": "B.",

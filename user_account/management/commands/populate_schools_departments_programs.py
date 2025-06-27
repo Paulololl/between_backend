@@ -83,6 +83,7 @@ PH_SCHOOLS = [
     }
 ]
 
+
 class Command(BaseCommand):
     help = "Populate sample schools, departments, and programs in the Philippines"
 

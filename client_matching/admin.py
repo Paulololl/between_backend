@@ -72,11 +72,12 @@ class CustomInternshipPosting(admin.ModelAdmin):
         'display_key_tasks',
         'display_min_qualifications',
         'display_benefits',
+        'modality'
     )
 
     fieldsets = (
         (None, {
-            'fields': ('internship_posting_id', 'company', 'person_in_charge', 'internship_position',
+            'fields': ('internship_posting_id', 'company', 'person_in_charge', 'internship_position', 'modality',
                        'address', 'other_requirements', 'is_paid_internship', 'is_only_for_practicum', 'status',
                        'ojt_hours', 'internship_date_start', 'application_deadline', 'date_created', 'date_modified',
                        'latitude', 'longitude')
@@ -207,7 +208,7 @@ class ReportAdmin(admin.ModelAdmin):
 class InternshipRecommendationInline(admin.TabularInline):
     model = InternshipRecommendation
     extra = 0
-    readonly_fields = ('internship_posting', 'similarity_score', 'status', 'posting_status', 'time_stamp', )
+    readonly_fields = ('internship_posting', 'modality', 'similarity_score', 'status', 'posting_status', 'time_stamp')
     can_delete = False
 
     def posting_status(self, obj):
