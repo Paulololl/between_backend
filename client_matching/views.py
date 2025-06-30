@@ -2,7 +2,7 @@ import json
 import random
 from django.db import transaction
 from django.contrib.auth import get_user_model
-from django.db.models import Avg
+from django.db.models import Avg, ProtectedError
 from django.utils import timezone
 from django.utils.timezone import now
 from drf_spectacular.utils import extend_schema
@@ -192,14 +192,33 @@ class BulkDeletePersonInChargeView(APIView):
         serializer = BulkDeletePersonInChargeSerializer(data=request.data)
         if serializer.is_valid():
             pic_ids = serializer.validated_data['pic_ids']
-            deleted_count, _ = PersonInCharge.objects.filter(
+            queryset = PersonInCharge.objects.filter(
                 person_in_charge_id__in=pic_ids,
                 company=request.user.company,
-            ).delete()
-            return Response({
-                'message': f'Successfully deleted {deleted_count} person(s) in charge.'
-            }, status=status.HTTP_204_NO_CONTENT)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            )
+            try:
+                deleted_count, _ = queryset.delete()
+                return Response({
+                    'message': f'Successfully deleted {deleted_count} person(s) in charge.'
+                }, status=status.HTTP_204_NO_CONTENT)
+            except ProtectedError as e:
+                protected_objs = e.protected_objects
+                protected_ids = [
+                    str(obj.person_in_charge_id) for obj in protected_objs
+                    if isinstance(obj, PersonInCharge)
+                ]
+                raise serializers.ValidationError({
+                    'error': 'Some Person In Charge entries could not be deleted '
+                             'because they are assigned to internship postings.',
+                    'protected_ids': protected_ids
+                })
+            except Exception as e:
+                raise serializers.ValidationError({
+                    'error': f'An unexpected error occurred: {str(e)}'
+                })
+
+        # Validation error from input serializer
+        raise serializers.ValidationError(serializer.errors)
 
 
 @client_matching_tag
