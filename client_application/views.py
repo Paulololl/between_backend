@@ -39,7 +39,7 @@ class ApplicationListView(ListAPIView):
             return Application.objects.none()
 
         application_status = self.request.query_params.get('application_status')
-        allowed_status = ['Onboarding', 'Pending', 'Rejected', 'Dropped']
+        allowed_status = ['Onboarding', 'Pending', 'Rejected', 'Dropped', 'Accepted']
         if application_status:
             if application_status not in allowed_status:
                 raise serializers.ValidationError({'error': 'Invalid application status'})
