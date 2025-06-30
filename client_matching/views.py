@@ -217,7 +217,6 @@ class BulkDeletePersonInChargeView(APIView):
                     'error': f'An unexpected error occurred: {str(e)}'
                 })
 
-        # Validation error from input serializer
         raise serializers.ValidationError(serializer.errors)
 
 
