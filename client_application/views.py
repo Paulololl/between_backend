@@ -569,3 +569,4 @@ class UninterestedView(APIView):
         return Response({'uninterested': uninterested})
 
 
+
