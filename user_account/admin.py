@@ -62,8 +62,8 @@ class ApplicantAdmin(admin.ModelAdmin):
         # school, department, program,
         'academic_program', 'address', 'preferred_modality',
         'quick_introduction', 'display_hard_skills', 'display_soft_skills',
-        'resume', 'last_matched', 'last_recommendation_filter_state', 'latitude', 'longitude'
-        # enrollment_record after
+        'last_matched', 'last_recommendation_filter_state', 'latitude', 'longitude'  # resume
+        # enrollment_record
     )
 
     fieldsets = (

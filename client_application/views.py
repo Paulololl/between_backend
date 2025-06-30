@@ -392,7 +392,7 @@ class AcceptApplicationView(APIView):
             other_applications = Application.objects.filter(
                 applicant=application.applicant
             ).exclude(
-                Q(application_id=application_id) | Q(status='Deleted')
+                Q(application_id=application_id) | Q(status='Deleted') | Q(status='Rejected')
             )
 
             other_applications.update(status='Dropped')
