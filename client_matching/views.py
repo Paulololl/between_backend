@@ -201,23 +201,25 @@ class BulkDeletePersonInChargeView(APIView):
                 return Response({
                     'message': f'Successfully deleted {deleted_count} person(s) in charge.'
                 }, status=status.HTTP_204_NO_CONTENT)
+
             except ProtectedError as e:
-                protected_objs = e.protected_objects
-                protected_ids = [
-                    str(obj.person_in_charge_id) for obj in protected_objs
-                    if isinstance(obj, PersonInCharge)
-                ]
-                raise serializers.ValidationError({
+                protected_ids = list({
+                    str(posting.person_in_charge.person_in_charge_id)
+                    for posting in e.protected_objects
+                    if hasattr(posting, 'person_in_charge') and posting.person_in_charge
+                })
+                raise ValidationError({
                     'error': 'Some Person In Charge entries could not be deleted '
                              'because they are assigned to internship postings.',
                     'protected_ids': protected_ids
                 })
+
             except Exception as e:
-                raise serializers.ValidationError({
+                raise ValidationError({
                     'error': f'An unexpected error occurred: {str(e)}'
                 })
 
-        raise serializers.ValidationError(serializer.errors)
+        raise ValidationError(serializer.errors)
 
 
 @client_matching_tag
