@@ -192,30 +192,32 @@ class BulkDeletePersonInChargeView(APIView):
         serializer = BulkDeletePersonInChargeSerializer(data=request.data)
         if serializer.is_valid():
             pic_ids = serializer.validated_data['pic_ids']
-
-            protected_pics = PersonInCharge.objects.filter(
+            queryset = PersonInCharge.objects.filter(
                 person_in_charge_id__in=pic_ids,
-                internshipposting__isnull=False,
-                company=request.user.company
-            ).select_related('user').distinct()
+                company=request.user.company,
+            )
+            try:
+                deleted_count, _ = queryset.delete()
+                return Response({
+                    'message': f'Successfully deleted {deleted_count} person(s) in charge.'
+                }, status=status.HTTP_204_NO_CONTENT)
 
-            if protected_pics.exists():
-                protected_emails = [
-                    pic.user.email for pic in protected_pics if pic.user and pic.user.email
-                ]
+            except ProtectedError as e:
+                protected_emails = list({
+                    obj.person_in_charge_id.user.email
+                    for obj in e.protected_objects
+                    if isinstance(obj, PersonInCharge)
+                })
                 raise ValidationError({
-                    'error': 'Some PIC/s could not be deleted because they are assigned to internship postings.',
+                    'error': 'Some PIC/s could not be deleted '
+                             'because they are assigned to internship postings.',
                     'protected_emails': protected_emails
                 })
 
-            queryset = PersonInCharge.objects.filter(
-                person_in_charge_id__in=pic_ids,
-                company=request.user.company
-            )
-            deleted_count, _ = queryset.delete()
-            return Response({
-                'message': f'Successfully deleted {deleted_count} person(s) in charge.'
-            }, status=status.HTTP_204_NO_CONTENT)
+            except Exception as e:
+                raise ValidationError({
+                    'error': f'An unexpected error occurred: {str(e)}'
+                })
 
         raise ValidationError(serializer.errors)
 
