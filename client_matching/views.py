@@ -206,7 +206,7 @@ class BulkDeletePersonInChargeView(APIView):
                 protected_emails = list({
                     obj.email
                     for obj in e.protected_objects
-                    if isinstance(obj, PersonInCharge) and obj.email
+                    if isinstance(obj, PersonInCharge) and getattr(obj, "email", None)
                 })
                 raise ValidationError({
                     'error': 'Some PIC/s could not be deleted '
