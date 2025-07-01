@@ -203,15 +203,15 @@ class BulkDeletePersonInChargeView(APIView):
                 }, status=status.HTTP_204_NO_CONTENT)
 
             except ProtectedError as e:
-                protected_ids = list({
-                    str(posting.person_in_charge.person_in_charge_id)
+                protected_emails = list({
+                    str(posting.person_in_charge.user.email)
                     for posting in e.protected_objects
                     if hasattr(posting, 'person_in_charge') and posting.person_in_charge
                 })
                 raise ValidationError({
-                    'error': 'Some Person In Charge entries could not be deleted '
+                    'error': 'Some PIC/s could not be deleted '
                              'because they are assigned to internship postings.',
-                    'protected_ids': protected_ids
+                    'protected_emails': protected_emails
                 })
 
             except Exception as e:

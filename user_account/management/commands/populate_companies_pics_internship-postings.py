@@ -95,7 +95,7 @@ class Command(BaseCommand):
 
                 pics = company.personincharge_set.all()
 
-                for j in range(1, 2):
+                for j in range(1, 3):
                     pic = random.choice(pics)
                     posting = InternshipPosting.objects.create(
                         company=company,

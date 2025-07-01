@@ -49,6 +49,18 @@ class Command(BaseCommand):
             department = random.choice(school.departments.all())
             program = random.choice(department.programs.all())
 
+            for s in IT_SOFT_SKILLS:
+                SoftSkillsTagList.objects.get_or_create(
+                    lightcast_identifier=s['id'],
+                    defaults={'name': s['name']}
+                )
+
+            for h in IT_HARD_SKILLS:
+                HardSkillsTagList.objects.get_or_create(
+                    lightcast_identifier=h['id'],
+                    defaults={'name': h['name']}
+                )
+
             def create_user(email, role):
                 self.stdout.write(f"Creating {role} user: {email}")
                 user = User.objects.create_user(
