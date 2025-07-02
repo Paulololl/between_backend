@@ -949,10 +949,10 @@ class SendForgotPasswordLinkSerializer(serializers.Serializer):
 
         reset_url = f'https://between-project-web.vercel.app/reset-password?uid={uid}&token={token}'
 
-        subject = "Between IMS password reset link"
+        subject = "Between IMS forgot password"
 
         message = (f'Hi {user.email},\n\n'
-                   f'Please reset your password by clicking the link below:'
+                   f'Please change your password by clicking the link below:'
                    f'\n\n{reset_url}\n\nNote: This link will expire after 15 minutes.'
                    f'\n\nThank you!')
 
