@@ -424,6 +424,7 @@ class ForgotPasswordLinkView(APIView):
             return Response({"message": "Password reset link sent successfully!"}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @transaction.atomic
     def get(self, request, uidb64, token):
         try:
             uid = force_str(urlsafe_base64_decode(uidb64))
