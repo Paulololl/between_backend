@@ -966,7 +966,7 @@ class SendForgotPasswordLinkSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         self.send_password_reset_email()
-        return {'status': 'Password reset email sent successfully.'}
+        return {'status': 'Password change email sent successfully.'}
 
 
 class ResetPasswordSerializer(serializers.Serializer):

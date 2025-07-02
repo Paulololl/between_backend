@@ -329,7 +329,6 @@ class SchoolEmailCheckView(APIView):
 @user_account_tag
 class VerifyEmailView(APIView):
 
-    @transaction.atomic
     def post(self, request):
         serializer = SendEmailVerificationSerializer(data=request.data)
         if serializer.is_valid():
@@ -337,7 +336,6 @@ class VerifyEmailView(APIView):
             return Response({"message": "Verification email sent!"}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @transaction.atomic
     def get(self, request, uidb64, token):
         try:
             uid = force_str(urlsafe_base64_decode(uidb64))
@@ -416,7 +414,6 @@ class VerifyEmailView(APIView):
 @user_account_tag
 class ForgotPasswordLinkView(APIView):
 
-    @transaction.atomic
     def post(self, request):
         serializer = SendForgotPasswordLinkSerializer(data=request.data)
         if serializer.is_valid():
@@ -424,7 +421,6 @@ class ForgotPasswordLinkView(APIView):
             return Response({"message": "Password reset link sent successfully!"}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @transaction.atomic
     def get(self, request, uidb64, token):
         try:
             uid = force_str(urlsafe_base64_decode(uidb64))
