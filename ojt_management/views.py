@@ -709,6 +709,7 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
     serializer_class = UpdateEndorsementSerializer
     permission_classes = [IsAuthenticated]
 
+    @transaction.atomic
     def put(self, request, *args, **kwargs):
         endorsement_id = request.query_params.get('endorsement_id')
         endorsement_status = request.data.get('status')
