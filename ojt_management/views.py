@@ -786,7 +786,7 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
                 <p>You may now proceed with your internship application process with the company.</p>
                 <p>
                  Best regards, <strong>
-                 <br>{coordinator_name}
+                 <br><br>{coordinator_name}
                  <br>Practicum Coordinator - {coordinator.program}
                  <br>{coordinator.user.email} </strong>
                 </p>
@@ -855,7 +855,7 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
                  <p>You may resubmit your endorsement request after addressing the comments provided above.</p>\
                  <p>
                 Best regards, <strong>
-                 <br>{coordinator_name}
+                 <br><br>{coordinator_name}
                  <br>Practicum Coordinator - {coordinator.program}
                  <br>{coordinator.user.email} </strong> 
                 </p>
