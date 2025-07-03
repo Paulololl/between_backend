@@ -83,10 +83,13 @@ class GetInternshipPostingCoordinatorView(ListAPIView):
     def get_queryset(self):
         internship_posting_id = self.request.query_params.get("internship_posting_id")
 
-        queryset = InternshipPosting.objects.all()
+        if not internship_posting_id:
+            raise ValidationError({"internship_posting_id": "This query parameter is required."})
 
-        if internship_posting_id:
-            queryset = queryset.filter(internship_posting_id=internship_posting_id)
+        queryset = InternshipPosting.objects.filter(internship_posting_id=internship_posting_id)
+
+        if not queryset.exists():
+            raise ValidationError({"error": "Internship posting not found."})
 
         return queryset
 
@@ -782,7 +785,7 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
                    <strong>{internship_position}</strong> at <strong>{company_name}</strong> has been <strong>approved</strong>.</p>
                 <p>You may now proceed with your internship application process with the company.</p>
                 <p>
-                 Best regards, <br> <strong>
+                 Best regards, <strong>
                  <br>{coordinator_name}
                  <br>Practicum Coordinator - {coordinator.program}
                  <br>{coordinator.user.email} </strong>
@@ -851,7 +854,7 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
                 <p><strong>Comments:</strong><br>{comments.replace('\n', '<br>')}</p>
                  <p>You may resubmit your endorsement request after addressing the comments provided above.</p>\
                  <p>
-                Best regards, <br> <strong>
+                Best regards, <strong>
                  <br>{coordinator_name}
                  <br>Practicum Coordinator - {coordinator.program}
                  <br>{coordinator.user.email} </strong> 
