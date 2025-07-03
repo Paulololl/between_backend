@@ -15,6 +15,7 @@ from django_extensions.management.commands.export_emails import full_name
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework import generics, status, filters, request
+from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -25,6 +26,8 @@ from between_ims import settings
 from between_ims.settings import WEASYPRINT_SERVICE_URL
 from cea_management import serializers
 from client_application.models import Endorsement
+from client_matching.models import InternshipPosting
+from client_matching.serializers import InternshipPostingListSerializer
 from user_account.permissions import IsCoordinator, IsApplicant
 from user_account.models import OJTCoordinator, Applicant, AuditLog
 from user_account.serializers import GetApplicantSerializer, OJTCoordinatorDocumentSerializer, AuditLogSerializer, \
@@ -70,6 +73,23 @@ class CoordinatorMixin:
             return OJTCoordinator.objects.get(user=user)
         except OJTCoordinator.DoesNotExist:
             raise PermissionDenied('User is not an OJT Coordinator. Access denied.')
+
+
+@ojt_management_tag
+class GetInternshipPostingCoordinatorView(ListAPIView):
+    permission_classes = [IsAuthenticated, IsCoordinator]
+    serializer_class = InternshipPostingListSerializer
+
+    def get_queryset(self):
+        internship_posting_id = self.request.query_params.get("internship_posting_id")
+
+        queryset = InternshipPosting.objects.all()
+
+        if internship_posting_id:
+            queryset = queryset.filter(internship_posting_id=internship_posting_id)
+
+        return queryset
+
 
 # region School Partnerships -- KC
 @ojt_management_tag
@@ -759,6 +779,7 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
                 <p>Dear <strong>{applicant_name}</strong>,</p>
                 <p>Your endorsement for the internship position 
                    <strong>{internship_position}</strong> at <strong>{company_name}</strong> has been <strong>approved</strong>.</p>
+                <p>You may now proceed with your internship application process with the company.</p>
                 <p>
                  Best regards, <br> <strong>
                  <br>{coordinator_name}
@@ -827,6 +848,7 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
                 <p>Your endorsement for the internship position 
                    <strong>{internship_position}</strong> at <strong>{company_name}</strong> has been <strong>rejected</strong>.</p>
                 <p><strong>Comments:</strong><br>{comments.replace('\n', '<br>')}</p>
+                 <p>You may resubmit your endorsement request after addressing the comments provided above.</p>
                  <p>
                 Best regards, <br> <strong>
                  <br>{coordinator_name}
