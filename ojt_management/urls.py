@@ -19,7 +19,7 @@ urlpatterns = [
     path('students/requesting_practicum/reject/', views.RejectPracticumRequestView.as_view()),
     path('students/in_practicum/', views.GetPracticumStudentListView.as_view()),
     path('students/in_practicum/end/', views.EndPracticumView.as_view()),
-    path('students/internship_posting', GetInternshipPostingCoordinatorView.as_view()),
+    path('students/internship_posting/', GetInternshipPostingCoordinatorView.as_view()),
     path('students/in_practicum/reset/', views.ResetPracticumView.as_view()),
     path('ojtcoordinator/edit-logo-signature/', ChangeLogoAndSignatureView.as_view()),
     path('ojtcoordinator/audit_logs/', CoordinatorAuditLogView.as_view()),
