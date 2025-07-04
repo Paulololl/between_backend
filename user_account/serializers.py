@@ -1132,15 +1132,15 @@ class EditCompanySerializer(serializers.ModelSerializer):
         #     attrs['coordinates'] = {'lat': lat, 'lng': lng}
         # else:
         #     raise serializers.ValidationError({'company_address': 'Unable to retrieve coordinates'})
-
-        coordinates = get_google_coordinates(address)
-        if coordinates:
-            lat, lng = coordinates
-            attrs['latitude'] = lat
-            attrs['longitude'] = lng
-
-        else:
-            raise serializers.ValidationError({'address': 'Unable to retrieve coordinates'})
+        #
+        # coordinates = get_google_coordinates(address)
+        # if coordinates:
+        #     lat, lng = coordinates
+        #     attrs['latitude'] = lat
+        #     attrs['longitude'] = lng
+        #
+        # else:
+        #     raise serializers.ValidationError({'address': 'Unable to retrieve coordinates'})
 
         return attrs
 

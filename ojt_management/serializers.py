@@ -51,7 +51,11 @@ class EndorsementDetailSerializer(serializers.ModelSerializer):
     person_in_charge_landline_number = serializers.CharField(source='application.internship_posting.person_in_charge'
                                                                     '.landline_number')
     resume = serializers.SerializerMethodField()
+    hard_skills = serializers.SerializerMethodField()
+    soft_skills = serializers.SerializerMethodField()
     key_tasks = serializers.SerializerMethodField()
+    min_qualifications = serializers.SerializerMethodField()
+    benefits = serializers.SerializerMethodField()
     ojt_hours = serializers.CharField(source='application.internship_posting.ojt_hours')
 
     class Meta:
@@ -76,16 +80,55 @@ class EndorsementDetailSerializer(serializers.ModelSerializer):
                   'date_approved',
                   'ojt_hours',
                   'status'
-                  ]
+                ]
+
+    def get_hard_skills(self, obj):
+        if obj.application.internship_posting:
+            return [
+                {"id": skill.lightcast_identifier, "name": skill.name}
+                for skill in obj.application.internship_posting.required_hard_skills.all()
+            ]
+        return None
+
+    def get_soft_skills(self, obj):
+        if obj.application.internship_posting:
+            return [
+                {"id": skill.lightcast_identifier, "name": skill.name}
+                for skill in obj.application.internship_posting.required_soft_skills.all()
+            ]
+        return None
+
+    def get_min_qualifications(self, obj):
+        if obj.application.internship_posting:
+            return [
+                {
+                    "id": min_qualification.min_qualification_id,
+                    "min_qualification": min_qualification.min_qualification
+                }
+                for min_qualification in obj.application.internship_posting.min_qualifications.all()
+            ]
+        return None
+
+    def get_benefits(self, obj):
+        if obj.application.internship_posting:
+            return [
+                {
+                    "id": benefit.benefit_id,
+                    "benefit": benefit.benefit
+                }
+                for benefit in obj.application.internship_posting.benefits.all()
+            ]
+        return None
 
     def get_key_tasks(self, obj):
-        return [
-            {
-                "id": key_task.key_task_id,
-                "key_task": key_task.key_task
-            }
-            for key_task in obj.application.internship_posting.key_tasks.all()
-        ]
+        if obj.application.internship_posting:
+            return [
+                {
+                    "id": key_task.key_task_id,
+                    "key_task": key_task.key_task
+                }
+                for key_task in obj.application.internship_posting.key_tasks.all()
+            ]
 
     def get_resume(self, obj):
         if obj.application.applicant and obj.application.applicant.resume:

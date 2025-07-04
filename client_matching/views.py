@@ -236,6 +236,7 @@ class BulkDeleteInternshipPostingView(APIView):
                 company=request.user.company
             ).update(
                 status='Deleted',
+                person_in_charge=None,
                 date_modified=now()
             )
 

@@ -77,6 +77,7 @@ def get_google_coordinates(location):
         print(f'Exception: {e}')
         return None
 
+
 class PersonInChargeListSerializer(serializers.ModelSerializer):
     company_name = serializers.CharField(source='company.company_name', read_only=True)
 
