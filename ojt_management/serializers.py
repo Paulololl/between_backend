@@ -84,12 +84,12 @@ class EndorsementDetailSerializer(serializers.ModelSerializer):
                   'date_approved',
                   'ojt_hours',
                   'status'
-                ]
+                  ]
 
     def get_hard_skills(self, obj):
         if obj.application.internship_posting:
             return [
-                {"id": skill.lightcast_identifier, "name": skill.name}
+                skill.name
                 for skill in obj.application.internship_posting.required_hard_skills.all()
             ]
         return None
@@ -97,7 +97,7 @@ class EndorsementDetailSerializer(serializers.ModelSerializer):
     def get_soft_skills(self, obj):
         if obj.application.internship_posting:
             return [
-                {"id": skill.lightcast_identifier, "name": skill.name}
+                skill.name
                 for skill in obj.application.internship_posting.required_soft_skills.all()
             ]
         return None
@@ -105,10 +105,7 @@ class EndorsementDetailSerializer(serializers.ModelSerializer):
     def get_min_qualifications(self, obj):
         if obj.application.internship_posting:
             return [
-                {
-                    "id": min_qualification.min_qualification_id,
-                    "min_qualification": min_qualification.min_qualification
-                }
+                min_qualification.min_qualification
                 for min_qualification in obj.application.internship_posting.min_qualifications.all()
             ]
         return None
@@ -116,10 +113,7 @@ class EndorsementDetailSerializer(serializers.ModelSerializer):
     def get_benefits(self, obj):
         if obj.application.internship_posting:
             return [
-                {
-                    "id": benefit.benefit_id,
-                    "benefit": benefit.benefit
-                }
+                benefit.benefit
                 for benefit in obj.application.internship_posting.benefits.all()
             ]
         return None
@@ -127,12 +121,10 @@ class EndorsementDetailSerializer(serializers.ModelSerializer):
     def get_key_tasks(self, obj):
         if obj.application.internship_posting:
             return [
-                {
-                    "id": key_task.key_task_id,
-                    "key_task": key_task.key_task
-                }
+                key_task.key_task
                 for key_task in obj.application.internship_posting.key_tasks.all()
             ]
+        return None
 
     def get_resume(self, obj):
         if obj.application.applicant and obj.application.applicant.resume:
@@ -210,7 +202,7 @@ class RequestEndorsementSerializer(serializers.ModelSerializer):
             if existing_endorsement:
                 if existing_endorsement.status in ['Pending', 'Approved']:
                     raise (serializers.ValidationError
-                           ({'error': f"An endorsement already exists with status '{existing_endorsement.status}'. " 
+                           ({'error': f"An endorsement already exists with status '{existing_endorsement.status}'. "
                                       f"You cannot request a new one unless it was rejected."}))
 
             endorsement, created = Endorsement.objects.update_or_create(
@@ -305,11 +297,12 @@ class UpdatePracticumStatusSerializer(serializers.ModelSerializer):
             except serializers.ValidationError as e:
                 raise e
             except Exception as e:
-                raise serializers.ValidationError({'error': f'Practicum status was updated successfully, but notification email sending failed: {str(e)}'})
+                raise serializers.ValidationError({
+                                                      'error': f'Practicum status was updated successfully, but notification email sending failed: {str(e)}'})
 
         return applicant
 
-    def send_notification_email(self,  applicant, coordinator, subject, email_message, recipient_list=None):
+    def send_notification_email(self, applicant, coordinator, subject, email_message, recipient_list=None):
         if recipient_list is None:
             recipient_list = [applicant.user.email, coordinator.user.email]
 
@@ -333,5 +326,3 @@ class GetOJTCoordinatorRespondedEndorsementsSerializer(serializers.ModelSerializ
     class Meta:
         model = OJTCoordinator
         fields = ['endorsements_responded']
-
-
