@@ -224,6 +224,9 @@ class CreateInternshipPostingSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         today = timezone.now()
 
+        if not attrs.get('person_in_charge'):
+            raise serializers.ValidationError({'person_in_charge': 'This field is required.'})
+
         if attrs.get('application_deadline') and attrs['application_deadline'] <= today:
             raise serializers.ValidationError({
                 'application_deadline': 'Application deadline must be a future date.'
@@ -417,6 +420,9 @@ class EditInternshipPostingSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         today = timezone.now()
+
+        if not attrs.get('person_in_charge'):
+            raise serializers.ValidationError({'person_in_charge': 'This field is required.'})
 
         if attrs.get('application_deadline') and attrs['application_deadline'] <= today:
             raise serializers.ValidationError({
