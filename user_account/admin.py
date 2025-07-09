@@ -14,9 +14,17 @@ for model in model_to_register:
     admin.site.register(model)
 
 
+class CareerEmplacementAdminInline(admin.StackedInline):
+    model = CareerEmplacementAdmin
+    can_delete = False
+    verbose_name_plural = "Career Emplacement Admin Info"
+    fk_name = 'user'
+
+
 # For making Users model view only
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
+    inlines = (CareerEmplacementAdminInline,)
     model = User
 
     list_display = ('user_id', 'status', 'user_role', 'is_staff', 'date_joined')
@@ -31,13 +39,25 @@ class UserAdmin(BaseUserAdmin):
         'groups', 'user_permissions'
     )
 
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('email', 'password1', 'password2', 'status', 'user_role', 'is_staff', 'is_superuser'),
+        }),
+    )
+
     fieldsets = (
         (None, {'fields': ('email', 'user_id', 'status', 'user_role')}),
         ('Permissions', {'fields': ('is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Dates', {'fields': ('date_joined', 'date_modified', 'verified_at',)}),
     )
 
-    def has_add_permission(self, request, obj=None):
+    def save_model(self, request, obj, form, change):
+        if not change and not obj.user_role:
+            obj.user_role = 'cea'
+        super().save_model(request, obj, form, change)
+
+    def has_add_permission(self, request):
         return True
 
     def has_change_permission(self, request, obj=None):

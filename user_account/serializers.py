@@ -447,7 +447,6 @@ class OJTCoordinatorDocumentSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 
-
 class OJTCoordinatorRegisterSerializer(serializers.ModelSerializer):
     ojtcoordinator_email = serializers.EmailField(write_only=True)
     middle_initial = serializers.CharField(write_only=True, required=False, allow_blank=True, default='')
