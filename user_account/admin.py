@@ -25,11 +25,11 @@ class UserAdmin(BaseUserAdmin):
 
     list_filter = ('status', 'user_role', 'is_staff', 'date_joined')
 
-    # readonly_fields = (
-    #     'user_id', 'date_joined', 'date_modified',  # 'email'
-    #     'user_role', 'is_staff', 'is_superuser',
-    #     'groups', 'user_permissions'
-    # )
+    readonly_fields = (
+        'user_id', 'date_joined', 'date_modified',  # 'email'
+        'user_role', 'is_staff', 'is_superuser',
+        'groups', 'user_permissions'
+    )
 
     fieldsets = (
         (None, {'fields': ('email', 'user_id', 'status', 'user_role')}),
@@ -37,7 +37,7 @@ class UserAdmin(BaseUserAdmin):
         ('Dates', {'fields': ('date_joined', 'date_modified', 'verified_at',)}),
     )
 
-    def has_add_permission(self, request):
+    def has_add_permission(self, request, obj=None):
         return True
 
     def has_change_permission(self, request, obj=None):
