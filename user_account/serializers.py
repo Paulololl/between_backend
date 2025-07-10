@@ -1323,3 +1323,4 @@ class AuditLogSerializer(serializers.ModelSerializer):
             'details',
         ]
 
+
