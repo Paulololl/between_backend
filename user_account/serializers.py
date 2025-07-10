@@ -101,13 +101,13 @@ def get_google_coordinates(location):
     gmaps = googlemaps.Client(key=os.getenv('GOOGLEMAPS_API_KEY'))
 
     try:
-        location = gmaps.geocode(location)  # type: ignore[attr-defined]
+        location = gmaps.geocode(location)
         if location:
             latitude = location[0]['geometry']['location']['lat']
             longitude = location[0]['geometry']['location']['lng']
             return latitude, longitude
         else:
-            print('Error: Unable to get the location')
+            serializers.ValidationError({'Error:' 'Unable to get the location'})
             return None
     except Exception as e:
         print(f'Exception: {e}')
