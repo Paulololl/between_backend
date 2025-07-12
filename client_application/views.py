@@ -271,7 +271,7 @@ class RequestDocumentView(CreateAPIView):
 
                 Notification.objects.create(
                     application=application,
-                    notification_text=f'You have a new email from {company_name}.',
+                    notification_text=f'{company_name} requested for documents.',
                     notification_type='Applicant'
                 )
 
