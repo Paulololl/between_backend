@@ -95,7 +95,7 @@ class UserAdmin(BaseUserAdmin):
     )
 
     def get_form(self, request, obj=None, **kwargs):
-        kwargs['form'] = self.form
+        kwargs['form'] = getattr(self, 'form', None)
         return super().get_form(request, obj, **kwargs)
 
     def save_model(self, request, obj, form, change):
