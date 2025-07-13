@@ -252,8 +252,10 @@ class CompanyAdmin(admin.ModelAdmin):
         })
     )
 
-    def has_view_permission(self, request, obj=None):
-        return request.user.is_superuser
+    def get_model_perms(self, request):
+        if not request.user.is_superuser:
+            return {}
+        return super().get_model_perms(request)
 
     def get_email(self, obj):
         return obj.user.email
@@ -300,8 +302,10 @@ class AuditLogAdmin(admin.ModelAdmin):
         }),
     )
 
-    def has_view_permission(self, request, obj=None):
-        return request.user.is_superuser
+    def get_model_perms(self, request):
+        if not request.user.is_superuser:
+            return {}
+        return super().get_model_perms(request)
 
     def get_user_email(self, obj):
         if obj.user:

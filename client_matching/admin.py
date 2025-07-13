@@ -23,8 +23,10 @@ class CustomDepartment(admin.ModelAdmin):
         (None, {'fields': ('lightcast_identifier', 'name')}),
     )
 
-    def has_view_permission(self, request, obj=None):
-        return request.user.is_superuser
+    def get_model_perms(self, request):
+        if not request.user.is_superuser:
+            return {}
+        return super().get_model_perms(request)
 
     def has_add_permission(self, request):
         return False
@@ -48,8 +50,10 @@ class CustomDepartment(admin.ModelAdmin):
         (None, {'fields': ('lightcast_identifier', 'name')}),
     )
 
-    def has_view_permission(self, request, obj=None):
-        return request.user.is_superuser
+    def get_model_perms(self, request):
+        if not request.user.is_superuser:
+            return {}
+        return super().get_model_perms(request)
 
     def has_add_permission(self, request):
         return False
@@ -102,8 +106,10 @@ class CustomInternshipPosting(admin.ModelAdmin):
         }),
     )
 
-    def has_view_permission(self, request, obj=None):
-        return request.user.is_superuser
+    def get_model_perms(self, request):
+        if not request.user.is_superuser:
+            return {}
+        return super().get_model_perms(request)
 
     def display_hard_skills(self, obj):
         skills = "<br>".join([skill.name for skill in obj.required_hard_skills.all()])
@@ -169,8 +175,10 @@ class InternshipRecommendationAdmin(admin.ModelAdmin):
             return 'Deleted or Missing'
     posting_status.short_description = 'Internship Posting'
 
-    def has_view_permission(self, request, obj=None):
-        return request.user.is_superuser
+    def get_model_perms(self, request):
+        if not request.user.is_superuser:
+            return {}
+        return super().get_model_perms(request)
 
     def has_add_permission(self, request):
         return False
