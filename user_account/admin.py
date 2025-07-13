@@ -94,11 +94,6 @@ class UserAdmin(BaseUserAdmin):
         ('Dates', {'fields': ('date_joined', 'date_modified', 'verified_at',)}),
     )
 
-    def get_form(self, request, obj=None, **kwargs):
-        if obj is None:
-            kwargs['form'] = self.form
-        return super().get_form(request, obj, **kwargs)
-
     def save_model(self, request, obj, form, change):
         if not change and not obj.user_role:
             obj.user_role = 'cea'
