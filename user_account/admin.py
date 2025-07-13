@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib import admin
+from django.contrib.auth import password_validation
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.contrib.auth.hashers import make_password
@@ -220,6 +221,11 @@ class ApplicantAdmin(admin.ModelAdmin):
         }),
     )
 
+    def get_model_perms(self, request):
+        if not request.user.is_superuser:
+            return {}
+        return super().get_model_perms(request)
+
     def get_email(self, obj):
         return obj.user.email
     get_email.short_description = 'email'
@@ -305,6 +311,58 @@ class CompanyAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return True
+
+
+class CEAWithUserForm(forms.ModelForm):
+    email = forms.EmailField()
+    password1 = forms.CharField(label="Password", widget=forms.PasswordInput,
+                                help_text=password_validation.password_validators_help_text_html())
+    password2 = forms.CharField(label="Confirm Password", widget=forms.PasswordInput)
+    status = forms.ChoiceField(choices=User._meta.get_field('status').choices)
+
+    class Meta:
+        model = CareerEmplacementAdmin
+        fields = ['school']
+
+    def clean(self):
+        cleaned_data = super().clean()
+        pw1 = cleaned_data.get("password1")
+        pw2 = cleaned_data.get("password2")
+
+        if pw1 and pw2:
+            if pw1 != pw2:
+                raise ValidationError("Passwords do not match.")
+            try:
+                password_validation.validate_password(pw1)
+            except ValidationError as e:
+                self.add_error('password1', e)
+        return cleaned_data
+
+    def save(self, commit=True):
+        user = User.objects.create_user(
+            email=self.cleaned_data['email'],
+            password=self.cleaned_data['password1'],
+            status=self.cleaned_data['status'],
+            user_role='cea',
+            is_staff=False,
+        )
+
+        cea = super().save(commit=False)
+        cea.user = user
+        if commit:
+            cea.save()
+        return cea
+
+
+@admin.register(CareerEmplacementAdmin)
+class CareerEmplacementAdminAdmin(admin.ModelAdmin):
+    form = CEAWithUserForm
+    list_display = ['user', 'school']
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            return ['user']
+        return []
 
 
 @admin.register(AuditLog)
