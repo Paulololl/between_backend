@@ -7,8 +7,6 @@ from django.contrib.auth.models import Group
 from django.contrib.auth.password_validation import validate_password, password_validators_help_text_html
 from django.core.exceptions import ValidationError
 from django.forms import BaseInlineFormSet
-from django.http import HttpResponseRedirect
-from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
@@ -168,21 +166,6 @@ class UserAdmin(BaseUserAdmin):
     def has_delete_permission(self, request, obj=None):
         return True
 
-    def get_model_perms(self, request):
-        if not request.user.is_superuser:
-            return {
-                "add": True,
-                "change": False,
-                "delete": False,
-                "view": False,
-            }
-        return super().get_model_perms(request)
-
-    def response_add(self, request, obj, post_url_continue=None):
-        if not request.user.is_superuser:
-            return HttpResponseRedirect(reverse('admin:user_account_user_changelist'))
-        return super().response_add(request, obj, post_url_continue)
-
 
 # For displaying selected skills of applicant
 @admin.register(Applicant)
@@ -241,6 +224,20 @@ class ApplicantAdmin(admin.ModelAdmin):
         return mark_safe(skills)
     display_soft_skills.short_description = "Selected Soft Skills"
 
+    def get_readonly_fields(self, request, obj=None):
+        if not request.user.is_superuser and obj:
+            return [f.name for f in self.model._meta.fields] + ['groups', 'user_permissions']
+        return super().get_readonly_fields(request, obj)
+
+    def get_fieldsets(self, request, obj=None):
+        if not request.user.is_superuser and obj:
+            return [
+                (None, {'fields': ('email', 'user_id', 'status', 'user_role', 'is_staff')}),
+                ('Permissions', {'fields': ('groups', 'user_permissions')}),
+                ('Dates', {'fields': ('date_joined', 'date_modified', 'verified_at')}),
+            ]
+        return super().get_fieldsets(request, obj)
+
     def has_add_permission(self, request):
         return False
 
@@ -248,7 +245,12 @@ class ApplicantAdmin(admin.ModelAdmin):
         return True
 
     def has_delete_permission(self, request, obj=None):
-        return True
+        return request.user.is_superuser
+
+    def formfield_for_choice_field(self, db_field, request, **kwargs):
+        if db_field.name == 'user_role':
+            kwargs['choices'] = [('admin', 'Admin')]
+        return super().formfield_for_choice_field(db_field, request, **kwargs)
 
 
 @admin.register(Company)
