@@ -1,5 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.core.exceptions import ValidationError
+from django.forms import BaseInlineFormSet
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
@@ -14,11 +16,28 @@ for model in model_to_register:
     admin.site.register(model)
 
 
+class RequiredCEAInlineFormSet(BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+
+        has_data = any(
+            form.cleaned_data and not form.cleaned_data.get('DELETE', False)
+            for form in self.forms
+        )
+
+        user_role = getattr(self.instance, 'user_role', None)
+
+        if user_role == 'cea' and not has_data:
+            raise ValidationError("CEA inline data is required when user role is set to 'cea'.")
+
+
 class CareerEmplacementAdminInline(admin.StackedInline):
     model = CareerEmplacementAdmin
     can_delete = False
     verbose_name_plural = "Career Emplacement Admin Info"
     fk_name = 'user'
+    formset = RequiredCEAInlineFormSet
+    extra = 1
 
 
 # For making Users model view only
@@ -56,6 +75,14 @@ class UserAdmin(BaseUserAdmin):
         if not change and not obj.user_role:
             obj.user_role = 'cea'
         super().save_model(request, obj, form, change)
+
+    def formfield_for_choice_field(self, db_field, request, **kwargs):
+        if db_field.name == 'user_role':
+            kwargs['choices'] = [
+                ('cea', 'CEA'),
+                ('admin', 'Admin'),
+            ]
+        return super().formfield_for_choice_field(db_field, request, **kwargs)
 
     def has_add_permission(self, request):
         return True
