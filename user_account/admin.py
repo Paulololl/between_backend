@@ -55,7 +55,7 @@ class UserAdmin(BaseUserAdmin):
     readonly_fields = (
         'user_id', 'date_joined', 'date_modified',  # 'email'
         'is_staff', 'is_superuser',  # 'user_role'
-        'groups', 'user_permissions'
+        'user_permissions'  # 'groups'
     )
 
     add_fieldsets = (
