@@ -26,7 +26,7 @@ class UserAdminForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         user_role = cleaned_data.get('user_role')
-        groups = cleaned_data.get('groups')
+        groups = cleaned_data.get('groups') or []
         is_staff = cleaned_data.get('is_staff')
 
         system_admin_group = Group.objects.filter(name='System Admin').first()
