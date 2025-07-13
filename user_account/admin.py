@@ -65,7 +65,7 @@ class CareerEmplacementAdminInline(admin.StackedInline):
 # For making Users model view only
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    forms = UserAdminForm
+    form = UserAdminForm
     inlines = (CareerEmplacementAdminInline,)
     model = User
 

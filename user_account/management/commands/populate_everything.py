@@ -18,4 +18,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.NOTICE('Populating all 4 users with demo accounts'))
         call_command('populate_demo_users')
 
+        self.stdout.write(self.style.NOTICE('Making system admin group'))
+        call_command('create_system_admin_group')
+
         self.stdout.write(self.style.SUCCESS("All scripts ran successfully."))
