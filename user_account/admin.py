@@ -1,5 +1,7 @@
+from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.forms import BaseInlineFormSet
 from django.utils.html import format_html
@@ -14,6 +16,22 @@ model_to_register = [CareerEmplacementAdmin, OJTCoordinator]
 
 for model in model_to_register:
     admin.site.register(model)
+
+
+class UserAdminForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = '__all__'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        user_role = cleaned_data.get('user_role')
+        groups = cleaned_data.get('groups')
+
+        system_admin_group = Group.objects.filter(name='System Admin').first()
+
+        if system_admin_group and system_admin_group in groups and user_role != 'admin':
+            raise ValidationError("Only users with the role 'admin' can be assigned to the 'System Admin' group.")
 
 
 class RequiredCEAInlineFormSet(BaseInlineFormSet):
@@ -43,6 +61,7 @@ class CareerEmplacementAdminInline(admin.StackedInline):
 # For making Users model view only
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
+    forms = UserAdminForm
     inlines = (CareerEmplacementAdminInline,)
     model = User
 
