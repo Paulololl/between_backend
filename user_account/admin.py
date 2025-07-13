@@ -26,6 +26,12 @@ class UserAdminForm(UserCreationForm):
         model = User
         fields = '__all__'
 
+    readonly_fields = (
+        'user_id', 'date_joined', 'date_modified', 'verified_at'  # 'email'
+        'is_superuser',  # 'is_staff', 'user_role'
+        'user_permissions'  # 'groups'
+    )
+
     def clean(self):
         cleaned_data = super().clean()
         user_role = cleaned_data.get('user_role')
@@ -60,6 +66,12 @@ class CustomUserChangeForm(UserChangeForm):
     class Meta:
         model = User
         fields = '__all__'
+
+    readonly_fields = (
+        'user_id', 'date_joined', 'date_modified', 'verified_at'  # 'email'
+        'is_superuser',  # 'is_staff', 'user_role'
+        'user_permissions'  # 'groups'
+    )
 
     def clean(self):
         cleaned_data = super().clean()
@@ -149,7 +161,7 @@ class UserAdmin(BaseUserAdmin):
         return True
 
     def has_change_permission(self, request, obj=None):
-        return True
+        return request.user.is_superuser
 
     def has_delete_permission(self, request, obj=None):
         return True
