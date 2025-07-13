@@ -357,8 +357,8 @@ class CEAWithUserForm(forms.ModelForm):
 @admin.register(CareerEmplacementAdmin)
 class CareerEmplacementAdminAdmin(admin.ModelAdmin):
     form = CEAWithUserForm
-    list_display = ['email', 'school', 'status']
-    list_filter = ['status', 'school']
+    list_display = ['get_email', 'school', 'get_status']
+    list_filter = ['school']
 
     def get_readonly_fields(self, request, obj=None):
         if obj:
@@ -373,7 +373,7 @@ class CareerEmplacementAdminAdmin(admin.ModelAdmin):
     def get_status(self, obj):
         return obj.user.status
 
-    get_email.short_description = 'status'
+    get_status.short_description = 'status'
 
 
 @admin.register(AuditLog)
