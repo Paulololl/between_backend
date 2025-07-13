@@ -43,9 +43,8 @@ class UserAdminForm(UserCreationForm):
         if user_role == 'admin' and not is_staff:
             raise ValidationError("Users with the role 'admin' must have 'is_staff' checked.")
 
-        if self.instance.pk is None:
-            if not groups:
-                raise ValidationError("At least one group must be assigned to the user.")
+        if not groups:
+            raise ValidationError("At least one group must be assigned to the user.")
 
         return cleaned_data
 
