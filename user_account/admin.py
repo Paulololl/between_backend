@@ -140,11 +140,6 @@ class UserAdmin(BaseUserAdmin):
         ('Dates', {'fields': ('date_joined', 'date_modified', 'verified_at',)}),
     )
 
-    def save_model(self, request, obj, form, change):
-        if not change and not obj.user_role:
-            obj.user_role = 'admin'
-        super().save_model(request, obj, form, change)
-
     def has_add_permission(self, request):
         return True
 
