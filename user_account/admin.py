@@ -322,7 +322,9 @@ class CEAWithUserForm(forms.ModelForm):
 
     class Meta:
         model = CareerEmplacementAdmin
-        fields = ['school']
+        fields = ['email', 'school']
+
+        list_filter = ['status', 'school']
 
     def clean(self):
         cleaned_data = super().clean()
