@@ -122,7 +122,7 @@ class UserAdmin(BaseUserAdmin):
     list_filter = ('status', 'user_role', 'is_staff', 'date_joined')
 
     readonly_fields = (
-        'user_id', 'date_joined', 'date_modified',  # 'email'
+        'user_id', 'date_joined', 'date_modified', 'verified_at'  # 'email'
         'is_superuser',  # 'is_staff', 'user_role'
         'user_permissions'  # 'groups'
     )
@@ -252,6 +252,9 @@ class CompanyAdmin(admin.ModelAdmin):
         })
     )
 
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
+
     def get_email(self, obj):
         return obj.user.email
     get_email.short_description = 'Email'
@@ -296,6 +299,9 @@ class AuditLogAdmin(admin.ModelAdmin):
             )
         }),
     )
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
 
     def get_user_email(self, obj):
         if obj.user:

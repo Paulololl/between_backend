@@ -23,6 +23,9 @@ class CustomDepartment(admin.ModelAdmin):
         (None, {'fields': ('lightcast_identifier', 'name')}),
     )
 
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
+
     def has_add_permission(self, request):
         return False
 
@@ -44,6 +47,9 @@ class CustomDepartment(admin.ModelAdmin):
     fieldsets = (
         (None, {'fields': ('lightcast_identifier', 'name')}),
     )
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
 
     def has_add_permission(self, request):
         return False
@@ -95,6 +101,9 @@ class CustomInternshipPosting(admin.ModelAdmin):
             'fields': ('display_hard_skills', 'display_soft_skills'),
         }),
     )
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
 
     def display_hard_skills(self, obj):
         skills = "<br>".join([skill.name for skill in obj.required_hard_skills.all()])
@@ -159,6 +168,9 @@ class InternshipRecommendationAdmin(admin.ModelAdmin):
         except InternshipPosting.DoesNotExist:
             return 'Deleted or Missing'
     posting_status.short_description = 'Internship Posting'
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
 
     def has_add_permission(self, request):
         return False
