@@ -27,11 +27,15 @@ class UserAdminForm(forms.ModelForm):
         cleaned_data = super().clean()
         user_role = cleaned_data.get('user_role')
         groups = cleaned_data.get('groups')
+        is_staff = cleaned_data.get('is_staff')
 
         system_admin_group = Group.objects.filter(name='System Admin').first()
 
-        if system_admin_group and system_admin_group in groups and user_role != 'admin':
-            raise ValidationError("Only users with the role 'admin' can be assigned to the 'System Admin' group.")
+        if system_admin_group and system_admin_group in groups:
+            if user_role != 'admin':
+                raise ValidationError("Only users with the role 'admin' can be assigned to the 'System Admin' group.")
+            if not is_staff:
+                raise ValidationError("Users assigned to the 'System Admin' group must have 'is_staff' enabled.")
 
 
 class RequiredCEAInlineFormSet(BaseInlineFormSet):
@@ -73,7 +77,7 @@ class UserAdmin(BaseUserAdmin):
 
     readonly_fields = (
         'user_id', 'date_joined', 'date_modified',  # 'email'
-        'is_staff', 'is_superuser',  # 'user_role'
+        'is_superuser',  # 'user_role' 'is_staff'
         'user_permissions'  # 'groups'
     )
 
