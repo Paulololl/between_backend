@@ -123,7 +123,7 @@ class UserAdmin(BaseUserAdmin):
 
     readonly_fields = (
         'user_id', 'date_joined', 'date_modified',  # 'email'
-        'user_role', 'is_superuser',  # 'is_staff'
+        'is_superuser',  # 'is_staff', 'user_role'
         'user_permissions'  # 'groups'
     )
 
@@ -139,6 +139,11 @@ class UserAdmin(BaseUserAdmin):
         ('Permissions', {'fields': ('is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Dates', {'fields': ('date_joined', 'date_modified', 'verified_at',)}),
     )
+
+    def formfield_for_choice_field(self, db_field, request, **kwargs):
+        if db_field.name == 'user_role':
+            kwargs['choices'] = [('admin', 'Admin')]
+        return super().formfield_for_choice_field(db_field, request, **kwargs)
 
     def has_add_permission(self, request):
         return True
