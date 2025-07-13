@@ -322,9 +322,7 @@ class CEAWithUserForm(forms.ModelForm):
 
     class Meta:
         model = CareerEmplacementAdmin
-        fields = ['email', 'school']
-
-        list_filter = ['status', 'school']
+        fields = ['school']
 
     def clean(self):
         cleaned_data = super().clean()
@@ -359,12 +357,23 @@ class CEAWithUserForm(forms.ModelForm):
 @admin.register(CareerEmplacementAdmin)
 class CareerEmplacementAdminAdmin(admin.ModelAdmin):
     form = CEAWithUserForm
-    list_display = ['user', 'school']
+    list_display = ['email', 'school', 'status']
+    list_filter = ['status', 'school']
 
     def get_readonly_fields(self, request, obj=None):
         if obj:
             return ['user']
         return []
+
+    def get_email(self, obj):
+        return obj.user.email
+
+    get_email.short_description = 'email'
+
+    def get_status(self, obj):
+        return obj.user.status
+
+    get_email.short_description = 'status'
 
 
 @admin.register(AuditLog)
