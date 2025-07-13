@@ -135,7 +135,7 @@ class UserAdmin(BaseUserAdmin):
     list_filter = ('status', 'user_role', 'is_staff', 'date_joined')
 
     readonly_fields = (
-        'user_id', 'date_joined', 'date_modified', 'verified_at'  # 'email'
+        'user_id', 'date_joined', 'date_modified', 'verified_at',  # 'email'
         'is_superuser',  # 'is_staff', 'user_role'
         'user_permissions'  # 'groups'
     )
@@ -159,9 +159,9 @@ class UserAdmin(BaseUserAdmin):
         return super().formfield_for_choice_field(db_field, request, **kwargs)
 
     def get_readonly_fields(self, request, obj=None):
-        if not request.user.is_superuser and obj:
-            return [f.name for f in self.model._meta.fields] + ['groups', 'user_permissions']
-        return super().get_readonly_fields(request, obj)
+        if obj:
+            return self.readonly_fields
+        return []
 
     def get_fieldsets(self, request, obj=None):
         if not request.user.is_superuser and obj:
@@ -243,11 +243,6 @@ class ApplicantAdmin(admin.ModelAdmin):
         skills = "<br>".join([skill.name for skill in obj.soft_skills.all()])
         return mark_safe(skills)
     display_soft_skills.short_description = "Selected Soft Skills"
-
-    def get_readonly_fields(self, request, obj=None):
-        if not request.user.is_superuser and obj:
-            return [f.name for f in self.model._meta.fields] + ['groups', 'user_permissions']
-        return super().get_readonly_fields(request, obj)
 
     def has_add_permission(self, request):
         return False
