@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import Group
 from django.contrib.auth.password_validation import validate_password, password_validators_help_text_html
@@ -53,6 +53,31 @@ class UserAdminForm(UserCreationForm):
         return user
 
 
+class CustomUserChangeForm(UserChangeForm):
+    class Meta:
+        model = User
+        fields = '__all__'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        user_role = cleaned_data.get('user_role')
+        groups = cleaned_data.get('groups') or []
+        is_staff = cleaned_data.get('is_staff')
+
+        system_admin_group = Group.objects.filter(name='System Admin').first()
+
+        if system_admin_group and system_admin_group in groups:
+            if user_role != 'admin':
+                raise ValidationError("Only users with the role 'admin' can be assigned to the 'System Admin' group.")
+            if not is_staff:
+                raise ValidationError("Users assigned to the 'System Admin' group must have 'is_staff' enabled.")
+
+        if user_role == 'admin' and not is_staff:
+            raise ValidationError("Users with the role 'admin' must have 'is_staff' checked.")
+
+        return cleaned_data
+
+
 class RequiredCEAInlineFormSet(BaseInlineFormSet):
     def clean(self):
         super().clean()
@@ -83,9 +108,8 @@ class CareerEmplacementAdminInline(admin.StackedInline):
 # For making Users model view only
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    form = UserAdminForm
+    form = CustomUserChangeForm
     add_form = UserAdminForm
-    inlines = (CareerEmplacementAdminInline,)
     model = User
 
     list_display = ('user_id', 'status', 'user_role', 'is_staff', 'date_joined')
@@ -96,7 +120,7 @@ class UserAdmin(BaseUserAdmin):
 
     readonly_fields = (
         'user_id', 'date_joined', 'date_modified',  # 'email'
-        'is_superuser',  # 'user_role' 'is_staff'
+        'user_role', 'is_superuser',  # 'is_staff'
         'user_permissions'  # 'groups'
     )
 
@@ -117,14 +141,6 @@ class UserAdmin(BaseUserAdmin):
         if not change and not obj.user_role:
             obj.user_role = 'cea'
         super().save_model(request, obj, form, change)
-
-    def formfield_for_choice_field(self, db_field, request, **kwargs):
-        if db_field.name == 'user_role':
-            kwargs['choices'] = [
-                ('cea', 'CEA'),
-                ('admin', 'Admin'),
-            ]
-        return super().formfield_for_choice_field(db_field, request, **kwargs)
 
     def has_add_permission(self, request):
         return True
