@@ -3,6 +3,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import Group
+from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.forms import BaseInlineFormSet
 from django.utils.html import format_html
@@ -32,8 +33,11 @@ class UserAdminForm(forms.ModelForm):
         user_role = cleaned_data.get('user_role')
         groups = cleaned_data.get('groups') or []
         is_staff = cleaned_data.get('is_staff')
+        pw1 = cleaned_data.get('password1')
+        pw2 = cleaned_data.get('password2')
 
         system_admin_group = Group.objects.filter(name='System Admin').first()
+
         if system_admin_group and system_admin_group in groups:
             if user_role != 'admin':
                 raise ValidationError("Only users with the role 'admin' can be assigned to the 'System Admin' group.")
@@ -41,12 +45,15 @@ class UserAdminForm(forms.ModelForm):
                 raise ValidationError("Users assigned to the 'System Admin' group must have 'is_staff' enabled.")
 
         if self.instance.pk is None:
-            pw1 = cleaned_data.get('password1')
-            pw2 = cleaned_data.get('password2')
             if not pw1 or not pw2:
                 raise ValidationError("Both password fields are required.")
             if pw1 != pw2:
                 raise ValidationError("Passwords do not match.")
+            try:
+                validate_password(pw1, user=self.instance)
+            except ValidationError as e:
+                raise ValidationError({'password1': e.messages})
+
         return cleaned_data
 
     def save(self, commit=True):
@@ -76,6 +83,9 @@ class RequiredCEAInlineFormSet(BaseInlineFormSet):
 
         if user_role == 'cea' and not has_data:
             raise ValidationError("CEA inline data is required when user role is set to 'cea'.")
+
+        if user_role == 'admin' and has_data:
+            raise ValidationError("CEA inline must be empty when user role is set to 'admin'.")
 
 
 class CareerEmplacementAdminInline(admin.StackedInline):
