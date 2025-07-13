@@ -354,11 +354,23 @@ class CEAWithUserForm(forms.ModelForm):
         return cea
 
 
+class CEAEditForm(forms.ModelForm):
+    class Meta:
+        model = CareerEmplacementAdmin
+        fields = ['school']
+
+
 @admin.register(CareerEmplacementAdmin)
 class CareerEmplacementAdminAdmin(admin.ModelAdmin):
-    form = CEAWithUserForm
     list_display = ['get_email', 'school', 'get_status']
     list_filter = ['school']
+
+    def get_form(self, request, obj=None, **kwargs):
+        if obj:
+            kwargs['form'] = CEAEditForm
+        else:
+            kwargs['form'] = CEAWithUserForm
+        return super().get_form(request, obj, **kwargs)
 
     def get_readonly_fields(self, request, obj=None):
         if obj:
