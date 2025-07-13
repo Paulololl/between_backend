@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.forms import BaseInlineFormSet
@@ -19,6 +20,9 @@ for model in model_to_register:
 
 
 class UserAdminForm(forms.ModelForm):
+    password1 = forms.CharField(required=False, widget=forms.PasswordInput, label="Password")
+    password2 = forms.CharField(required=False, widget=forms.PasswordInput, label="Confirm Password")
+
     class Meta:
         model = User
         fields = '__all__'
@@ -30,12 +34,33 @@ class UserAdminForm(forms.ModelForm):
         is_staff = cleaned_data.get('is_staff')
 
         system_admin_group = Group.objects.filter(name='System Admin').first()
-
         if system_admin_group and system_admin_group in groups:
             if user_role != 'admin':
                 raise ValidationError("Only users with the role 'admin' can be assigned to the 'System Admin' group.")
             if not is_staff:
                 raise ValidationError("Users assigned to the 'System Admin' group must have 'is_staff' enabled.")
+
+        if self.instance.pk is None:
+            pw1 = cleaned_data.get('password1')
+            pw2 = cleaned_data.get('password2')
+            if not pw1 or not pw2:
+                raise ValidationError("Both password fields are required.")
+            if pw1 != pw2:
+                raise ValidationError("Passwords do not match.")
+        return cleaned_data
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+
+        if self.instance.pk is None:
+            pw = self.cleaned_data.get("password1")
+            if pw:
+                user.password = make_password(pw)
+
+        if commit:
+            user.save()
+            self.save_m2m()
+        return user
 
 
 class RequiredCEAInlineFormSet(BaseInlineFormSet):
@@ -106,6 +131,10 @@ class UserAdmin(BaseUserAdmin):
                 ('admin', 'Admin'),
             ]
         return super().formfield_for_choice_field(db_field, request, **kwargs)
+
+    def get_form(self, request, obj=None, **kwargs):
+        kwargs['form'] = self.form
+        return super().get_form(request, obj, **kwargs)
 
     def has_add_permission(self, request):
         return True
