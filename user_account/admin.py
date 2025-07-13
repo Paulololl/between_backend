@@ -157,14 +157,28 @@ class UserAdmin(BaseUserAdmin):
             kwargs['choices'] = [('admin', 'Admin')]
         return super().formfield_for_choice_field(db_field, request, **kwargs)
 
+    def get_readonly_fields(self, request, obj=None):
+        if not request.user.is_superuser and obj:
+            return [f.name for f in self.model._meta.fields] + ['groups', 'user_permissions']
+        return super().get_readonly_fields(request, obj)
+
+    def get_fieldsets(self, request, obj=None):
+        if not request.user.is_superuser and obj:
+            return [
+                (None, {'fields': ('email', 'user_id', 'status', 'user_role', 'is_staff')}),
+                ('Permissions', {'fields': ('groups', 'user_permissions')}),
+                ('Dates', {'fields': ('date_joined', 'date_modified', 'verified_at')}),
+            ]
+        return super().get_fieldsets(request, obj)
+
     def has_add_permission(self, request):
         return True
 
     def has_change_permission(self, request, obj=None):
-        return request.user.is_superuser
+        return True
 
     def has_delete_permission(self, request, obj=None):
-        return True
+        return request.user.is_superuser
 
 
 # For displaying selected skills of applicant
@@ -228,15 +242,6 @@ class ApplicantAdmin(admin.ModelAdmin):
         if not request.user.is_superuser and obj:
             return [f.name for f in self.model._meta.fields] + ['groups', 'user_permissions']
         return super().get_readonly_fields(request, obj)
-
-    def get_fieldsets(self, request, obj=None):
-        if not request.user.is_superuser and obj:
-            return [
-                (None, {'fields': ('email', 'user_id', 'status', 'user_role', 'is_staff')}),
-                ('Permissions', {'fields': ('groups', 'user_permissions')}),
-                ('Dates', {'fields': ('date_joined', 'date_modified', 'verified_at')}),
-            ]
-        return super().get_fieldsets(request, obj)
 
     def has_add_permission(self, request):
         return False
