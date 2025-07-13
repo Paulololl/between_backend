@@ -7,6 +7,8 @@ from django.contrib.auth.models import Group
 from django.contrib.auth.password_validation import validate_password, password_validators_help_text_html
 from django.core.exceptions import ValidationError
 from django.forms import BaseInlineFormSet
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
@@ -165,6 +167,21 @@ class UserAdmin(BaseUserAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return True
+
+    def get_model_perms(self, request):
+        if not request.user.is_superuser:
+            return {
+                "add": True,
+                "change": False,
+                "delete": False,
+                "view": False,
+            }
+        return super().get_model_perms(request)
+
+    def response_add(self, request, obj, post_url_continue=None):
+        if not request.user.is_superuser:
+            return HttpResponseRedirect(reverse('admin:user_account_user_changelist'))
+        return super().response_add(request, obj, post_url_continue)
 
 
 # For displaying selected skills of applicant
