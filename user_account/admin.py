@@ -16,7 +16,7 @@ from .forms import DateJoinedFilter
 from .models import (User, Applicant, Company, CareerEmplacementAdmin, OJTCoordinator, AuditLog)
 
 
-model_to_register = [CareerEmplacementAdmin, OJTCoordinator]
+model_to_register = [OJTCoordinator]
 
 for model in model_to_register:
     admin.site.register(model)
