@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import Group
-from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.password_validation import validate_password, password_validators_help_text_html
 from django.core.exceptions import ValidationError
 from django.forms import BaseInlineFormSet
 from django.utils.html import format_html
@@ -21,12 +21,32 @@ for model in model_to_register:
 
 
 class UserAdminForm(forms.ModelForm):
-    password1 = forms.CharField(required=False, widget=forms.PasswordInput, label="Password")
-    password2 = forms.CharField(required=False, widget=forms.PasswordInput, label="Confirm Password")
+    password1 = forms.CharField(widget=forms.PasswordInput, label="Password", required=False,
+                                help_text=password_validators_help_text_html())
+    password2 = forms.CharField(widget=forms.PasswordInput, label="Confirm Password", required=False)
 
     class Meta:
         model = User
         fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.instance.pk is None:
+            self.fields['password1'].required = True
+            self.fields['password2'].required = True
+        else:
+            self.fields['password1'].required = False
+            self.fields['password2'].required = False
+
+    def clean_password1(self):
+        password = self.cleaned_data.get("password1")
+        if self.instance.pk is None and password:
+            try:
+                validate_password(password, user=self.instance)
+            except ValidationError as e:
+                raise forms.ValidationError(e.messages)
+        return password
 
     def clean(self):
         cleaned_data = super().clean()
@@ -37,28 +57,25 @@ class UserAdminForm(forms.ModelForm):
         pw2 = cleaned_data.get('password2')
 
         system_admin_group = Group.objects.filter(name='System Admin').first()
-
         if system_admin_group and system_admin_group in groups:
             if user_role != 'admin':
                 raise ValidationError("Only users with the role 'admin' can be assigned to the 'System Admin' group.")
             if not is_staff:
                 raise ValidationError("Users assigned to the 'System Admin' group must have 'is_staff' enabled.")
 
+        if user_role == 'admin' and not is_staff:
+            raise ValidationError("Users with the role 'admin' must have 'is_staff' enabled.")
+
         if self.instance.pk is None:
             if not pw1 or not pw2:
                 raise ValidationError("Both password fields are required.")
             if pw1 != pw2:
                 raise ValidationError("Passwords do not match.")
-            try:
-                validate_password(pw1, user=self.instance)
-            except ValidationError as e:
-                raise ValidationError({'password1': e.messages})
 
         return cleaned_data
 
     def save(self, commit=True):
         user = super().save(commit=False)
-
         if self.instance.pk is None:
             pw = self.cleaned_data.get("password1")
             if pw:
