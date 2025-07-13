@@ -145,6 +145,11 @@ class UserAdmin(BaseUserAdmin):
             kwargs['choices'] = [('admin', 'Admin')]
         return super().formfield_for_choice_field(db_field, request, **kwargs)
 
+    def get_model_perms(self, request):
+        if not request.user.is_superuser:
+            return {}
+        return super().get_model_perms(request)
+
     def has_add_permission(self, request):
         return True
 

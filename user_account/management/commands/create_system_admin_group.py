@@ -20,7 +20,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(f"Group '{group_name}' already exists."))
 
         models_and_perms = [
-            (User, ['add', 'change', 'view']),
+            # (User, ['add', 'change', 'view']),
             (CareerEmplacementAdmin, ['add', 'change', 'view']),
             (School, ['add', 'change', 'view']),
             (Department, ['add', 'change', 'view']),
