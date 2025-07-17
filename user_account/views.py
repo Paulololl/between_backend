@@ -389,7 +389,7 @@ class VerifyEmailView(APIView):
                     return redirect(f'https://between-project-web.vercel.app/sign-up/applicant/account-verified?'
                                     f'status=success&uuid={user.pk}')
 
-                elif hasattr(user, 'company'):
+                elif hasattr(user, 'company') or hasattr(user, 'coordinator') or hasattr(user, 'cea'):
                     return redirect(f'https://between-project-web.vercel.app/sign-up/company/account-verified'
                                     f'?status=success&uuid={user.pk}')
 
