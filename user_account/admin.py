@@ -313,11 +313,19 @@ class CEAWithUserForm(forms.ModelForm):
     password1 = forms.CharField(label="Password", widget=forms.PasswordInput,
                                 help_text=password_validation.password_validators_help_text_html())
     password2 = forms.CharField(label="Confirm Password", widget=forms.PasswordInput)
-    status = forms.ChoiceField(choices=User._meta.get_field('status').choices)
+    status = forms.ChoiceField(
+        choices=[(k, v) for k, v in User._meta.get_field('status').choices if k == 'Active']
+    )
 
     class Meta:
         model = CareerEmplacementAdmin
         fields = ['school']
+
+    def clean_email(self):
+        email = self.cleaned_data['email'].lower()
+        if User.objects.filter(email=email).exists():
+            raise ValidationError("A user with this email already exists.")
+        return email
 
     def clean(self):
         cleaned_data = super().clean()
