@@ -808,6 +808,9 @@ class SchoolEmailCheckSerializer(serializers.Serializer):
             if data_api.get('is_disposable_email', {}).get('value', True):
                 errors.append('Disposable email addresses are not allowed.')
 
+            if not data_api.get('is_smtp_valid', {}).get('value', False):
+                errors.append('smtp is invalid.')
+
             domain = '@' + email.split('@', 1)[-1].strip().lower()
 
             school = School.objects.get(school_id=school_id)
