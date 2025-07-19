@@ -153,10 +153,10 @@ class UserAdmin(BaseUserAdmin):
         ('Dates', {'fields': ('date_joined', 'date_modified', 'verified_at',)}),
     )
 
-    def formfield_for_choice_field(self, db_field, request, **kwargs):
-        if db_field.name == 'user_role':
-            kwargs['choices'] = [('admin', 'Admin')]
-        return super().formfield_for_choice_field(db_field, request, **kwargs)
+    # def formfield_for_choice_field(self, db_field, request, **kwargs):
+    #     if db_field.name == 'user_role':
+    #         kwargs['choices'] = [('admin', 'Admin')]
+    #     return super().formfield_for_choice_field(db_field, request, **kwargs)
 
     def get_readonly_fields(self, request, obj=None):
         if obj:
@@ -253,10 +253,10 @@ class ApplicantAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return request.user.is_superuser
 
-    def formfield_for_choice_field(self, db_field, request, **kwargs):
-        if db_field.name == 'user_role':
-            kwargs['choices'] = [('admin', 'Admin')]
-        return super().formfield_for_choice_field(db_field, request, **kwargs)
+    # def formfield_for_choice_field(self, db_field, request, **kwargs):
+    #     if db_field.name == 'user_role':
+    #         kwargs['choices'] = [('admin', 'Admin')]
+    #     return super().formfield_for_choice_field(db_field, request, **kwargs)
 
 
 @admin.register(Company)
