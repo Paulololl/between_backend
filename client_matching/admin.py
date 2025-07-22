@@ -182,7 +182,7 @@ class InternshipRecommendationAdmin(admin.ModelAdmin):
         if obj.internship_posting:
             return obj.internship_posting.status
         return 'Deleted or Missing'
-    posting_status.short_description = 'Internship Posting'
+    posting_status.short_description = 'Posting Status'
 
     def get_model_perms(self, request):
         if not request.user.is_superuser:
