@@ -158,9 +158,20 @@ class CustomInternshipPosting(admin.ModelAdmin):
 
 @admin.register(InternshipRecommendation)
 class InternshipRecommendationAdmin(admin.ModelAdmin):
-    list_display = ('recommendation_id', 'applicant_email', 'similarity_score', 'status', 'posting_status')
+    list_display = (
+                    'internship_position',
+                    'recommendation_id',
+                    'applicant_email',
+                    'similarity_score',
+                    'status',
+                    'posting_status'
+                   )
     list_filter = ('status', InternshipPostingStatusFilter)
-    search_fields = ('applicant__user__email',)
+    search_fields = ('applicant__user__email', 'internship_posting__internship_position')
+
+    def internship_position(self, obj):
+        return obj.internship_posting.internship_position
+    internship_position.short_description = "Internship Posting"
 
     def applicant_email(self, obj):
         return obj.applicant.user.email
@@ -168,11 +179,9 @@ class InternshipRecommendationAdmin(admin.ModelAdmin):
     applicant_email.short_description = 'Applicant Email'
 
     def posting_status(self, obj):
-        try:
-            posting = InternshipPosting.objects.get(internship_posting_id=obj.internship_posting_id)
-            return posting.status
-        except InternshipPosting.DoesNotExist:
-            return 'Deleted or Missing'
+        if obj.internship_posting:
+            return obj.internship_posting.status
+        return 'Deleted or Missing'
     posting_status.short_description = 'Internship Posting'
 
     def get_model_perms(self, request):
@@ -237,7 +246,7 @@ class InternshipRecommendationInline(admin.TabularInline):
             return posting.status
         except InternshipPosting.DoesNotExist:
             return 'Deleted or Missing'
-    posting_status.short_description = 'Internship Posting'
+    posting_status.short_description = 'Posting Status'
 
     def modality(self, obj):
         try:
