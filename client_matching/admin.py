@@ -159,8 +159,8 @@ class CustomInternshipPosting(admin.ModelAdmin):
 @admin.register(InternshipRecommendation)
 class InternshipRecommendationAdmin(admin.ModelAdmin):
     list_display = (
-                    'recommendation_id',
                     'internship_position',
+                    'recommendation_id',
                     'applicant_email',
                     'similarity_score',
                     'status',
