@@ -632,3 +632,4 @@ class UninterestedView(APIView):
         ).count()
 
         return Response({'uninterested': uninterested})
+
