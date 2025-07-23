@@ -231,6 +231,10 @@ class UpdateApplicationView(APIView):
             return Response({'error': 'This application has been dropped. Cannot change status.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
+        if application.status == 'Accepted':
+            return Response({'error': 'This application has been accepted. Cannot change status.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
         if new_status == 'Rejected' and not rejection_message:
             return Response({'error': 'At least one rejection reason is required when rejecting an applicant.'},
                             status=status.HTTP_400_BAD_REQUEST)
