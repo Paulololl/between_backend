@@ -1,3 +1,5 @@
+from email.utils import formataddr
+
 from django.core.mail import send_mail, EmailMessage
 from django.db import transaction
 from django.db.models import Q
@@ -218,6 +220,7 @@ class UpdateApplicationView(APIView):
                             status=status.HTTP_403_FORBIDDEN)
 
         new_status = request.data.get('status')
+        rejection_message = request.data.get('rejection_message', [])
 
         if new_status not in ['Onboarding', 'Rejected', 'Pending']:
             return Response({'error': 'Invalid status. You can only set status to'
@@ -228,17 +231,79 @@ class UpdateApplicationView(APIView):
             return Response({'error': 'This application has been dropped. Cannot change status.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
+        if new_status == 'Rejected' and not rejection_message:
+            return Response({'error': 'At least one rejection reason is required when rejecting an applicant.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
         if application.applicant_status != 'Deleted':
             application.applicant_status = 'Unread'
             application.save(update_fields=['applicant_status'])
 
-        serializer = self.serializer_class(application, data={'status': new_status}, partial=True)
+        serializer = self.serializer_class(application, data={
+            'status': new_status,
+            'rejection_message': rejection_message
+        }, partial=True)
+
         if serializer.is_valid():
             serializer.save()
 
+            applicant = application.applicant
+            applicant_email = applicant.user.email
+            company_name = application.internship_posting.company.company_name
+            internship_position = application.internship_posting.internship_position
+            applicant_name = (
+                    applicant.first_name +
+                    (' ' + applicant.middle_initial if applicant.middle_initial else '') +
+                    ' ' + applicant.last_name
+            )
+
+            if new_status == 'Rejected':
+                subject = f"Your Internship Application Has Been Rejected"
+                message_html = f"""
+                            <div>
+                                <p>Dear <strong>{applicant_name}</strong>,</p>
+                                <p>Your application for the internship position 
+                                   <strong>{internship_position}</strong> at <strong>{company_name}</strong> has been 
+                                   <strong>rejected</strong>.</p>
+                               <p><strong>Rejection Reasons:</strong></p>
+                                <ul>
+                                    {''.join(f'<li>{reason}</li>' for reason in rejection_message)}
+                                </ul>
+                                <p>We appreciate your interest and encourage you to explore other opportunities.</p>
+                                <p>
+                                    Best regards,<br>
+                                    <strong>{company_name}</strong>
+                                </p>
+                            </div>
+                            """
+            else:
+                subject = f"Your Internship Application Has Been Updated"
+                message_html = f"""
+                            <div>
+                                <p>Dear <strong>{applicant_name}</strong>,</p>
+                                <p>Your application for the position <strong>{internship_position}</strong> at 
+                                <strong>{company_name}</strong> has been updated to <strong>{new_status}</strong>.</p>
+                                <p>Thank you for your continued interest.</p>
+                                <p>
+                                    Best regards,<br>
+                                    <strong>{company_name}</strong>
+                                </p>
+                            </div>
+                            """
+
+            email = EmailMessage(
+                subject=subject,
+                body=message_html,
+                from_email=formataddr((f'{company_name}', 'between_internships@gmail.com')),
+                to=[applicant_email],
+                reply_to=['no-reply@betweeninternships.com']
+            )
+            email.content_subtype = 'html'
+            email.send(fail_silently=False)
+
             Notification.objects.create(
                 application=application,
-                notification_text=f'Your application has been set to {new_status}.',
+                notification_text=f'Your application has been {new_status}.',
                 notification_type='Applicant'
             )
 
@@ -567,7 +632,3 @@ class UninterestedView(APIView):
         ).count()
 
         return Response({'uninterested': uninterested})
-
-
-
-

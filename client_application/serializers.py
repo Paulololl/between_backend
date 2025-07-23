@@ -259,9 +259,15 @@ class ClearNotificationSerializer(serializers.ModelSerializer):
 
 
 class UpdateApplicationSerializer(serializers.ModelSerializer):
+    rejection_message = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_empty=True
+    )
+
     class Meta:
         model = Application
-        fields = ['application_id', 'status']
+        fields = ['application_id', 'status', 'rejection_message']
 
 
 class RequestDocumentSerializer(serializers.Serializer):
