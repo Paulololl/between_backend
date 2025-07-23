@@ -907,7 +907,16 @@ class SendEmailVerificationSerializer(serializers.Serializer):
 
         subject = 'Verify your email'
 
-        message = (f'Hi {str(user.email)},\n\n'
+        if hasattr(user, 'applicant'):
+            display_name = f"{user.applicant.first_name} {user.applicant.last_name}"
+
+        elif hasattr(user, 'company'):
+            display_name = f"{user.company.company_name}"
+
+        else:
+            display_name = user.email
+
+        message = (f'Hi {display_name},\n\n'
                    f'Please verify your email by clicking the link below:'
                    f'\n\n{verification_url}\n\nNote: This link will expire after 15 minutes.'
                    f'\n\nThank you!')
