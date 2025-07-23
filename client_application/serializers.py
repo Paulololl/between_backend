@@ -262,12 +262,18 @@ class UpdateApplicationSerializer(serializers.ModelSerializer):
     rejection_message = serializers.ListField(
         child=serializers.CharField(),
         required=False,
-        allow_empty=True
+        allow_empty=True,
     )
 
     class Meta:
         model = Application
         fields = ['application_id', 'status', 'rejection_message']
+
+    def validate_rejection_message(self, value):
+        for item in value:
+            if len(item) > 500:
+                raise serializers.ValidationError({"error": "Rejection message must not exceed 500 characters."})
+        return value
 
 
 class RequestDocumentSerializer(serializers.Serializer):
