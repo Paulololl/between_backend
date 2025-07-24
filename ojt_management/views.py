@@ -192,13 +192,13 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
         ).prefetch_related(
             'hard_skills',
             'soft_skills',
-            'application_set__internship_posting__required_hard_skills',
-            'application_set__internship_posting__required_soft_skills',
-            'application_set__internship_posting__key_tasks',
-            'application_set__internship_posting__min_qualifications',
-            'application_set__internship_posting__benefits',
-            'application_set__internship_posting__company',
-            'application_set__internship_posting__person_in_charge',
+            'applications__internship_posting__required_hard_skills',
+            'applications__internship_posting__required_soft_skills',
+            'applications__internship_posting__key_tasks',
+            'applications__internship_posting__min_qualifications',
+            'applications__internship_posting__benefits',
+            'applications__internship_posting__company',
+            'applications__internship_posting__person_in_charge',
         )
 
         user = self.request.query_params.get('user')

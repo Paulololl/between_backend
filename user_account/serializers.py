@@ -834,7 +834,7 @@ class GetApplicantSerializer(serializers.ModelSerializer):
     school = serializers.CharField(source='school.school_name', allow_blank=True, allow_null=True)
     department = serializers.CharField(source='department.department_name', allow_blank=True, allow_null=True)
     program = serializers.CharField(source='program.program_name', allow_blank=True, allow_null=True)
-    applications = ListApplicationSerializer(source='application_set', many=True, read_only=True)
+    applications = ListApplicationSerializer(many=True, read_only=True)
 
     class Meta:
         model = Applicant
