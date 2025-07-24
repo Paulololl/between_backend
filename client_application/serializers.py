@@ -354,6 +354,27 @@ class ListApplicationSerializer(serializers.ModelSerializer):
     pic_mobile_number = serializers.CharField(source='internship_posting.person_in_charge.mobile_number')
     pic_landline_number = serializers.CharField(source='internship_posting.person_in_charge.landline_number')
 
+    class Meta:
+        model = Application
+        fields = [
+                    'application_status',
+                    'company_name',
+                    'internship_position',
+                    'key_tasks',
+                    'min_qualifications',
+                    'benefits',
+                    'required_hard_skills',
+                    'required_soft_skills',
+                    'internship_address',
+                    'ojt_hours',
+                    'pic_id',
+                    'pic_name',
+                    'pic_position',
+                    'pic_email',
+                    'pic_mobile_number',
+                    'pic_landline_number'
+                ]
+
     def get_required_hard_skills(self, obj):
         if obj.internship_posting:
             return [
