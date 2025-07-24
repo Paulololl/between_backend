@@ -357,6 +357,7 @@ class ListApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
         fields = [
+                    'application_date',
                     'application_status',
                     'company_name',
                     'internship_position',
