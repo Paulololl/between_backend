@@ -834,12 +834,36 @@ class GetApplicantSerializer(serializers.ModelSerializer):
     department = serializers.CharField(source='department.department_name', allow_blank=True, allow_null=True)
     program = serializers.CharField(source='program.program_name', allow_blank=True, allow_null=True)
 
+    application_id = serializers.UUIDField(source='application.application_id')
+    application_status = serializers.CharField(source='application.status')
+    company_name = serializers.CharField(source='application.internship_posting.company.company_name')
+    internship_position = serializers.CharField(source='application.internship_posting.internship_position')
+    key_tasks = serializers.SerializerMethodField()
+    min_qualifications = serializers.SerializerMethodField()
+    benefits = serializers.SerializerMethodField()
+    required_hard_skills = serializers.SerializerMethodField()
+    required_soft_skills = serializers.SerializerMethodField()
+    internship_address = serializers.CharField(source='application.internship_posting.address')
+    ojt_hours = serializers.CharField(source='application.internship_posting.ojt_hours')
+    pic_id = serializers.CharField(source='application.internship_posting.person_in_charge.person_in_charge_id')
+    pic_name = serializers.CharField(source='application.internship_posting.person_in_charge.name')
+    pic_position = serializers.CharField(source='application.internship_posting.person_in_charge.position')
+    pic_email = serializers.CharField(source='application.internship_posting.person_in_charge.email')
+    pic_mobile_number = serializers.CharField(source='application.internship_posting.person_in_charge.mobile_number')
+    pic_landline_number = serializers.CharField(source='application.internship_posting.person_in_charge.landline_number')
+
     class Meta:
         model = Applicant
         fields = ['user', 'email', 'school', 'department', 'program', 'first_name', 'last_name',
                   'middle_initial', 'address', 'hard_skills', 'soft_skills', 'in_practicum',
                   'preferred_modality', 'academic_program', 'quick_introduction',
-                  'resume', 'enrollment_record', 'verified_at', 'mobile_number']
+                  'resume', 'enrollment_record', 'verified_at', 'mobile_number',
+                  'application_id', 'application_status', 'company_name', 'internship_position',
+                  'key_tasks', 'min_qualifications', 'benefits', 'required_hard_skills',
+                  'required_soft_skills', 'internship_address', 'ojt_hours',
+                  'pic_id', 'pic_name', 'pic_position', 'pic_email',
+                  'pic_mobile_number', 'pic_landline_number',
+                  ]
 
     def get_hard_skills(self, obj):
         return [
@@ -852,6 +876,46 @@ class GetApplicantSerializer(serializers.ModelSerializer):
             {"id": skill.lightcast_identifier, "name": skill.name}
             for skill in obj.soft_skills.all()
         ]
+
+    def get_required_hard_skills(self, obj):
+        if obj.application.internship_posting:
+            return [
+                skill.name
+                for skill in obj.application.internship_posting.required_hard_skills.all()
+            ]
+        return None
+
+    def get_required_soft_skills(self, obj):
+        if obj.application.internship_posting:
+            return [
+                skill.name
+                for skill in obj.application.internship_posting.required_soft_skills.all()
+            ]
+        return None
+
+    def get_min_qualifications(self, obj):
+        if obj.application.internship_posting:
+            return [
+                min_qualification.min_qualification
+                for min_qualification in obj.application.internship_posting.min_qualifications.all()
+            ]
+        return None
+
+    def get_benefits(self, obj):
+        if obj.application.internship_posting:
+            return [
+                benefit.benefit
+                for benefit in obj.application.internship_posting.benefits.all()
+            ]
+        return None
+
+    def get_key_tasks(self, obj):
+        if obj.application.internship_posting:
+            return [
+                key_task.key_task
+                for key_task in obj.application.internship_posting.key_tasks.all()
+            ]
+        return None
 
 
 class GetCompanySerializer(serializers.ModelSerializer):
