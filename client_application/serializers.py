@@ -340,6 +340,8 @@ class ListApplicationSerializer(serializers.ModelSerializer):
     application_status = serializers.CharField(source='status')
     company_name = serializers.CharField(source='internship_posting.company.company_name')
     internship_position = serializers.CharField(source='internship_posting.internship_position')
+    internship_date_start = serializers.DateTimeField(source='internship_posting.internship_date_start')
+    application_deadline = serializers.DateTimeField(source='internship_posting.application_deadline')
     key_tasks = serializers.SerializerMethodField()
     min_qualifications = serializers.SerializerMethodField()
     benefits = serializers.SerializerMethodField()
@@ -357,10 +359,11 @@ class ListApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
         fields = [
-                    'application_date',
                     'application_status',
                     'company_name',
                     'internship_position',
+                    'internship_date_start',
+                    'application_deadline',
                     'key_tasks',
                     'min_qualifications',
                     'benefits',
