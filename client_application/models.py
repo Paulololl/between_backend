@@ -6,7 +6,7 @@ from django.db import models
 class Application(models.Model):
 
     application_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    applicant = models.ForeignKey('user_account.Applicant', on_delete=models.CASCADE)
+    applicant = models.ForeignKey('user_account.Applicant', on_delete=models.CASCADE, related_name='applications')
     internship_posting = models.ForeignKey('client_matching.InternshipPosting', on_delete=models.CASCADE)
 
     application_date = models.DateTimeField(auto_now_add=True)
