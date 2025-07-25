@@ -82,7 +82,9 @@ class CustomInternshipPosting(admin.ModelAdmin):
         'display_key_tasks',
         'display_min_qualifications',
         'display_benefits',
-        'modality'
+        'modality',
+        'max_slots',
+        'accepted_count'
     )
 
     fieldsets = (
@@ -90,7 +92,7 @@ class CustomInternshipPosting(admin.ModelAdmin):
             'fields': ('internship_posting_id', 'company', 'person_in_charge', 'internship_position', 'modality',
                        'address', 'other_requirements', 'is_paid_internship', 'is_only_for_practicum', 'status',
                        'ojt_hours', 'internship_date_start', 'application_deadline', 'date_created', 'date_modified',
-                       'latitude', 'longitude')
+                       'latitude', 'longitude', 'max_slots', 'accepted_count')
         }),
         ('Benefits', {
             'fields': ('display_benefits',),
