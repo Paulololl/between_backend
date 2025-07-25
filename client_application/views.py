@@ -519,7 +519,7 @@ class AcceptApplicationView(APIView):
                     f"<strong>Program:</strong> {program.program_name}<br>"
                     f"<strong>Company:</strong> {company_name}<br>"
                     f"<strong>Internship Position:</strong> {position}<br><br>"
-                    f"Please log in to review the accepted internship.<br><br>"
+                    f"Please log in to see the accepted internship.<br><br>"
                     f"Best regards,<br><strong>Between IMS</strong>"
                 )
 
