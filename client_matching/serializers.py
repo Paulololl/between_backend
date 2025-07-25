@@ -223,7 +223,6 @@ class CreateInternshipPostingSerializer(serializers.ModelSerializer):
                   'required_hard_skills', 'required_soft_skills',
                   'is_paid_internship', 'is_only_for_practicum', 'status', 'accepted_count', 'max_slots'
                 ]
-        read_only_fields = ['accepted_count']
 
     def validate(self, attrs):
         today = timezone.now()
@@ -410,7 +409,6 @@ class EditInternshipPostingSerializer(serializers.ModelSerializer):
                   'displayed_required_hard_skills', 'displayed_required_soft_skills',
                   'is_paid_internship', 'is_only_for_practicum', 'status', 'accepted_count', 'max_slots'
         ]
-        readonly_fields = ['accepted_count']
 
     def get_displayed_required_hard_skills(self, obj):
         return [
