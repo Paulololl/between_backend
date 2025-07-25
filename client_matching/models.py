@@ -1,6 +1,7 @@
 import uuid
 from decimal import Decimal
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 from storages.backends.s3boto3 import S3Boto3Storage
@@ -64,6 +65,9 @@ class InternshipPosting(models.Model):
         ('WorkFromHome', 'WorkFromHome'),
         ('Hybrid', 'Hybrid')
     ], default="Onsite")
+
+    max_slots = models.PositiveIntegerField(default=0, null=True, blank=True)
+    accepted_count = models.PositiveIntegerField(default=0, null=True, blank=True)
 
     def __str__(self):
         return f'{self.internship_position} - {self.company.company_name}'

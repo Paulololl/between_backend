@@ -162,7 +162,9 @@ class InternshipPostingListSerializer(serializers.ModelSerializer):
             'required_soft_skills',
             'key_tasks',
             'min_qualifications',
-            'benefits'
+            'benefits',
+            'accepted_count',
+            'max_slots'
         ]
 
     def get_required_hard_skills(self, obj):
@@ -218,8 +220,9 @@ class CreateInternshipPostingSerializer(serializers.ModelSerializer):
                   'application_deadline', 'person_in_charge', 'other_requirements',
                   'key_tasks', 'min_qualifications', 'benefits',
                   'required_hard_skills', 'required_soft_skills',
-                  'is_paid_internship', 'is_only_for_practicum', 'status'
-        ]
+                  'is_paid_internship', 'is_only_for_practicum', 'status', 'accepted_count', 'max_slots'
+                ]
+        read_only_fields = ['accepted_count']
 
     def validate(self, attrs):
         today = timezone.now()
@@ -403,8 +406,9 @@ class EditInternshipPostingSerializer(serializers.ModelSerializer):
                   'key_tasks', 'min_qualifications', 'benefits',
                   'required_hard_skills', 'required_soft_skills',
                   'displayed_required_hard_skills', 'displayed_required_soft_skills',
-                  'is_paid_internship', 'is_only_for_practicum', 'status'
+                  'is_paid_internship', 'is_only_for_practicum', 'status', 'accepted_count', 'max_slots'
         ]
+        readonly_fields = ['accepted_count']
 
     def get_displayed_required_hard_skills(self, obj):
         return [
@@ -461,6 +465,8 @@ class EditInternshipPostingSerializer(serializers.ModelSerializer):
 
         else:
             raise serializers.ValidationError({'address': 'Unable to retrieve coordinates'})
+
+        max_slots = attrs.get('max_slots', 1)
 
         return attrs
 

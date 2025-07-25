@@ -2,7 +2,7 @@ from email.utils import formataddr
 
 from django.core.mail import send_mail, EmailMessage
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, F
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
@@ -19,6 +19,7 @@ from client_matching.functions import run_internship_matching
 from client_matching.models import InternshipRecommendation
 from client_matching.serializers import InternshipMatchSerializer
 from client_matching.utils import reset_recommendations_and_tap_count
+from user_account.models import OJTCoordinator
 from user_account.permissions import IsCompany, IsApplicant
 
 client_application_tag = extend_schema(tags=["client_application"])
@@ -458,6 +459,10 @@ class AcceptApplicationView(APIView):
         if serializer.is_valid():
             serializer.save()
 
+            internship_posting = application.internship_posting
+            internship_posting.accepted_count = F('accepted_count') + 1
+            internship_posting.save(update_fields=['accepted_count'])
+
             other_applications = Application.objects.filter(
                 applicant=application.applicant
             ).exclude(
@@ -500,6 +505,32 @@ class AcceptApplicationView(APIView):
             )
             email.content_subtype = 'html'
             email.send(fail_silently=False)
+
+            program = application.applicant.program
+            ojt_coordinator =  OJTCoordinator.objects.get(program=program)
+            coordinator_email = ojt_coordinator.user.email
+            student_name = f"{application.applicant.first_name} {application.applicant.last_name}"
+
+            if coordinator_email:
+                subject = f"Internship Accepted by {student_name}"
+                html_message = (
+                    f"Dear {ojt_coordinator.first_name},<br><br>"
+                    f"<strong>{student_name}</strong> has accepted an internship offer.<br><br>"
+                    f"<strong>Program:</strong> {program.program_name}<br>"
+                    f"<strong>Company:</strong> {company_name}<br>"
+                    f"<strong>Internship Position:</strong> {position}<br><br>"
+                    f"Please log in to review the accepted internship.<br><br>"
+                    f"Best regards,<br><strong>Between IMS</strong>"
+                )
+
+                email = EmailMessage(
+                    subject=subject,
+                    body=html_message,
+                    from_email='Between_IMS <no-reply.between.internships@gmail.com>',
+                    to=[coordinator_email],
+                )
+                email.content_subtype = "html"
+                email.send()
 
             return Response({'message': 'The Application has been accepted and the company was notified.'},
                             status=status.HTTP_200_OK)
