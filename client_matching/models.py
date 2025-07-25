@@ -67,7 +67,7 @@ class InternshipPosting(models.Model):
     ], default="Onsite")
 
     max_slots = models.PositiveIntegerField(default=0, null=True, blank=True)
-    accepted_count = models.PositiveIntegerField(default=0, null=True, blank=True)
+    accepted_count = models.PositiveIntegerField(null=True, blank=True)
 
     def __str__(self):
         return f'{self.internship_position} - {self.company.company_name}'
@@ -183,6 +183,7 @@ class PersonInCharge(models.Model):
 
     def __str__(self):
         return f'{self.name}'
+
 
 
 
