@@ -213,6 +213,7 @@ class CreateInternshipPostingSerializer(serializers.ModelSerializer):
     benefits = serializers.CharField()
     required_hard_skills = serializers.CharField()
     required_soft_skills = serializers.CharField()
+    max_slots = serializers.IntegerField(required=False, allow_null=True)
 
     class Meta:
         model = InternshipPosting
@@ -398,6 +399,7 @@ class EditInternshipPostingSerializer(serializers.ModelSerializer):
     required_soft_skills = serializers.CharField()
     displayed_required_hard_skills = serializers.SerializerMethodField()
     displayed_required_soft_skills = serializers.SerializerMethodField()
+    max_slots = serializers.IntegerField(required=False, allow_null=True)
 
     class Meta:
         model = InternshipPosting
@@ -465,8 +467,6 @@ class EditInternshipPostingSerializer(serializers.ModelSerializer):
 
         else:
             raise serializers.ValidationError({'address': 'Unable to retrieve coordinates'})
-
-        max_slots = attrs.get('max_slots', 1)
 
         return attrs
 
