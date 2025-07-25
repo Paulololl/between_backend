@@ -221,7 +221,7 @@ class CreateInternshipPostingSerializer(serializers.ModelSerializer):
                   'application_deadline', 'person_in_charge', 'other_requirements',
                   'key_tasks', 'min_qualifications', 'benefits',
                   'required_hard_skills', 'required_soft_skills',
-                  'is_paid_internship', 'is_only_for_practicum', 'status', 'accepted_count', 'max_slots'
+                  'is_paid_internship', 'is_only_for_practicum', 'status', 'max_slots'
                 ]
 
     def validate(self, attrs):
@@ -407,7 +407,7 @@ class EditInternshipPostingSerializer(serializers.ModelSerializer):
                   'key_tasks', 'min_qualifications', 'benefits',
                   'required_hard_skills', 'required_soft_skills',
                   'displayed_required_hard_skills', 'displayed_required_soft_skills',
-                  'is_paid_internship', 'is_only_for_practicum', 'status', 'accepted_count', 'max_slots'
+                  'is_paid_internship', 'is_only_for_practicum', 'status', 'max_slots'
         ]
 
     def get_displayed_required_hard_skills(self, obj):
