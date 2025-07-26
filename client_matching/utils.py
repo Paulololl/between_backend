@@ -18,7 +18,7 @@ import os
 
 logger = logging.getLogger(__name__)
 
-SIMILARITY_THRESHOLD = 0 #  0.20
+SIMILARITY_THRESHOLD = 0  # 0.20
 
 SIMILARITY_WEIGHT = 0.95
 DISTANCE_WEIGHT = 0.05
@@ -26,8 +26,12 @@ DISTANCE_WEIGHT = 0.05
 EMBEDDING_CACHE_TIMEOUT = 3600
 EMBEDDING_DIMENSION = 384
 
-APPLICANT_WEIGHTS = np.array([0.35, 0.35, 0.1, 0.1, 0.1])
-POSTING_WEIGHTS = np.array([0.3, 0.3, 0.05, 0.05, 0.1, 0.1, 0.1])
+# Old weights with location / address included in embedding
+# APPLICANT_WEIGHTS = np.array([0.35, 0.35, 0.1, 0.1, 0.1])
+# POSTING_WEIGHTS = np.array([0.3, 0.3, 0.05, 0.05, 0.1, 0.1, 0.1])
+
+APPLICANT_WEIGHTS = np.array([0.40, 0.40, 0.1, 0.1])
+POSTING_WEIGHTS = np.array([0.3, 0.3, 0.1, 0.1, 0.1, 0.1])
 
 
 @lru_cache(maxsize=1)
@@ -194,7 +198,6 @@ def get_profile_embedding(profile: dict, is_applicant: bool = True, applicant: O
             texts = [
                 " ".join(hard_skills),
                 " ".join(soft_skills),
-                location_text or "",
                 modality,
                 quick_introduction
             ]
@@ -216,7 +219,6 @@ def get_profile_embedding(profile: dict, is_applicant: bool = True, applicant: O
             texts = [
                 " ".join(required_hard_skills),
                 " ".join(required_soft_skills),
-                location_text or "",
                 modality,
                 min_qualification,
                 benefit,
