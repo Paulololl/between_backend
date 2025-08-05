@@ -197,16 +197,19 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
             'applications__internship_posting__person_in_charge',
         )
 
+        accepted_app_subquery = Application.objects.filter(
+            applicant=OuterRef('pk'),
+            status='Accepted'
+        )
+
         if status_filter == 'Accepted':
-            base_queryset = base_queryset.filter(applications__status='Accepted').distinct()
+            base_queryset = base_queryset.annotate(
+                has_accepted=Exists(accepted_app_subquery)
+            ).filter(has_accepted=True)
 
         elif status_filter == 'Pending':
-            # Get applicants who do NOT have any accepted applications
-            accepted_applications = Application.objects.filter(
-                applicant=OuterRef('pk'), status='Accepted'
-            )
             base_queryset = base_queryset.annotate(
-                has_accepted=Exists(accepted_applications)
+                has_accepted=Exists(accepted_app_subquery)
             ).filter(has_accepted=False)
 
         if user_filter:
@@ -221,7 +224,9 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
                 return Response({'message': 'No students found.'})
             return super().list(request, *args, **kwargs)
         except Exception as e:
-            raise ValidationError({'error': f'An error occurred while retrieving students: {str(e)}'})
+            raise ValidationError({
+                'error': f'An error occurred while retrieving students: {str(e)}'
+            })
 
 
 class PracticumStudentApplicationStatusView(CoordinatorMixin, APIView):
