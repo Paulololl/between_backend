@@ -177,23 +177,9 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
     def get_queryset(self):
         coordinator = self.get_coordinator_or_403(self.request.user)
         user_filter = self.request.query_params.get('user')
-        status_filter = self.request.query_params.get('application_status')
+        application_status_filter = self.request.query_params.get('application_status')  # 'Accepted' or 'Pending'
 
-        if status_filter in ['Accepted', 'Pending']:
-            status_values = [status_filter]
-        else:
-            status_values = ['Accepted', 'Pending']
-
-        # Subquery to check if at least one application exists per applicant with correct status
-        application_exists = Application.objects.filter(
-            applicant=OuterRef('pk'),
-            status__in=status_values
-        )
-
-        queryset = Applicant.objects.annotate(
-            has_matching_app=Exists(application_exists)
-        ).filter(
-            has_matching_app=True,
+        base_queryset = Applicant.objects.filter(
             program=coordinator.program,
             user__status='Active',
             in_practicum='Yes',
@@ -209,12 +195,27 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
             'applications__internship_posting__benefits',
             'applications__internship_posting__company',
             'applications__internship_posting__person_in_charge',
-        ).distinct()
+        )
 
         if user_filter:
-            queryset = queryset.filter(user=user_filter)
+            base_queryset = base_queryset.filter(user=user_filter)
 
-        return queryset
+        if application_status_filter:
+            filtered_queryset = []
+            for applicant in base_queryset:
+                applications = applicant.applications.all()
+
+                has_accepted = any(app.status == 'Accepted' for app in applications)
+                has_pending = any(app.status == 'Pending' for app in applications)
+
+                computed_status = 'Accepted' if has_accepted else 'Pending' if has_pending else None
+
+                if computed_status == application_status_filter:
+                    filtered_queryset.append(applicant)
+
+            return filtered_queryset
+
+        return base_queryset
 
     # def list(self, request, *args, **kwargs):
     #     try:
