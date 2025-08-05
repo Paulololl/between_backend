@@ -180,6 +180,7 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
     ]
 
     def get_queryset(self):
+        status_filter = self.request.query_params.get('application_status')
         coordinator = self.get_coordinator_or_403(self.request.user)
         queryset = Applicant.objects.filter(
             program=coordinator.program
@@ -201,21 +202,14 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
             'applications__internship_posting__person_in_charge',
         )
 
+        if status_filter == 'Accepted':
+            queryset = queryset.filter(applications__status='Accepted').distinct()
+        elif status_filter == 'Pending':
+            queryset = queryset.exclude(applications__status='Accepted').distinct()
+
         user = self.request.query_params.get('user')
         if user:
             queryset = queryset.filter(user=user)
-
-        application_status = self.request.query_params.get('application_status')
-
-        if application_status in ['Pending', 'Accepted']:
-            filtered_applicant_ids = []
-            for applicant in queryset:
-                has_accepted = applicant.applications.filter(status='Accepted').exists()
-                if application_status == 'Accepted' and has_accepted:
-                    filtered_applicant_ids.append(applicant.pk)
-                elif application_status == 'Pending' and not has_accepted:
-                    filtered_applicant_ids.append(applicant.pk)
-            queryset = queryset.filter(pk__in=filtered_applicant_ids)
 
         return queryset
 
