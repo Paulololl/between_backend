@@ -198,7 +198,7 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
         )
 
         accepted_app_exists = Application.objects.filter(
-            applicant=OuterRef('uuid'),
+            applicant=OuterRef('pk'),
             status='Accepted'
         )
 
