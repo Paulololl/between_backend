@@ -842,7 +842,7 @@ class GetApplicantSerializer(serializers.ModelSerializer):
         fields = ['user', 'email', 'school', 'department', 'program', 'first_name', 'last_name',
                   'middle_initial', 'address', 'hard_skills', 'soft_skills', 'in_practicum',
                   'preferred_modality', 'academic_program', 'quick_introduction',
-                  'resume', 'enrollment_record', 'verified_at', 'mobile_number', 'applications', 'application_status']
+                  'resume', 'enrollment_record', 'verified_at', 'mobile_number', 'application_status', 'applications']
 
     def get_hard_skills(self, obj):
         return [
