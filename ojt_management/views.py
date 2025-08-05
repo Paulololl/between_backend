@@ -197,19 +197,20 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
             'applications__internship_posting__person_in_charge',
         )
 
-        accepted_app_subquery = Application.objects.filter(
+        # Subquery: Does this applicant have any accepted application?
+        accepted_app_exists = Application.objects.filter(
             applicant=OuterRef('pk'),
-            status='Accepted'
+            application_status='Accepted'
         )
 
         if status_filter == 'Accepted':
             base_queryset = base_queryset.annotate(
-                has_accepted=Exists(accepted_app_subquery)
+                has_accepted=Exists(accepted_app_exists)
             ).filter(has_accepted=True)
 
         elif status_filter == 'Pending':
             base_queryset = base_queryset.annotate(
-                has_accepted=Exists(accepted_app_subquery)
+                has_accepted=Exists(accepted_app_exists)
             ).filter(has_accepted=False)
 
         if user_filter:
