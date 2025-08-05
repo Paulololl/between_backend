@@ -9,6 +9,7 @@ import requests
 from django.core.files.base import ContentFile
 from django.core.mail import send_mail, EmailMessage
 from django.db import transaction
+from django.db.models import OuterRef, Exists
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django_extensions.management.commands.export_emails import full_name
@@ -25,7 +26,7 @@ from rest_framework.views import APIView
 from between_ims import settings
 from between_ims.settings import WEASYPRINT_SERVICE_URL
 from cea_management import serializers
-from client_application.models import Endorsement
+from client_application.models import Endorsement, Application
 from client_matching.models import InternshipPosting
 from client_matching.serializers import InternshipPostingListSerializer
 from user_account.permissions import IsCoordinator, IsApplicant
@@ -204,8 +205,15 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
 
         if status_filter == 'Accepted':
             queryset = queryset.filter(applications__status='Accepted').distinct()
+
         elif status_filter == 'Pending':
-            queryset = queryset.exclude(applications__status='Accepted').distinct()
+            accepted_applications = Application.objects.filter(
+                applicant=OuterRef('pk'),
+                status='Accepted'
+            )
+            queryset = queryset.annotate(
+                has_accepted=Exists(accepted_applications)
+            ).filter(has_accepted=False)
 
         user = self.request.query_params.get('user')
         if user:
