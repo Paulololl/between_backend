@@ -217,16 +217,16 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
 
         return base_queryset
 
-    def list(self, request, *args, **kwargs):
-        try:
-            queryset = self.filter_queryset(self.get_queryset())
-            if not queryset.exists():
-                return Response({'message': 'No students found.'})
-            return super().list(request, *args, **kwargs)
-        except Exception as e:
-            raise ValidationError({
-                'error': f'An error occurred while retrieving students: {str(e)}'
-            })
+    # def list(self, request, *args, **kwargs):
+    #     try:
+    #         queryset = self.filter_queryset(self.get_queryset())
+    #         if not queryset.exists():
+    #             return Response({'message': 'No students found.'})
+    #         return super().list(request, *args, **kwargs)
+    #     except Exception as e:
+    #         raise ValidationError({
+    #             'error': f'An error occurred while retrieving students: {str(e)}'
+    #         })
 
 
 class PracticumStudentApplicationStatusView(CoordinatorMixin, APIView):
