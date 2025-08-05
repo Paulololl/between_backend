@@ -17,6 +17,7 @@ urlpatterns = [
     path('students/requesting_practicum/enrollment_record/', views.GetEnrollmentRecordView.as_view()),
     path('students/requesting_practicum/approve/', views.ApprovePracticumRequestView.as_view()),
     path('students/requesting_practicum/reject/', views.RejectPracticumRequestView.as_view()),
+    path('students/application_status/', views.PracticumStudentApplicationStatusView.as_view()),
     path('students/in_practicum/', views.GetPracticumStudentListView.as_view()),
     path('students/in_practicum/end/', views.EndPracticumView.as_view()),
     path('students/internship_posting/', GetInternshipPostingCoordinatorView.as_view()),

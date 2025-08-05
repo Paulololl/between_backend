@@ -218,6 +218,38 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
             raise ValidationError({'error': f'An error occurred while retrieving students: {str(e)}'})
 
 
+class PracticumStudentApplicationStatusView(CoordinatorMixin, APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+
+        if user.user_role != 'coordinator':
+            raise ValidationError({'error': 'User must be an OJT Coordinator.'})
+
+        try:
+            coordinator = OJTCoordinator.objects.select_related('program').get(user=user)
+        except OJTCoordinator.DoesNotExist:
+            raise ValidationError({'error': 'Coordinator profile not found.'})
+
+        applicants = Applicant.objects.filter(program=coordinator.program)
+
+        pending_count = 0
+        accepted_count = 0
+
+        for applicant in applicants:
+            if applicant.applications.filter(status='Accepted').exists():
+                accepted_count += 1
+            else:
+                pending_count += 1
+
+        return Response({
+            "accepted_applicants": accepted_count,
+            "pending_applicants": pending_count,
+            "total_applicants": accepted_count + pending_count,
+        })
+
+
 # Students Requesting Practicum List -- KC
 @ojt_management_tag
 class GetRequestPracticumListView(CoordinatorMixin, generics.ListAPIView):

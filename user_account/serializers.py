@@ -835,13 +835,14 @@ class GetApplicantSerializer(serializers.ModelSerializer):
     department = serializers.CharField(source='department.department_name', allow_blank=True, allow_null=True)
     program = serializers.CharField(source='program.program_name', allow_blank=True, allow_null=True)
     applications = ListApplicationSerializer(many=True, read_only=True)
+    application_status = serializers.SerializerMethodField()
 
     class Meta:
         model = Applicant
         fields = ['user', 'email', 'school', 'department', 'program', 'first_name', 'last_name',
                   'middle_initial', 'address', 'hard_skills', 'soft_skills', 'in_practicum',
                   'preferred_modality', 'academic_program', 'quick_introduction',
-                  'resume', 'enrollment_record', 'verified_at', 'mobile_number', 'applications']
+                  'resume', 'enrollment_record', 'verified_at', 'mobile_number', 'applications', 'application_status']
 
     def get_hard_skills(self, obj):
         return [
@@ -854,6 +855,11 @@ class GetApplicantSerializer(serializers.ModelSerializer):
             {"id": skill.lightcast_identifier, "name": skill.name}
             for skill in obj.soft_skills.all()
         ]
+
+    def get_application_status(self, obj):
+        if obj.applications.filter(status='Accepted').exists():
+            return "Accepted"
+        return "Pending"
 
 
 class GetCompanySerializer(serializers.ModelSerializer):
