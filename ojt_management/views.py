@@ -176,9 +176,10 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
 
     def get_queryset(self):
         coordinator = self.get_coordinator_or_403(self.request.user)
-        status_filter = self.request.query_params.get('application_status')
         user_filter = self.request.query_params.get('user')
+        application_status_filter = self.request.query_params.get('application_status')
 
+        # Base queryset: All students under the coordinator’s program
         base_queryset = Applicant.objects.filter(
             program=coordinator.program,
             user__status='Active',
@@ -197,23 +198,13 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
             'applications__internship_posting__person_in_charge',
         )
 
-        accepted_app_exists = Application.objects.filter(
-            applicant=OuterRef('pk'),
-            status='Accepted'
-        )
-
-        if status_filter == 'Accepted':
-            base_queryset = base_queryset.annotate(
-                has_accepted=Exists(accepted_app_exists)
-            ).filter(has_accepted=True)
-
-        elif status_filter == 'Pending':
-            base_queryset = base_queryset.annotate(
-                has_accepted=Exists(accepted_app_exists)
-            ).filter(has_accepted=False)
-
+        # Optional filter: specific user
         if user_filter:
             base_queryset = base_queryset.filter(user=user_filter)
+
+        # Optional filter: only applicants with at least 1 accepted application
+        if application_status_filter == 'Accepted':
+            base_queryset = base_queryset.filter(applications__status='Accepted').distinct()
 
         return base_queryset
 
