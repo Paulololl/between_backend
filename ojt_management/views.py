@@ -197,10 +197,9 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
             'applications__internship_posting__person_in_charge',
         )
 
-        # Subquery: Does this applicant have any accepted application?
         accepted_app_exists = Application.objects.filter(
             applicant=OuterRef('pk'),
-            application_status='Accepted'
+            status='Accepted'
         )
 
         if status_filter == 'Accepted':
