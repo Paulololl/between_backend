@@ -205,6 +205,18 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
         if user:
             queryset = queryset.filter(user=user)
 
+        application_status = self.request.query_params.get('application_status')
+
+        if application_status in ['Pending', 'Accepted']:
+            filtered_queryset = []
+            for applicant in queryset:
+                has_accepted = applicant.applications.filter(status='Accepted').exists()
+                if application_status == 'Accepted' and has_accepted:
+                    filtered_queryset.append(applicant)
+                elif application_status == 'Pending' and not has_accepted:
+                    filtered_queryset.append(applicant)
+            queryset = filtered_queryset
+
         return queryset
 
     def list(self, request, *args, **kwargs):
