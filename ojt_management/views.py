@@ -171,29 +171,23 @@ class ApplicantListView(CoordinatorMixin, generics.ListAPIView):
 class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsCoordinator]
     serializer_class = GetApplicantSerializer
-
     filter_backends = [filters.SearchFilter]
-
-    search_fields = [
-        'first_name'
-        , 'last_name'
-        , 'user__email'
-    ]
+    search_fields = ['first_name', 'last_name', 'user__email']
 
     def get_queryset(self):
-        status_filter = self.request.query_params.get('application_status')
         coordinator = self.get_coordinator_or_403(self.request.user)
-        queryset = Applicant.objects.filter(
-            program=coordinator.program
-            , user__status__in=['Active']
-            , in_practicum='Yes'
-            , enrollment_record__isnull=False
+        status_filter = self.request.query_params.get('application_status')
+        user_filter = self.request.query_params.get('user')
+
+        base_queryset = Applicant.objects.filter(
+            program=coordinator.program,
+            user__status='Active',
+            in_practicum='Yes',
+            enrollment_record__isnull=False,
         ).select_related(
-            'user',
-            'school', 'department', 'program'
+            'user', 'school', 'department', 'program'
         ).prefetch_related(
-            'hard_skills',
-            'soft_skills',
+            'hard_skills', 'soft_skills',
             'applications__internship_posting__required_hard_skills',
             'applications__internship_posting__required_soft_skills',
             'applications__internship_posting__key_tasks',
@@ -204,29 +198,27 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
         )
 
         if status_filter == 'Accepted':
-            queryset = queryset.filter(applications__status='Accepted').distinct()
+            base_queryset = base_queryset.filter(applications__status='Accepted').distinct()
 
         elif status_filter == 'Pending':
+            # Get applicants who do NOT have any accepted applications
             accepted_applications = Application.objects.filter(
-                applicant=OuterRef('pk'),
-                status='Accepted'
+                applicant=OuterRef('pk'), status='Accepted'
             )
-            queryset = queryset.annotate(
+            base_queryset = base_queryset.annotate(
                 has_accepted=Exists(accepted_applications)
             ).filter(has_accepted=False)
 
-        user = self.request.query_params.get('user')
-        if user:
-            queryset = queryset.filter(user=user)
+        if user_filter:
+            base_queryset = base_queryset.filter(user=user_filter)
 
-        return queryset
+        return base_queryset
 
     def list(self, request, *args, **kwargs):
         try:
             queryset = self.filter_queryset(self.get_queryset())
-            if not queryset:
+            if not queryset.exists():
                 return Response({'message': 'No students found.'})
-
             return super().list(request, *args, **kwargs)
         except Exception as e:
             raise ValidationError({'error': f'An error occurred while retrieving students: {str(e)}'})
