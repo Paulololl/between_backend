@@ -151,15 +151,15 @@ class ApplicantListView(CoordinatorMixin, generics.ListAPIView):
 
         return queryset
 
-    def list(self, request, *args, **kwargs):
-        try:
-            queryset = self.filter_queryset(self.get_queryset())
-            if not queryset:
-                return Response({'message': 'No students found.'})
-
-            return super().list(request, *args, **kwargs)
-        except Exception as e:
-            raise ValidationError({'error': f'An error occurred while retrieving students: {str(e)}'})
+    # def list(self, request, *args, **kwargs):
+    #     try:
+    #         queryset = self.filter_queryset(self.get_queryset())
+    #         if not queryset:
+    #             return Response({'message': 'No students found.'})
+    #
+    #         return super().list(request, *args, **kwargs)
+    #     except Exception as e:
+    #         raise ValidationError({'error': f'An error occurred while retrieving students: {str(e)}'})
 
 # endregion
 
@@ -1103,6 +1103,7 @@ class EndorsementsRespondedMetricView(CoordinatorMixin, APIView):
             "endorsements_responded": coordinator.endorsements_responded
         }
         return Response(data)
+
 
 
 
