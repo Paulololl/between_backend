@@ -201,25 +201,8 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
             base_queryset = base_queryset.filter(user=user_filter)
 
         if application_status_filter:
-            filtered_queryset = []
-            status_filters = [s.strip() for s in application_status_filter.split(',')]
-
-            for applicant in base_queryset:
-                applications = applicant.applications.all()
-
-                has_accepted = any(app.status == 'Accepted' for app in applications)
-                has_pending = any(app.status == 'Pending' for app in applications)
-
-                computed_status = None
-                if has_accepted:
-                    computed_status = 'Accepted'
-                elif has_pending:
-                    computed_status = 'Pending'
-
-                if computed_status in status_filters:
-                    filtered_queryset.append(applicant)
-
-            return filtered_queryset
+            statuses = [s.strip() for s in application_status_filter.split(',')]
+            base_queryset = base_queryset.filter(applications__status__in=statuses).distinct()
 
         return base_queryset
 
@@ -249,7 +232,7 @@ class PracticumStudentApplicationStatusView(CoordinatorMixin, APIView):
         except OJTCoordinator.DoesNotExist:
             raise ValidationError({'error': 'Coordinator profile not found.'})
 
-        applicants = Applicant.objects.filter(program=coordinator.program)
+        applicants = Applicant.objects.filter(program=coordinator.program, in_practicum=True)
 
         pending_count = 0
         accepted_count = 0
