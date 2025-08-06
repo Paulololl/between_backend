@@ -9,7 +9,7 @@ import requests
 from django.core.files.base import ContentFile
 from django.core.mail import send_mail, EmailMessage
 from django.db import transaction
-from django.db.models import OuterRef, Exists
+from django.db.models import OuterRef, Exists, Count, Q
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django_extensions.management.commands.export_emails import full_name
@@ -203,8 +203,11 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
         if application_status_filter:
             if application_status_filter == 'Accepted':
                 base_queryset = base_queryset.filter(applications__status='Accepted').distinct()
+
             elif application_status_filter == 'Pending':
-                base_queryset = base_queryset.exclude(applications__status='Accepted').distinct()
+                base_queryset = base_queryset.annotate(app_count=Count('applications')).filter(
+                    Q(app_count=0) | Q(applications__status='Pending')
+                ).exclude(applications__status='Accepted').distinct()
 
         return base_queryset
 
