@@ -578,11 +578,9 @@ class EndPracticumView(CoordinatorMixin, generics.UpdateAPIView):
         if not applicant.enrollment_record:
             return Response({'error': 'Action not allowed. Student has not submitted enrollment record.'})
 
-        """
         applicant.enrollment_record.delete(save=False)
         applicant.enrollment_record = None
         applicant.save(update_fields=['enrollment_record'])
-        """
 
         serializer = self.get_serializer(instance=applicant, data={'in_practicum': 'No'}, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -637,6 +635,10 @@ class ResetPracticumView(CoordinatorMixin, generics.GenericAPIView):
                         'error': 'No enrollment record found for student.'
                     })
                     continue
+
+                applicant.enrollment_record.delete()
+                applicant.enrollment_record = None
+                applicant.save(update_fields=['enrollment_record'])
 
                 email_context = self.build_email_context(applicant)
                 coordinator = self.get_coordinator_or_403(request.user)
