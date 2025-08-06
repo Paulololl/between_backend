@@ -234,7 +234,7 @@ class PracticumStudentApplicationStatusView(CoordinatorMixin, APIView):
         except OJTCoordinator.DoesNotExist:
             raise ValidationError({'error': 'Coordinator profile not found.'})
 
-        applicants = Applicant.objects.filter(program=coordinator.program, in_practicum=True)
+        applicants = Applicant.objects.filter(program=coordinator.program, in_practicum='Yes')
 
         pending_count = 0
         accepted_count = 0
