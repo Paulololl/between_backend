@@ -201,8 +201,10 @@ class GetPracticumStudentListView(CoordinatorMixin, generics.ListAPIView):
             base_queryset = base_queryset.filter(user=user_filter)
 
         if application_status_filter:
-            statuses = [s.strip() for s in application_status_filter.split(',')]
-            base_queryset = base_queryset.filter(applications__status__in=statuses).distinct()
+            if application_status_filter == 'Accepted':
+                base_queryset = base_queryset.filter(applications__status='Accepted').distinct()
+            elif application_status_filter == 'Pending':
+                base_queryset = base_queryset.exclude(applications__status='Accepted').distinct()
 
         return base_queryset
 
