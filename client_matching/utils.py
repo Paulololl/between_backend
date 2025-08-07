@@ -145,6 +145,14 @@ def get_profile_embedding(profile: dict, is_applicant: bool = True) -> np.ndarra
         return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
 
 
+def get_posting_embeddings_batch(posting_profiles: List[dict]) -> np.ndarray:
+    embeddings = []
+    for profile in posting_profiles:
+        embedding = get_profile_embedding(profile, is_applicant=False)
+        embeddings.append(embedding)
+    return np.array(embeddings, dtype=np.float32)
+
+
 def modality_score(applicant_modality: str, posting_modality: str) -> float:
     if applicant_modality == posting_modality:
         return 1.0

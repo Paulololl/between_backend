@@ -16,7 +16,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 
 from client_application.models import Application
 from client_matching.utils import get_profile_embedding, cosine_compare, monitor_performance, extract_skill_names, \
-    SIMILARITY_THRESHOLD, generate_embedding_cache_key
+    SIMILARITY_THRESHOLD, generate_embedding_cache_key, get_posting_embeddings_batch
 from user_account.models import Company, Applicant
 import googlemaps
 from django.contrib.auth.tokens import default_token_generator
@@ -736,9 +736,7 @@ class InternshipMatchSerializer(serializers.Serializer):
                 is_applicant=True
             )
 
-            posting_embeddings = np.array([
-                get_profile_embedding(profile, is_applicant=False) for profile in posting_profiles
-            ], dtype=np.float32)
+            posting_embeddings = get_posting_embeddings_batch(posting_profiles)
 
             ranked_results = cosine_compare(
                 applicant_embedding,
