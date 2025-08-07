@@ -16,7 +16,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 
 from client_application.models import Application
 from client_matching.utils import get_profile_embedding, cosine_compare, monitor_performance, extract_skill_names, \
-    SIMILARITY_THRESHOLD, get_posting_embeddings_batch
+    SIMILARITY_THRESHOLD, generate_embedding_cache_key
 from user_account.models import Company, Applicant
 import googlemaps
 from django.contrib.auth.tokens import default_token_generator
@@ -731,9 +731,15 @@ class InternshipMatchSerializer(serializers.Serializer):
                 logger.info("No open postings available for matching")
                 return []
 
-            applicant_embedding = get_profile_embedding(applicant_profile, is_applicant=True, applicant=self.applicant)
+            applicant_embedding = get_profile_embedding(
+                applicant_profile,
+                is_applicant=True,
+                applicant=self.applicant
+            )
 
-            posting_embeddings = get_posting_embeddings_batch(posting_profiles)
+            posting_embeddings = np.array([
+                get_profile_embedding(profile, is_applicant=False) for profile in posting_profiles
+            ], dtype=np.float32)
 
             ranked_results = cosine_compare(
                 applicant_embedding,
