@@ -299,6 +299,8 @@ class InternshipMatchView(APIView):
         except AttributeError:
             raise serializers.ValidationError({'error': 'Applicant profile not found for the current user.'})
 
+        reset_recommendations_and_tap_count(applicant)
+
         serializer = InternshipMatchSerializer(data=request.data, context={'applicant': applicant})
         if serializer.is_valid():
             ranked_result = serializer.save()
