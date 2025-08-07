@@ -733,8 +733,7 @@ class InternshipMatchSerializer(serializers.Serializer):
 
             applicant_embedding = get_profile_embedding(
                 applicant_profile,
-                is_applicant=True,
-                applicant=self.applicant
+                is_applicant=True
             )
 
             posting_embeddings = np.array([
