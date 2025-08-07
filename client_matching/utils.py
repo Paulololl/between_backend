@@ -21,7 +21,8 @@ logger = logging.getLogger(__name__)
 SIMILARITY_THRESHOLD = 0  # 0.20
 
 SIMILARITY_WEIGHT = 0.95
-DISTANCE_WEIGHT = 0.05
+MODALITY_WEIGHT = 0.02
+DISTANCE_WEIGHT = 0.03
 
 EMBEDDING_CACHE_TIMEOUT = 3600
 EMBEDDING_DIMENSION = 384
@@ -30,8 +31,8 @@ EMBEDDING_DIMENSION = 384
 # APPLICANT_WEIGHTS = np.array([0.35, 0.35, 0.1, 0.1, 0.1])
 # POSTING_WEIGHTS = np.array([0.3, 0.3, 0.05, 0.05, 0.1, 0.1, 0.1])
 
-APPLICANT_WEIGHTS = np.array([0.40, 0.40, 0.1, 0.1])
-POSTING_WEIGHTS = np.array([0.3, 0.3, 0.1, 0.1, 0.1, 0.1])
+APPLICANT_WEIGHTS = np.array([0.50, 0.25, 0.25])
+POSTING_WEIGHTS = np.array([0.50, 0.10, 0.20, 0.20])
 
 
 @lru_cache(maxsize=1)
@@ -51,16 +52,43 @@ def get_sentence_model():
         raise
 
 
-def generate_embedding_cache_key(profile_data: str, is_applicant: bool = True) -> str:
-    profile_hash = hashlib.md5(profile_data.encode()).hexdigest()
-    prefix = "applicant" if is_applicant else "posting"
-    return f"embedding:{prefix}:{profile_hash}"
+def generate_embedding_cache_key(text: str) -> str:
+    return f"text_embedding:{hashlib.sha256(text.encode('utf-8')).hexdigest()}"
+
+
+def encode_text_with_cache(text: str) -> np.ndarray:
+    if not text or not text.strip():
+        return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
+
+    cache_key = generate_embedding_cache_key(text)
+    cached_embedding = cache.get(cache_key)
+    if cached_embedding is not None:
+        return np.array(cached_embedding, dtype=np.float32)
+
+    try:
+        model = get_sentence_model()
+        embedding = model.encode(text, convert_to_numpy=True).astype(np.float32)
+        cache.set(cache_key, embedding.tolist(), EMBEDDING_CACHE_TIMEOUT)
+        return embedding
+    except Exception as e:
+        logger.error(f"Failed to encode text: {e}")
+        return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
+
+
+def embed_each_item(item_list: List[str]) -> np.ndarray:
+    if not item_list:
+        return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
+
+    embeddings = []
+    for item in item_list:
+        if item and isinstance(item, str) and item.strip():
+            embeddings.append(encode_text_with_cache(item.strip()))
+    return np.mean(embeddings, axis=0) if embeddings else np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
 
 
 def extract_skill_names(skills) -> List[str]:
     if not skills:
         return []
-
     try:
         if hasattr(skills, 'all'):
             return [skill.name for skill in skills.all() if hasattr(skill, 'name') and skill.name]
@@ -80,197 +108,50 @@ def extract_skill_names(skills) -> List[str]:
             return result
     except Exception as e:
         logger.warning(f"Error extracting skill names: {e}")
-
     return []
 
 
-def validate_coordinates(latitude: Optional[float], longitude: Optional[float]) -> Tuple[
-    bool, Optional[float], Optional[float]]:
-    if latitude is None or longitude is None:
-        return False, None, None
-
-    try:
-        lat = float(latitude)
-        lon = float(longitude)
-
-        if -90 <= lat <= 90 and -180 <= lon <= 180:
-            return True, lat, lon
-    except (ValueError, TypeError):
-        pass
-
-    logger.warning(f"Invalid coordinates: lat={latitude}, lon={longitude}")
-    return False, None, None
-
-
-def encode_text_with_cache(text: str) -> np.ndarray:
-    if not text or not text.strip():
-        return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
-
-    cache_key = f"text_embedding:{hashlib.md5(text.encode()).hexdigest()}"
-    cached_embedding = cache.get(cache_key)
-
-    if cached_embedding is not None:
-        return np.array(cached_embedding, dtype=np.float32)
-
-    try:
-        model = get_sentence_model()
-        embedding = model.encode(text, convert_to_numpy=True).astype(np.float32)
-
-        cache.set(cache_key, embedding.tolist(), EMBEDDING_CACHE_TIMEOUT)
-        return embedding
-    except Exception as e:
-        logger.error(f"Failed to encode text: {e}")
-        return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
-
-
-def batch_encode_with_cache(texts: List[str]) -> List[np.ndarray]:
-    results = []
-    texts_to_encode = []
-    indexes_to_encode = []
-
-    for i, text in enumerate(texts):
-        cache_key = f"text_embedding:{hashlib.md5(text.encode()).hexdigest()}"
-        cached = cache.get(cache_key)
-        if cached:
-            results.append(np.array(cached, dtype=np.float32))
-        else:
-            results.append(None)
-            texts_to_encode.append(text)
-            indexes_to_encode.append(i)
-
-    if texts_to_encode:
-        model = get_sentence_model()
-        encodings = model.encode(texts_to_encode, convert_to_numpy=True).astype(np.float32)
-        for idx, encoding in zip(indexes_to_encode, encodings):
-            results[idx] = encoding
-            cache.set(
-                f"text_embedding:{hashlib.md5(texts[idx].encode()).hexdigest()}",
-                encoding.tolist(),
-                EMBEDDING_CACHE_TIMEOUT
-            )
-
-    return results
-
-
-def get_profile_embedding(profile: dict, is_applicant: bool = True, applicant: Optional[Applicant] = None) -> np.ndarray:
-    use_cache = True
-
-    if is_applicant and applicant:
-        user = applicant.user
-        hard_skills = extract_skill_names(applicant.hard_skills)
-        soft_skills = extract_skill_names(applicant.soft_skills)
-
-        profile = {
-            "uuid": applicant.user_id,
-            "hard_skills": hard_skills,
-            "soft_skills": soft_skills,
-            "preferred_modality": str(applicant.preferred_modality or "").strip(),
-            "quick_introduction": str(applicant.quick_introduction or "").strip(),
-            "latitude": applicant.latitude,
-            "longitude": applicant.longitude,
-        }
-
-        date_modified = getattr(user, "date_modified", None)
-        last_matched = applicant.last_matched
-        if not date_modified or last_matched is None or date_modified > last_matched:
-            use_cache = False
-
-    profile_str = json.dumps(profile, sort_keys=True, default=str)
-    cache_key = generate_embedding_cache_key(profile_str, is_applicant)
-
-    if use_cache:
-        cached_embedding = cache.get(cache_key)
-        if cached_embedding is not None:
-            return np.array(cached_embedding, dtype=np.float32)
-
+def get_profile_embedding(profile: dict, is_applicant: bool = True) -> np.ndarray:
     try:
         if is_applicant:
             hard_skills = extract_skill_names(profile.get("hard_skills", []))
             soft_skills = extract_skill_names(profile.get("soft_skills", []))
-            modality = profile.get("preferred_modality", "")
-            quick_introduction = profile.get("quick_introduction", "")
-            latitude = profile.get("latitude")
-            longitude = profile.get("longitude")
+            intro = profile.get("quick_introduction", "")
 
-            is_valid_coords, lat, lon = validate_coordinates(latitude, longitude)
-            location_text = f"{lat} {lon}" if is_valid_coords else None
-
-            texts = [
-                " ".join(hard_skills),
-                " ".join(soft_skills),
-                modality,
-                quick_introduction
+            vectors = [
+                embed_each_item(hard_skills),
+                embed_each_item(soft_skills),
+                encode_text_with_cache(intro),
             ]
             weights = APPLICANT_WEIGHTS
-
         else:
-            required_hard_skills = extract_skill_names(profile.get("required_hard_skills", []))
-            required_soft_skills = extract_skill_names(profile.get("required_soft_skills", []))
-            modality = profile.get("modality", "")
-            min_qualification = ", ".join(profile.get("min_qualifications", []))
-            benefit = ", ".join(profile.get("benefits", []))
-            key_task = ", ".join(profile.get("key_tasks", []))
-            latitude = profile.get("latitude")
-            longitude = profile.get("longitude")
+            hard_skills = extract_skill_names(profile.get("required_hard_skills", []))
+            soft_skills = extract_skill_names(profile.get("required_soft_skills", []))
+            qualifications = profile.get("min_qualifications", [])
+            tasks = profile.get("key_tasks", [])
 
-            is_valid_coords, lat, lon = validate_coordinates(latitude, longitude)
-            location_text = f"{lat} {lon}" if is_valid_coords else None
-
-            texts = [
-                " ".join(required_hard_skills),
-                " ".join(required_soft_skills),
-                modality,
-                min_qualification,
-                benefit,
-                key_task
+            vectors = [
+                embed_each_item(hard_skills),
+                embed_each_item(soft_skills),
+                embed_each_item(qualifications),
+                embed_each_item(tasks),
             ]
             weights = POSTING_WEIGHTS
 
-        embeddings = batch_encode_with_cache(texts)
-        embeddings = [e if e is not None else np.zeros(EMBEDDING_DIMENSION, dtype=np.float32) for e in embeddings]
-        weighted_embedding = np.average(embeddings, axis=0, weights=weights)
-
-        cache.set(cache_key, weighted_embedding.tolist(), EMBEDDING_CACHE_TIMEOUT)
-
-        return weighted_embedding.astype(np.float32)
+        return np.average(vectors, axis=0, weights=weights).astype(np.float32)
 
     except Exception as e:
         logger.error(f"Failed to generate profile embedding: {e}")
         return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
 
 
-def get_posting_embeddings_batch(posting_profiles: List[Dict]) -> Optional[np.ndarray]:
-    if not posting_profiles:
-        return None
-
-    embeddings = []
-    for profile in posting_profiles:
-        try:
-            emb = get_profile_embedding(profile, is_applicant=False)
-            embeddings.append(emb)
-        except Exception as e:
-            logger.warning(f"Failed to embed posting profile: {e}")
-            embeddings.append(np.zeros(EMBEDDING_DIMENSION, dtype=np.float32))
-
-    return np.vstack(embeddings) if embeddings else None
-
-
-def cosine_similarity_vectorized(a: np.ndarray, b: np.ndarray) -> Union[float, np.ndarray]:
-    try:
-        a_norm = a / np.linalg.norm(a)
-
-        if b.ndim == 1:
-            b_norm = b / np.linalg.norm(b)
-            return np.dot(a_norm, b_norm)
-        else:
-            b_norm = b / np.linalg.norm(b, axis=1, keepdims=True)
-            return np.dot(b_norm, a_norm)
-    except Exception as e:
-        logger.error(f"Cosine similarity calculation failed: {e}")
-        if b.ndim == 1:
-            return 0.0
-        else:
-            return np.zeros(len(b))
+def modality_score(applicant_modality: str, posting_modality: str) -> float:
+    if applicant_modality == posting_modality:
+        return 1.0
+    if "Hybrid" in [applicant_modality, posting_modality]:
+        if "Onsite" in [applicant_modality, posting_modality] or "WorkFromHome" in [applicant_modality, posting_modality]:
+            return 0.5
+    return 0.0
 
 
 def calculate_distance(coord1: tuple, coord2: tuple) -> float:
@@ -283,62 +164,72 @@ def calculate_distance(coord1: tuple, coord2: tuple) -> float:
         return 0.0
 
 
-def cosine_compare(applicant_embedding: np.ndarray, applicant_profile: dict,
-                   internship_posting_embedding: np.ndarray, internship_posting_profiles: list) -> List[Dict]:
-
-    if internship_posting_embedding is None or len(internship_posting_embedding) == 0:
-        return []
-
+def cosine_similarity_vectorized(a: np.ndarray, b: np.ndarray) -> Union[float, np.ndarray]:
     try:
-        applicant_embedding = np.array(applicant_embedding, dtype=np.float32).flatten()
+        a_norm = a / np.linalg.norm(a)
+        if b.ndim == 1:
+            b_norm = b / np.linalg.norm(b)
+            return np.dot(a_norm, b_norm)
+        else:
+            b_norm = b / np.linalg.norm(b, axis=1, keepdims=True)
+            return np.dot(b_norm, a_norm)
+    except Exception as e:
+        logger.error(f"Cosine similarity calculation failed: {e}")
+        return 0.0 if b.ndim == 1 else np.zeros(len(b))
 
-        if internship_posting_embedding.ndim == 1:
-            internship_posting_embedding = internship_posting_embedding.reshape(1, -1)
 
-        similarity_scores = cosine_similarity_vectorized(applicant_embedding, internship_posting_embedding)
-        if isinstance(similarity_scores, float):
-            similarity_scores = np.array([similarity_scores])
-
+def cosine_compare(applicant_embedding: np.ndarray, applicant_profile: dict,
+                   posting_embeddings: np.ndarray, posting_profiles: list) -> List[Dict]:
+    try:
+        similarity_scores = cosine_similarity_vectorized(applicant_embedding, posting_embeddings)
         applicant_coords = (applicant_profile.get("latitude"), applicant_profile.get("longitude"))
+        applicant_modality = applicant_profile.get("preferred_modality", "")
 
-        similarities = []
-        distances = []
-
-        for idx, (score, profile) in enumerate(zip(similarity_scores, internship_posting_profiles)):
+        results = []
+        for score, profile in zip(similarity_scores, posting_profiles):
             profile_coords = (profile.get("latitude"), profile.get("longitude"))
-            modality = profile.get("modality", "")
+            posting_modality = profile.get("modality", "")
+            is_remote = posting_modality == "WorkFromHome"
 
-            if modality == "WorkFromHome" or None in applicant_coords or None in profile_coords:
-                consider_distance = False
-                distance_km = 0.0
-            else:
-                consider_distance = True
+            if not is_remote and None not in applicant_coords + profile_coords:
                 distance_km = calculate_distance(applicant_coords, profile_coords)
-
-            similarities.append((float(score), distance_km, consider_distance, profile))
-            if consider_distance:
-                distances.append(distance_km)
-
-        max_distance = max(distances) if distances else 1.0
-        ranking_json = []
-
-        for score, distance_km, consider_distance, profile in similarities:
-            if consider_distance and max_distance > 0:
-                norm_distance_score = 1 - (distance_km / max_distance)
-                final_score = SIMILARITY_WEIGHT * score + DISTANCE_WEIGHT * norm_distance_score
             else:
-                final_score = score
+                distance_km = 0.0
 
-            ranking_json.append({
-                "internship_posting_id": profile["uuid"],
+            mod_score = modality_score(applicant_modality, posting_modality)
+
+            if not is_remote and distance_km:
+                if distance_km <= 5:
+                    distance_score = 1.0
+                elif distance_km <= 10:
+                    distance_score = 0.75
+                elif distance_km <= 15:
+                    distance_score = 0.5
+                elif distance_km <= 20:
+                    distance_score = 0.25
+                else:
+                    distance_score = 0.0
+                dist_component = distance_score * DISTANCE_WEIGHT
+            else:
+                dist_component = DISTANCE_WEIGHT
+
+            sim_component = score * SIMILARITY_WEIGHT
+            mod_component = mod_score * MODALITY_WEIGHT
+
+            final_score = sim_component + mod_component + dist_component
+
+            results.append({
+                "internship_posting_id": profile.get("uuid", "Unknown UUID"),
                 "similarity_score": round(final_score, 3),
-                "address_distance_km": round(distance_km, 2) if consider_distance else "Remote / Unknown",
-                "consider_distance": consider_distance,
+                "semantic_similarity_component": round(sim_component, 3),
+                "modality_score_component": round(mod_component, 3),
+                "distance_score_component": round(dist_component, 3),
+                "raw_cosine_similarity": round(score, 3),
                 "modality": profile.get("modality", ""),
+                "distance_km": round(distance_km, 2) if not is_remote else "Remote / Unknown",
             })
 
-        ranking_json.sort(key=lambda x: x["similarity_score"], reverse=True)
-        return ranking_json
+        return sorted(results, key=lambda x: x["similarity_score"], reverse=True)
 
     except Exception as e:
         logger.error(f"Comparison failed: {e}")
