@@ -404,8 +404,11 @@ class InternshipRecommendationListView(ListAPIView):
             return [current_pending]
 
         if base_queryset.exists():
+            high_similarity_qs = base_queryset.filter(similarity_score__gte=avg_score)
+            selection_pool = high_similarity_qs if high_similarity_qs.exists() else base_queryset
+
             InternshipRecommendation.objects.filter(applicant=applicant, is_current=True).update(is_current=False)
-            current_pending = random.choice(list(base_queryset))
+            current_pending = random.choice(list(selection_pool))
             current_pending.is_current = True
             current_pending.save()
 
