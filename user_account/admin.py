@@ -195,7 +195,7 @@ class ApplicantAdmin(admin.ModelAdmin):
     readonly_fields = (
         'user', 'first_name', 'last_name', 'middle_initial',
         # school, department, program,
-        'academic_program', 'address', 'preferred_modality',
+        'address', 'preferred_modality', # academic_program
         'quick_introduction', 'display_hard_skills', 'display_soft_skills',
         'last_matched', 'last_recommendation_filter_state', 'latitude', 'longitude'  # resume
         # enrollment_record
