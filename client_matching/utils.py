@@ -117,94 +117,90 @@ def encode_text_with_cache(text: str) -> np.ndarray:
 #
 #     return np.mean(embeddings, axis=0) if embeddings else np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
 
+_sentence_model = None
 
-# Batch encoding but less accurate
+
+def get_persistent_model():
+    global _sentence_model
+    if _sentence_model is None:
+        _sentence_model = get_sentence_model()
+        _sentence_model.eval()  # no dropout
+    return _sentence_model
+
+# Batch encoding using deterministic mode of Pytorch
 def embed_each_item(item_list: List[str]) -> np.ndarray:
-    # quick exit for empty or falsy input
     if not item_list:
         return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
 
-    texts = []
-    for item in item_list:
-        if not item or not isinstance(item, str):
-            continue
-        t = item.strip()
-        if not t:
-            continue
-        texts.append(t)
-
+    # Clean and filter
+    texts = [t.strip() for t in item_list if isinstance(t, str) and t.strip()]
     if not texts:
         return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
 
+    # Precompute cache keys
     keys = [generate_embedding_cache_key(t) for t in texts]
 
-    cached_map = {}
-    try:
-        if hasattr(cache, "get_many"):
-            cached_map = cache.get_many(keys) or {}
-        else:
-            for k in keys:
-                v = cache.get(k)
-                if v is not None:
-                    cached_map[k] = v
-    except Exception:
-        cached_map = {}
-        for k in keys:
-            try:
-                v = cache.get(k)
-                if v is not None:
-                    cached_map[k] = v
-            except Exception:
-                pass
+    # Bulk get cached
+    if hasattr(cache, "get_many"):
+        cached_map = cache.get_many(keys) or {}
+    else:
+        cached_map = {k: cache.get(k) for k in keys if cache.get(k) is not None}
 
+    # Preallocate output array
     n = len(texts)
     result_embeddings = np.empty((n, EMBEDDING_DIMENSION), dtype=np.float32)
 
+    # Track uncached
     to_encode_texts = []
     to_encode_indices = []
-
     for i, k in enumerate(keys):
-        cached_val = cached_map.get(k)
-        if cached_val is not None:
-            result_embeddings[i] = np.array(cached_val, dtype=np.float32)
+        if k in cached_map:
+            result_embeddings[i] = np.array(cached_map[k], dtype=np.float32)
         else:
             to_encode_texts.append(texts[i])
             to_encode_indices.append(i)
 
+    # Encode uncached items in one deterministic batch
     if to_encode_texts:
-        model = get_sentence_model()
-        encode_kwargs = {"convert_to_numpy": True, "show_progress_bar": False}
-        try:
-            new_embs = model.encode(to_encode_texts, **encode_kwargs)
-        except TypeError:
-            new_embs = model.encode(to_encode_texts, convert_to_numpy=True)
+        model = get_persistent_model()
+
+        # Force deterministic mode
+        torch.manual_seed(0)
+        np.random.seed(0)
+        torch.use_deterministic_algorithms(True)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+        # Choose device: GPU if available, else CPU
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        model = model.to(device)
+
+        # Batch encode
+        new_embs = model.encode(
+            to_encode_texts,
+            convert_to_numpy=True,
+            show_progress_bar=False,
+            device=device
+        )
 
         new_embs = np.array(new_embs, dtype=np.float32)
         if new_embs.ndim == 1:
             new_embs = new_embs.reshape(1, -1)
 
-        if new_embs.shape[1] != EMBEDDING_DIMENSION:
-            raise ValueError(
-                f"Model embedding dim {new_embs.shape[1]} != EMBEDDING_DIMENSION ({EMBEDDING_DIMENSION})"
-            )
-
+        # Store results and update cache in bulk
         for idx, emb in zip(to_encode_indices, new_embs):
-            result_embeddings[idx] = emb.astype(np.float32)
+            result_embeddings[idx] = emb
 
-        try:
-            if hasattr(cache, "set_many"):
-                cache_dict = {keys[i]: result_embeddings[i].tolist() for i in to_encode_indices}
-                cache.set_many(cache_dict, EMBEDDING_CACHE_TIMEOUT)
-            else:
-                for i in to_encode_indices:
-                    cache.set(keys[i], result_embeddings[i].tolist(), EMBEDDING_CACHE_TIMEOUT)
-        except Exception:
+        if hasattr(cache, "set_many"):
+            cache.set_many(
+                {keys[i]: result_embeddings[i].tolist() for i in to_encode_indices},
+                EMBEDDING_CACHE_TIMEOUT
+            )
+        else:
             for i in to_encode_indices:
-                try:
-                    cache.set(keys[i], result_embeddings[i].tolist(), EMBEDDING_CACHE_TIMEOUT)
-                except Exception:
-                    pass
+                cache.set(keys[i], result_embeddings[i].tolist(), EMBEDDING_CACHE_TIMEOUT)
 
+    # Return mean vector
     return np.mean(result_embeddings, axis=0)
 
 
