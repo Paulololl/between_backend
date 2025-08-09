@@ -130,18 +130,30 @@ def encode_text_with_cache(text: str) -> np.ndarray:
 
 # Batch encoding using deterministic mode of Pytorch (Faster and fully optimized)
 USE_BINARY_CACHE = False
-_tokenizer_cache = {}
 
-
-def _serialize_embedding_for_cache(arr: np.ndarray) -> bytes:
-    return pickle.dumps(arr, protocol=pickle.HIGHEST_PROTOCOL)
-
-
-def _deserialize_embedding_from_cache(blob: bytes) -> np.ndarray:
-    return pickle.loads(blob)
+#
+# def _serialize_embedding_for_cache(arr: np.ndarray) -> bytes:
+#     return pickle.dumps(arr, protocol=pickle.HIGHEST_PROTOCOL)
+#
+#
+# def _deserialize_embedding_from_cache(blob: bytes) -> np.ndarray:
+#     return pickle.loads(blob)
 
 
 _sentence_model = None
+
+
+def _serialize_embedding_for_cache(arr: np.ndarray) -> bytes:
+    try:
+        return pickle.dumps(arr, protocol=pickle.HIGHEST_PROTOCOL)
+    except Exception:
+        return b""
+
+def _deserialize_embedding_from_cache(blob: bytes) -> np.ndarray:
+    try:
+        return pickle.loads(blob)
+    except Exception:
+        return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
 
 
 def get_persistent_model():
@@ -155,14 +167,6 @@ def get_persistent_model():
     return _sentence_model
 
 
-# def _tokenize_with_cache(model, text):
-#     if text in _tokenizer_cache:
-#         return _tokenizer_cache[text]
-#     tok = model.tokenizer(text, return_tensors="pt", padding=True, truncation=True)
-#     _tokenizer_cache[text] = tok
-#     return tok
-
-
 def embed_each_item(item_list: List[str]) -> np.ndarray:
     if not item_list:
         return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
@@ -173,6 +177,7 @@ def embed_each_item(item_list: List[str]) -> np.ndarray:
 
     keys = [generate_embedding_cache_key(t) for t in texts]
 
+    # Retrieve cached embeddings
     cached_map = {}
     try:
         if hasattr(cache, "get_many"):
@@ -183,15 +188,14 @@ def embed_each_item(item_list: List[str]) -> np.ndarray:
                 if v is not None:
                     cached_map[k] = v
     except Exception as e:
-        logger.warning(f"Cache bulk-get failed, falling back to single gets: {e}")
-        cached_map = {}
+        logger.warning(f"Cache bulk-get failed: {e}")
         for k in keys:
             v = cache.get(k)
             if v is not None:
                 cached_map[k] = v
 
     n = len(texts)
-    result_embeddings = np.empty((n, EMBEDDING_DIMENSION), dtype=np.float32)
+    result_embeddings = np.zeros((n, EMBEDDING_DIMENSION), dtype=np.float32)
 
     to_encode_texts = []
     to_encode_indices = []
@@ -199,20 +203,17 @@ def embed_each_item(item_list: List[str]) -> np.ndarray:
         cached_val = cached_map.get(k)
         if cached_val is not None:
             if USE_BINARY_CACHE and isinstance(cached_val, (bytes, bytearray)):
-                try:
-                    arr = _deserialize_embedding_from_cache(cached_val).astype(np.float32)
-                    result_embeddings[i] = arr
-                    continue
-                except Exception:
-                    pass
-            result_embeddings[i] = np.array(cached_val, dtype=np.float32)
+                arr = _deserialize_embedding_from_cache(cached_val).astype(np.float32)
+                result_embeddings[i] = arr
+            else:
+                result_embeddings[i] = np.array(cached_val, dtype=np.float32)
         else:
             to_encode_texts.append(texts[i])
             to_encode_indices.append(i)
 
+    # Encode texts not in cache
     if to_encode_texts:
         model = get_persistent_model()
-
         device = "cpu"
 
         inference_ctx = torch.inference_mode if hasattr(torch, "inference_mode") else torch.no_grad
@@ -228,9 +229,11 @@ def embed_each_item(item_list: List[str]) -> np.ndarray:
         new_embs = np.array(new_embs, dtype=np.float32)
         if new_embs.ndim == 1:
             new_embs = new_embs.reshape(1, -1)
+
         for idx, emb in zip(to_encode_indices, new_embs):
             result_embeddings[idx] = emb
 
+        # Store new embeddings in cache
         try:
             if USE_BINARY_CACHE:
                 cache_payload = {keys[i]: _serialize_embedding_for_cache(result_embeddings[i]) for i in to_encode_indices}
