@@ -1,5 +1,7 @@
 import hashlib
 import json
+import numpy as np
+from typing import List
 import logging
 from datetime import timedelta
 from functools import lru_cache
@@ -87,69 +89,123 @@ def encode_text_with_cache(text: str) -> np.ndarray:
 
 
 # Individual encoding but slightly faster
-def embed_each_item(item_list: List[str]) -> np.ndarray:
-    if not item_list:
-        return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
-
-    model = get_sentence_model()
-    embeddings: List[np.ndarray] = []
-
-    for item in item_list:
-        if not item or not isinstance(item, str):
-            continue
-
-        text = item.strip()
-        if not text:
-            continue
-
-        cache_key = generate_embedding_cache_key(text)
-        cached = cache.get(cache_key)
-
-        if cached is not None:
-            embeddings.append(np.array(cached, dtype=np.float32))
-        else:
-            embedding = model.encode(text, convert_to_numpy=True)
-            embedding = embedding.astype(np.float32)
-            cache.set(cache_key, embedding.tolist(), EMBEDDING_CACHE_TIMEOUT)
-            embeddings.append(embedding)
-
-    return np.mean(embeddings, axis=0) if embeddings else np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
-
-
-# Batch encoding but less accurate
 # def embed_each_item(item_list: List[str]) -> np.ndarray:
 #     if not item_list:
 #         return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
 #
-#     filtered_items = [item.strip() for item in item_list if item and isinstance(item, str) and item.strip()]
-#     if not filtered_items:
-#         return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
+#     model = get_sentence_model()
+#     embeddings: List[np.ndarray] = []
 #
-#     embeddings: List[Optional[np.ndarray]] = [None] * len(filtered_items)
-#     uncached_texts = []
-#     uncached_indices = []
+#     for item in item_list:
+#         if not item or not isinstance(item, str):
+#             continue
 #
-#     for idx, text in enumerate(filtered_items):
+#         text = item.strip()
+#         if not text:
+#             continue
+#
 #         cache_key = generate_embedding_cache_key(text)
-#         cached_embedding = cache.get(cache_key)
-#         if cached_embedding is not None:
-#             embeddings[idx] = np.array(cached_embedding, dtype=np.float32)
+#         cached = cache.get(cache_key)
+#
+#         if cached is not None:
+#             embeddings.append(np.array(cached, dtype=np.float32))
 #         else:
-#             uncached_indices.append(idx)
-#             uncached_texts.append(text)
-#
-#     if uncached_texts:
-#         model = get_sentence_model()
-#         new_embeddings = model.encode(uncached_texts, convert_to_numpy=True, batch_size=8)
-#         for idx, embedding in zip(uncached_indices, new_embeddings):
+#             embedding = model.encode(text, convert_to_numpy=True)
 #             embedding = embedding.astype(np.float32)
-#             embeddings[idx] = embedding
-#             cache.set(generate_embedding_cache_key(filtered_items[idx]), embedding.tolist(), EMBEDDING_CACHE_TIMEOUT)
+#             cache.set(cache_key, embedding.tolist(), EMBEDDING_CACHE_TIMEOUT)
+#             embeddings.append(embedding)
 #
-#     # Remove any potential Nones (though there should be none by now)
-#     final_embeddings = [emb for emb in embeddings if emb is not None]
-#
-#     return np.mean(final_embeddings, axis=0) if final_embeddings else np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
+#     return np.mean(embeddings, axis=0) if embeddings else np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
+
+
+# Batch encoding but less accurate
+def embed_each_item(item_list: List[str]) -> np.ndarray:
+    # quick exit for empty or falsy input
+    if not item_list:
+        return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
+
+    texts = []
+    for item in item_list:
+        if not item or not isinstance(item, str):
+            continue
+        t = item.strip()
+        if not t:
+            continue
+        texts.append(t)
+
+    if not texts:
+        return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
+
+    keys = [generate_embedding_cache_key(t) for t in texts]
+
+    cached_map = {}
+    try:
+        if hasattr(cache, "get_many"):
+            cached_map = cache.get_many(keys) or {}
+        else:
+            for k in keys:
+                v = cache.get(k)
+                if v is not None:
+                    cached_map[k] = v
+    except Exception:
+        cached_map = {}
+        for k in keys:
+            try:
+                v = cache.get(k)
+                if v is not None:
+                    cached_map[k] = v
+            except Exception:
+                pass
+
+    n = len(texts)
+    result_embeddings = np.empty((n, EMBEDDING_DIMENSION), dtype=np.float32)
+
+    to_encode_texts = []
+    to_encode_indices = []
+
+    for i, k in enumerate(keys):
+        cached_val = cached_map.get(k)
+        if cached_val is not None:
+            result_embeddings[i] = np.array(cached_val, dtype=np.float32)
+        else:
+            to_encode_texts.append(texts[i])
+            to_encode_indices.append(i)
+
+    if to_encode_texts:
+        model = get_sentence_model()
+        encode_kwargs = {"convert_to_numpy": True, "show_progress_bar": False}
+        try:
+            new_embs = model.encode(to_encode_texts, **encode_kwargs)
+        except TypeError:
+            new_embs = model.encode(to_encode_texts, convert_to_numpy=True)
+
+        new_embs = np.array(new_embs, dtype=np.float32)
+        if new_embs.ndim == 1:
+            new_embs = new_embs.reshape(1, -1)
+
+        if new_embs.shape[1] != EMBEDDING_DIMENSION:
+            raise ValueError(
+                f"Model embedding dim {new_embs.shape[1]} != EMBEDDING_DIMENSION ({EMBEDDING_DIMENSION})"
+            )
+
+        for idx, emb in zip(to_encode_indices, new_embs):
+            result_embeddings[idx] = emb.astype(np.float32)
+
+        try:
+            if hasattr(cache, "set_many"):
+                cache_dict = {keys[i]: result_embeddings[i].tolist() for i in to_encode_indices}
+                cache.set_many(cache_dict, EMBEDDING_CACHE_TIMEOUT)
+            else:
+                for i in to_encode_indices:
+                    cache.set(keys[i], result_embeddings[i].tolist(), EMBEDDING_CACHE_TIMEOUT)
+        except Exception:
+            for i in to_encode_indices:
+                try:
+                    cache.set(keys[i], result_embeddings[i].tolist(), EMBEDDING_CACHE_TIMEOUT)
+                except Exception:
+                    pass
+
+    return np.mean(result_embeddings, axis=0)
 
 
 def extract_skill_names(skills) -> List[str]:
