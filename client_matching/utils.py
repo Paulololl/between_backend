@@ -155,12 +155,12 @@ def get_persistent_model():
     return _sentence_model
 
 
-# def _tokenize_with_cache(model, text):
-#     if text in _tokenizer_cache:
-#         return _tokenizer_cache[text]
-#     tok = model.tokenizer(text, return_tensors="pt", padding=True, truncation=True)
-#     _tokenizer_cache[text] = tok
-#     return tok
+def _tokenize_with_cache(model, text):
+    if text in _tokenizer_cache:
+        return _tokenizer_cache[text]
+    tok = model.tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+    _tokenizer_cache[text] = tok
+    return tok
 
 
 def embed_each_item(item_list: List[str]) -> np.ndarray:
