@@ -1,13 +1,9 @@
 import hashlib
-import json
 import pickle
-
-import numpy as np
-from typing import List
 import logging, random
 from datetime import timedelta
 from functools import lru_cache
-from typing import List, Optional, Tuple, Union, Dict
+from typing import List, Union, Dict
 
 import torch
 from django.contrib.admin import SimpleListFilter
@@ -16,8 +12,9 @@ from django.utils.timezone import now
 from geopy.distance import great_circle
 from sentence_transformers import SentenceTransformer
 import numpy as np
+from sentence_transformers.util import batch_to_device
+
 from client_matching.models import InternshipPosting, InternshipRecommendation
-from user_account.models import Applicant
 import os
 
 logger = logging.getLogger(__name__)
@@ -39,15 +36,14 @@ APPLICANT_WEIGHTS = np.array([0.50, 0.25, 0.25])
 POSTING_WEIGHTS = np.array([0.50, 0.10, 0.20, 0.20])
 
 
+# Pytorch deterministic mode
 def _ensure_deterministic():
-    """Set seeds and deterministic flags early. Safe to call multiple times."""
     torch.manual_seed(0)
     np.random.seed(0)
     random.seed(0)
     try:
         torch.use_deterministic_algorithms(True)
     except Exception:
-        # older torch versions ignore
         pass
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
@@ -134,12 +130,12 @@ def encode_text_with_cache(text: str) -> np.ndarray:
 #     return np.mean(embeddings, axis=0) if embeddings else np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
 
 
-# Batch encoding using deterministic mode of Pytorch
+# Batch encoding using deterministic mode of Pytorch (Faster and fully optimized)
 USE_BINARY_CACHE = False
+_token_cache = {}
 
 
 def _serialize_embedding_for_cache(arr: np.ndarray) -> bytes:
-    """Serialize as raw bytes + meta (fast). Uses pickle for portability."""
     return pickle.dumps(arr, protocol=pickle.HIGHEST_PROTOCOL)
 
 
@@ -151,10 +147,6 @@ _sentence_model = None
 
 
 def get_persistent_model():
-    """
-    Return the quantized sentence-transformer model (cached).
-    Ensures deterministic flags are set before model creation so quantized pipelines are consistent.
-    """
     global _sentence_model
     if _sentence_model is None:
         _ensure_deterministic()
@@ -165,19 +157,13 @@ def get_persistent_model():
     return _sentence_model
 
 
-def embed_each_item(item_list: List[str]) -> np.ndarray:
-    """
-    Fast, quantization-safe embedding aggregator.
+def _mean_pooling(model_output, attention_mask):
+    token_embeddings = model_output[0]
+    input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+    return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
 
-    Key points:
-    - Keeps quantized model on CPU (quantized models are CPU-only).
-    - Uses model.encode(list_of_texts, batch_size=1, device='cpu') so the internal loop
-      does per-item processing exactly like calling encode on each item individually,
-      but with much less Python-call & tokenizer overhead.
-    - Uses torch.inference_mode() for faster CPU inference.
-    - Bulk cache get/set and preallocated numpy arrays.
-    - If you need absolute proof, clear cache and run the verify harness below.
-    """
+
+def embed_each_item(item_list: List[str]) -> np.ndarray:
     if not item_list:
         return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
 
@@ -187,6 +173,7 @@ def embed_each_item(item_list: List[str]) -> np.ndarray:
 
     keys = [generate_embedding_cache_key(t) for t in texts]
 
+    # Try bulk-get from cache
     cached_map = {}
     try:
         if hasattr(cache, "get_many"):
@@ -224,30 +211,33 @@ def embed_each_item(item_list: List[str]) -> np.ndarray:
             to_encode_texts.append(texts[i])
             to_encode_indices.append(i)
 
+    # Encode uncached items individually with tokenizer caching
     if to_encode_texts:
         model = get_persistent_model()
+        device = torch.device("cpu")
 
-        device = "cpu"
+        token_batches = []
+        for text in to_encode_texts:
+            if text in _token_cache:
+                tok = _token_cache[text]
+            else:
+                tok = model.tokenize([text])
+                _token_cache[text] = tok
+            token_batches.append(tok)
 
-        inference_ctx = torch.inference_mode if hasattr(torch, "inference_mode") else torch.no_grad
-        with inference_ctx():
-            new_embs = model.encode(
-                to_encode_texts,
-                convert_to_numpy=True,
-                show_progress_bar=False,
-                device=device,
-                batch_size=1
-            )
+        with torch.inference_mode():
+            for text, tok, idx in zip(to_encode_texts, token_batches, to_encode_indices):
+                tok_on_device = batch_to_device(tok, device)
+                output = model(tok_on_device)
+                emb = _mean_pooling(output, tok_on_device['attention_mask'])
+                emb = emb.cpu().numpy().astype(np.float32)[0]
+                result_embeddings[idx] = emb
 
-        new_embs = np.array(new_embs, dtype=np.float32)
-        if new_embs.ndim == 1:
-            new_embs = new_embs.reshape(1, -1)
-        for idx, emb in zip(to_encode_indices, new_embs):
-            result_embeddings[idx] = emb
-
+        # Bulk set in cache
         try:
             if USE_BINARY_CACHE:
-                cache_payload = {keys[i]: _serialize_embedding_for_cache(result_embeddings[i]) for i in to_encode_indices}
+                cache_payload = {keys[i]: _serialize_embedding_for_cache(result_embeddings[i]) for i in
+                                 to_encode_indices}
             else:
                 cache_payload = {keys[i]: result_embeddings[i].tolist() for i in to_encode_indices}
 
