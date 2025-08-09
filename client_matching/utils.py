@@ -212,22 +212,22 @@ def embed_each_item(item_list: List[str]) -> np.ndarray:
 
     if to_encode_texts:
         model = get_persistent_model()
-
         device = "cpu"
+
+        tokenized_batches = [_tokenize_with_cache(model, t) for t in to_encode_texts]
+        batch = {
+            key: torch.cat([tok[key] for tok in tokenized_batches], dim=0)
+            for key in tokenized_batches[0]
+        }
+        batch = {k: v.to(device) for k, v in batch.items()}
 
         inference_ctx = torch.inference_mode if hasattr(torch, "inference_mode") else torch.no_grad
         with inference_ctx():
-            new_embs = model.encode(
-                to_encode_texts,
-                convert_to_numpy=True,
-                show_progress_bar=False,
-                device=device,
-                batch_size=1
-            )
+            outputs = model(**batch)
+            new_embs = outputs[0]
 
-        new_embs = np.array(new_embs, dtype=np.float32)
-        if new_embs.ndim == 1:
-            new_embs = new_embs.reshape(1, -1)
+        new_embs = new_embs.detach().cpu().numpy().astype(np.float32)
+
         for idx, emb in zip(to_encode_indices, new_embs):
             result_embeddings[idx] = emb
 
