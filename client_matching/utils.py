@@ -1,8 +1,10 @@
 import hashlib
 import json
+import pickle
+
 import numpy as np
 from typing import List
-import logging
+import logging, random
 from datetime import timedelta
 from functools import lru_cache
 from typing import List, Optional, Tuple, Union, Dict
@@ -35,6 +37,20 @@ EMBEDDING_DIMENSION = 384
 
 APPLICANT_WEIGHTS = np.array([0.50, 0.25, 0.25])
 POSTING_WEIGHTS = np.array([0.50, 0.10, 0.20, 0.20])
+
+
+def _ensure_deterministic():
+    """Set seeds and deterministic flags early. Safe to call multiple times."""
+    torch.manual_seed(0)
+    np.random.seed(0)
+    random.seed(0)
+    try:
+        torch.use_deterministic_algorithms(True)
+    except Exception:
+        # older torch versions ignore
+        pass
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 
 @lru_cache(maxsize=1)
@@ -117,90 +133,132 @@ def encode_text_with_cache(text: str) -> np.ndarray:
 #
 #     return np.mean(embeddings, axis=0) if embeddings else np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
 
+
+# Batch encoding using deterministic mode of Pytorch
+USE_BINARY_CACHE = False
+
+
+def _serialize_embedding_for_cache(arr: np.ndarray) -> bytes:
+    """Serialize as raw bytes + meta (fast). Uses pickle for portability."""
+    return pickle.dumps(arr, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def _deserialize_embedding_from_cache(blob: bytes) -> np.ndarray:
+    return pickle.loads(blob)
+
+
 _sentence_model = None
 
 
 def get_persistent_model():
+    """
+    Return the quantized sentence-transformer model (cached).
+    Ensures deterministic flags are set before model creation so quantized pipelines are consistent.
+    """
     global _sentence_model
     if _sentence_model is None:
+        _ensure_deterministic()
         _sentence_model = get_sentence_model()
-        _sentence_model.eval()  # no dropout
+        _sentence_model.eval()
+        if not hasattr(_sentence_model, "_is_quantized"):
+            setattr(_sentence_model, "_is_quantized", True)
     return _sentence_model
 
-# Batch encoding using deterministic mode of Pytorch
+
 def embed_each_item(item_list: List[str]) -> np.ndarray:
+    """
+    Fast, quantization-safe embedding aggregator.
+
+    Key points:
+    - Keeps quantized model on CPU (quantized models are CPU-only).
+    - Uses model.encode(list_of_texts, batch_size=1, device='cpu') so the internal loop
+      does per-item processing exactly like calling encode on each item individually,
+      but with much less Python-call & tokenizer overhead.
+    - Uses torch.inference_mode() for faster CPU inference.
+    - Bulk cache get/set and preallocated numpy arrays.
+    - If you need absolute proof, clear cache and run the verify harness below.
+    """
     if not item_list:
         return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
 
-    # Clean and filter
     texts = [t.strip() for t in item_list if isinstance(t, str) and t.strip()]
     if not texts:
         return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
 
-    # Precompute cache keys
     keys = [generate_embedding_cache_key(t) for t in texts]
 
-    # Bulk get cached
-    if hasattr(cache, "get_many"):
-        cached_map = cache.get_many(keys) or {}
-    else:
-        cached_map = {k: cache.get(k) for k in keys if cache.get(k) is not None}
+    cached_map = {}
+    try:
+        if hasattr(cache, "get_many"):
+            cached_map = cache.get_many(keys) or {}
+        else:
+            for k in keys:
+                v = cache.get(k)
+                if v is not None:
+                    cached_map[k] = v
+    except Exception as e:
+        logger.warning(f"Cache bulk-get failed, falling back to single gets: {e}")
+        cached_map = {}
+        for k in keys:
+            v = cache.get(k)
+            if v is not None:
+                cached_map[k] = v
 
-    # Preallocate output array
     n = len(texts)
     result_embeddings = np.empty((n, EMBEDDING_DIMENSION), dtype=np.float32)
 
-    # Track uncached
     to_encode_texts = []
     to_encode_indices = []
     for i, k in enumerate(keys):
-        if k in cached_map:
-            result_embeddings[i] = np.array(cached_map[k], dtype=np.float32)
+        cached_val = cached_map.get(k)
+        if cached_val is not None:
+            if USE_BINARY_CACHE and isinstance(cached_val, (bytes, bytearray)):
+                try:
+                    arr = _deserialize_embedding_from_cache(cached_val).astype(np.float32)
+                    result_embeddings[i] = arr
+                    continue
+                except Exception:
+                    pass
+            result_embeddings[i] = np.array(cached_val, dtype=np.float32)
         else:
             to_encode_texts.append(texts[i])
             to_encode_indices.append(i)
 
-    # Encode uncached items in one deterministic batch
     if to_encode_texts:
         model = get_persistent_model()
 
-        # Force deterministic mode
-        torch.manual_seed(0)
-        np.random.seed(0)
-        torch.use_deterministic_algorithms(True)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
+        device = "cpu"
 
-        # Choose device: GPU if available, else CPU
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        model = model.to(device)
-
-        # Batch encode
-        new_embs = model.encode(
-            to_encode_texts,
-            convert_to_numpy=True,
-            show_progress_bar=False,
-            device=device
-        )
+        inference_ctx = torch.inference_mode if hasattr(torch, "inference_mode") else torch.no_grad
+        with inference_ctx():
+            new_embs = model.encode(
+                to_encode_texts,
+                convert_to_numpy=True,
+                show_progress_bar=False,
+                device=device,
+                batch_size=1
+            )
 
         new_embs = np.array(new_embs, dtype=np.float32)
         if new_embs.ndim == 1:
             new_embs = new_embs.reshape(1, -1)
-
-        # Store results and update cache in bulk
         for idx, emb in zip(to_encode_indices, new_embs):
             result_embeddings[idx] = emb
 
-        if hasattr(cache, "set_many"):
-            cache.set_many(
-                {keys[i]: result_embeddings[i].tolist() for i in to_encode_indices},
-                EMBEDDING_CACHE_TIMEOUT
-            )
-        else:
-            for i in to_encode_indices:
-                cache.set(keys[i], result_embeddings[i].tolist(), EMBEDDING_CACHE_TIMEOUT)
+        try:
+            if USE_BINARY_CACHE:
+                cache_payload = {keys[i]: _serialize_embedding_for_cache(result_embeddings[i]) for i in to_encode_indices}
+            else:
+                cache_payload = {keys[i]: result_embeddings[i].tolist() for i in to_encode_indices}
 
-    # Return mean vector
+            if hasattr(cache, "set_many"):
+                cache.set_many(cache_payload, EMBEDDING_CACHE_TIMEOUT)
+            else:
+                for k, v in cache_payload.items():
+                    cache.set(k, v, EMBEDDING_CACHE_TIMEOUT)
+        except Exception as e:
+            logger.warning(f"Cache bulk-set failed: {e}")
+
     return np.mean(result_embeddings, axis=0)
 
 
