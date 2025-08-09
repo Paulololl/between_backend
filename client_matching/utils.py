@@ -195,10 +195,7 @@ def embed_each_item(item_list: List[str]) -> np.ndarray:
 
     to_encode_texts = []
     to_encode_indices = []
-    tokenized_uncached = []
-    model = get_persistent_model()
-
-    for i, (k, text) in enumerate(zip(keys, texts)):
+    for i, k in enumerate(keys):
         cached_val = cached_map.get(k)
         if cached_val is not None:
             if USE_BINARY_CACHE and isinstance(cached_val, (bytes, bytearray)):
@@ -210,32 +207,27 @@ def embed_each_item(item_list: List[str]) -> np.ndarray:
                     pass
             result_embeddings[i] = np.array(cached_val, dtype=np.float32)
         else:
-            tokenized = _tokenize_with_cache(model, text)
-            tokenized_uncached.append(tokenized)
-            to_encode_texts.append(text)
+            to_encode_texts.append(texts[i])
             to_encode_indices.append(i)
 
-    if tokenized_uncached:
+    if to_encode_texts:
+        model = get_persistent_model()
+
         device = "cpu"
-
-        batch = model.tokenizer.pad(
-            tokenized_uncached,
-            padding=True,
-            return_tensors="pt"
-        )
-
-        batch = {k: v.to(device) for k, v in batch.items()}
 
         inference_ctx = torch.inference_mode if hasattr(torch, "inference_mode") else torch.no_grad
         with inference_ctx():
-            outputs = model(**batch)
-            if isinstance(outputs, tuple):
-                new_embs = outputs[0]
-            else:
-                new_embs = outputs
+            new_embs = model.encode(
+                to_encode_texts,
+                convert_to_numpy=True,
+                show_progress_bar=False,
+                device=device,
+                batch_size=2
+            )
 
-        new_embs = new_embs.detach().cpu().numpy().astype(np.float32)
-
+        new_embs = np.array(new_embs, dtype=np.float32)
+        if new_embs.ndim == 1:
+            new_embs = new_embs.reshape(1, -1)
         for idx, emb in zip(to_encode_indices, new_embs):
             result_embeddings[idx] = emb
 
