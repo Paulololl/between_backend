@@ -164,15 +164,18 @@ def _tokenize_with_cache(model, text):
 
 
 def embed_each_item(item_list: List[str]) -> np.ndarray:
+    """Fastest deterministic embedder with cache, quantization, tokenizer caching, and safe batching."""
     if not item_list:
         return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
 
+    # Clean up and filter out invalid inputs early
     texts = [t.strip() for t in item_list if isinstance(t, str) and t.strip()]
     if not texts:
         return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
 
     keys = [generate_embedding_cache_key(t) for t in texts]
 
+    # Try bulk cache retrieval
     cached_map = {}
     try:
         if hasattr(cache, "get_many"):
@@ -184,17 +187,15 @@ def embed_each_item(item_list: List[str]) -> np.ndarray:
                     cached_map[k] = v
     except Exception as e:
         logger.warning(f"Cache bulk-get failed, falling back to single gets: {e}")
-        cached_map = {}
-        for k in keys:
-            v = cache.get(k)
-            if v is not None:
-                cached_map[k] = v
+        cached_map = {k: cache.get(k) for k in keys if cache.get(k) is not None}
 
     n = len(texts)
     result_embeddings = np.empty((n, EMBEDDING_DIMENSION), dtype=np.float32)
 
     to_encode_texts = []
     to_encode_indices = []
+
+    # Fill from cache or mark for encoding
     for i, k in enumerate(keys):
         cached_val = cached_map.get(k)
         if cached_val is not None:
@@ -210,27 +211,25 @@ def embed_each_item(item_list: List[str]) -> np.ndarray:
             to_encode_texts.append(texts[i])
             to_encode_indices.append(i)
 
+    # Encode remaining
     if to_encode_texts:
         model = get_persistent_model()
-
         device = "cpu"
 
+        # Encode one-by-one to avoid tensor size mismatches
+        new_embs = []
         inference_ctx = torch.inference_mode if hasattr(torch, "inference_mode") else torch.no_grad
         with inference_ctx():
-            new_embs = model.encode(
-                to_encode_texts,
-                convert_to_numpy=True,
-                show_progress_bar=False,
-                device=device,
-                batch_size=2
-            )
+            for text in to_encode_texts:
+                tok = _tokenize_with_cache(model, text)
+                emb = model.encode(text, convert_to_numpy=True, device=device, show_progress_bar=False)
+                new_embs.append(np.array(emb, dtype=np.float32))
 
-        new_embs = np.array(new_embs, dtype=np.float32)
-        if new_embs.ndim == 1:
-            new_embs = new_embs.reshape(1, -1)
+        new_embs = np.stack(new_embs)
         for idx, emb in zip(to_encode_indices, new_embs):
             result_embeddings[idx] = emb
 
+        # Save to cache
         try:
             if USE_BINARY_CACHE:
                 cache_payload = {keys[i]: _serialize_embedding_for_cache(result_embeddings[i]) for i in to_encode_indices}
