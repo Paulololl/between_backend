@@ -163,6 +163,20 @@ def _mean_pooling(model_output, attention_mask):
     return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
 
 
+def safe_normalize(vec: np.ndarray) -> np.ndarray:
+    norm = np.linalg.norm(vec)
+    if norm == 0.0 or not np.isfinite(norm):
+        return np.zeros_like(vec, dtype=np.float32)
+    return vec / norm
+
+
+def safe_normalize_batch(mat: np.ndarray) -> np.ndarray:
+    norms = np.linalg.norm(mat, axis=1, keepdims=True)
+    # Avoid division by zero
+    norms[(norms == 0.0) | (~np.isfinite(norms))] = 1.0
+    return mat / norms
+
+
 def embed_each_item(item_list: List[str]) -> np.ndarray:
     if not item_list:
         return np.zeros(EMBEDDING_DIMENSION, dtype=np.float32)
@@ -236,8 +250,7 @@ def embed_each_item(item_list: List[str]) -> np.ndarray:
         # Bulk set in cache
         try:
             if USE_BINARY_CACHE:
-                cache_payload = {keys[i]: _serialize_embedding_for_cache(result_embeddings[i]) for i in
-                                 to_encode_indices}
+                cache_payload = {keys[i]: _serialize_embedding_for_cache(result_embeddings[i]) for i in to_encode_indices}
             else:
                 cache_payload = {keys[i]: result_embeddings[i].tolist() for i in to_encode_indices}
 
@@ -249,7 +262,9 @@ def embed_each_item(item_list: List[str]) -> np.ndarray:
         except Exception as e:
             logger.warning(f"Cache bulk-set failed: {e}")
 
-    return np.mean(result_embeddings, axis=0)
+    result_embeddings = safe_normalize_batch(result_embeddings)
+
+    return safe_normalize(np.mean(result_embeddings, axis=0))
 
 
 def extract_skill_names(skills) -> List[str]:
