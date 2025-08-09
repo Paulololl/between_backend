@@ -12,8 +12,6 @@ from django.utils.timezone import now
 from geopy.distance import great_circle
 from sentence_transformers import SentenceTransformer
 import numpy as np
-from sentence_transformers.util import batch_to_device
-
 from client_matching.models import InternshipPosting, InternshipRecommendation
 import os
 
@@ -132,7 +130,7 @@ def encode_text_with_cache(text: str) -> np.ndarray:
 
 # Batch encoding using deterministic mode of Pytorch (Faster and fully optimized)
 USE_BINARY_CACHE = False
-_token_cache = {}
+_tokenizer_cache = {}
 
 
 def _serialize_embedding_for_cache(arr: np.ndarray) -> bytes:
@@ -157,24 +155,12 @@ def get_persistent_model():
     return _sentence_model
 
 
-def _mean_pooling(model_output, attention_mask):
-    token_embeddings = model_output[0]
-    input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-    return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
-
-
-def safe_normalize(vec: np.ndarray) -> np.ndarray:
-    norm = np.linalg.norm(vec)
-    if norm == 0.0 or not np.isfinite(norm):
-        return np.zeros_like(vec, dtype=np.float32)
-    return vec / norm
-
-
-def safe_normalize_batch(mat: np.ndarray) -> np.ndarray:
-    norms = np.linalg.norm(mat, axis=1, keepdims=True)
-    # Avoid division by zero
-    norms[(norms == 0.0) | (~np.isfinite(norms))] = 1.0
-    return mat / norms
+def _tokenize_with_cache(model, text):
+    if text in _tokenizer_cache:
+        return _tokenizer_cache[text]
+    tok = model.tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+    _tokenizer_cache[text] = tok
+    return tok
 
 
 def embed_each_item(item_list: List[str]) -> np.ndarray:
@@ -187,7 +173,6 @@ def embed_each_item(item_list: List[str]) -> np.ndarray:
 
     keys = [generate_embedding_cache_key(t) for t in texts]
 
-    # Try bulk-get from cache
     cached_map = {}
     try:
         if hasattr(cache, "get_many"):
@@ -225,29 +210,27 @@ def embed_each_item(item_list: List[str]) -> np.ndarray:
             to_encode_texts.append(texts[i])
             to_encode_indices.append(i)
 
-    # Encode uncached items individually with tokenizer caching
     if to_encode_texts:
         model = get_persistent_model()
-        device = torch.device("cpu")
 
-        token_batches = []
-        for text in to_encode_texts:
-            if text in _token_cache:
-                tok = _token_cache[text]
-            else:
-                tok = model.tokenize([text])
-                _token_cache[text] = tok
-            token_batches.append(tok)
+        device = "cpu"
 
-        with torch.inference_mode():
-            for text, tok, idx in zip(to_encode_texts, token_batches, to_encode_indices):
-                tok_on_device = batch_to_device(tok, device)
-                output = model(tok_on_device)
-                emb = _mean_pooling(output, tok_on_device['attention_mask'])
-                emb = emb.cpu().numpy().astype(np.float32)[0]
-                result_embeddings[idx] = emb
+        inference_ctx = torch.inference_mode if hasattr(torch, "inference_mode") else torch.no_grad
+        with inference_ctx():
+            new_embs = model.encode(
+                to_encode_texts,
+                convert_to_numpy=True,
+                show_progress_bar=False,
+                device=device,
+                batch_size=1
+            )
 
-        # Bulk set in cache
+        new_embs = np.array(new_embs, dtype=np.float32)
+        if new_embs.ndim == 1:
+            new_embs = new_embs.reshape(1, -1)
+        for idx, emb in zip(to_encode_indices, new_embs):
+            result_embeddings[idx] = emb
+
         try:
             if USE_BINARY_CACHE:
                 cache_payload = {keys[i]: _serialize_embedding_for_cache(result_embeddings[i]) for i in to_encode_indices}
@@ -262,9 +245,7 @@ def embed_each_item(item_list: List[str]) -> np.ndarray:
         except Exception as e:
             logger.warning(f"Cache bulk-set failed: {e}")
 
-    result_embeddings = safe_normalize_batch(result_embeddings)
-
-    return safe_normalize(np.mean(result_embeddings, axis=0))
+    return np.mean(result_embeddings, axis=0)
 
 
 def extract_skill_names(skills) -> List[str]:
