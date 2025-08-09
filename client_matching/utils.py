@@ -195,7 +195,10 @@ def embed_each_item(item_list: List[str]) -> np.ndarray:
 
     to_encode_texts = []
     to_encode_indices = []
-    for i, k in enumerate(keys):
+    tokenized_uncached = []
+    model = get_persistent_model()
+
+    for i, (k, text) in enumerate(zip(keys, texts)):
         cached_val = cached_map.get(k)
         if cached_val is not None:
             if USE_BINARY_CACHE and isinstance(cached_val, (bytes, bytearray)):
@@ -207,24 +210,29 @@ def embed_each_item(item_list: List[str]) -> np.ndarray:
                     pass
             result_embeddings[i] = np.array(cached_val, dtype=np.float32)
         else:
-            to_encode_texts.append(texts[i])
+            tokenized = _tokenize_with_cache(model, text)
+            tokenized_uncached.append(tokenized)
+            to_encode_texts.append(text)
             to_encode_indices.append(i)
 
-    if to_encode_texts:
-        model = get_persistent_model()
+    if tokenized_uncached:
         device = "cpu"
 
-        tokenized_batches = [_tokenize_with_cache(model, t) for t in to_encode_texts]
-        batch = {
-            key: torch.cat([tok[key] for tok in tokenized_batches], dim=0)
-            for key in tokenized_batches[0]
-        }
+        batch = model.tokenizer.pad(
+            tokenized_uncached,
+            padding=True,
+            return_tensors="pt"
+        )
+
         batch = {k: v.to(device) for k, v in batch.items()}
 
         inference_ctx = torch.inference_mode if hasattr(torch, "inference_mode") else torch.no_grad
         with inference_ctx():
             outputs = model(**batch)
-            new_embs = outputs[0]
+            if isinstance(outputs, tuple):
+                new_embs = outputs[0]
+            else:
+                new_embs = outputs
 
         new_embs = new_embs.detach().cpu().numpy().astype(np.float32)
 
