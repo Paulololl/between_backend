@@ -49,7 +49,6 @@ def _ensure_deterministic():
 
 @lru_cache(maxsize=1)
 def get_sentence_model():
-    _ensure_deterministic()
     try:
         os.environ["HF_HOME"] = "/tmp/huggingface"
         os.makedirs(os.environ["HF_HOME"], exist_ok=True)
