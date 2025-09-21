@@ -17,7 +17,7 @@ import os
 
 logger = logging.getLogger(__name__)
 
-SIMILARITY_THRESHOLD = 0.73  # 0.73
+SIMILARITY_THRESHOLD = 0  # 0.73
 
 SIMILARITY_WEIGHT = 0.95
 MODALITY_WEIGHT = 0.02
