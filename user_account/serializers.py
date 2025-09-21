@@ -929,13 +929,13 @@ class SendEmailVerificationSerializer(serializers.Serializer):
                    f'\n\n{verification_url}\n\nNote: This link will expire after 15 minutes.'
                    f'\n\nThank you!')
 
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email='Between_IMS <no-reply.between.internships@gmail.com>',
-            recipient_list=[user.email],
-            fail_silently=False,
-        )
+        # send_mail(
+        #     subject=subject,
+        #     message=message,
+        #     from_email='Between_IMS <no-reply.between.internships@gmail.com>',
+        #     recipient_list=[user.email],
+        #     fail_silently=False,
+        # )
 
     def create(self, validated_data):
         self.send_verification_email()
@@ -975,13 +975,13 @@ class SendForgotPasswordLinkSerializer(serializers.Serializer):
                    f'\n\n{reset_url}\n\nNote: This link will expire after 15 minutes.'
                    f'\n\nThank you!')
 
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email='Between_IMS <no-reply.between.internships@gmail.com>',
-            recipient_list=[user.email],
-            fail_silently=False,
-        )
+        # send_mail(
+        #     subject=subject,
+        #     message=message,
+        #     from_email='Between_IMS <no-reply.between.internships@gmail.com>',
+        #     recipient_list=[user.email],
+        #     fail_silently=False,
+        # )
 
     def create(self, validated_data):
         self.send_password_reset_email()

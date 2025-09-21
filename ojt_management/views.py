@@ -871,22 +871,22 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
             except requests.RequestException as e:
                 raise ValidationError({"error": f"WeasyPrint PDF generation failed: {str(e)}"})
 
-            email = EmailMessage(
-                subject=subject,
-                body=message_html,
-                from_email=formataddr((
-                    f'{coordinator_name}',
-                    'between_internships@gmail.com')),
-                to=[applicant_email, coordinator.user.email],
-                reply_to=['no-reply@betweeninternships.com']
-            )
-            email.content_subtype = 'html'
-            email.attach(
-                f"endorsement_{endorsement.endorsement_id}.pdf",
-                pdf_response.content,
-                'application/pdf'
-            )
-            email.send(fail_silently=False)
+            # email = EmailMessage(
+            #     subject=subject,
+            #     body=message_html,
+            #     from_email=formataddr((
+            #         f'{coordinator_name}',
+            #         'between_internships@gmail.com')),
+            #     to=[applicant_email, coordinator.user.email],
+            #     reply_to=['no-reply@betweeninternships.com']
+            # )
+            # email.content_subtype = 'html'
+            # email.attach(
+            #     f"endorsement_{endorsement.endorsement_id}.pdf",
+            #     pdf_response.content,
+            #     'application/pdf'
+            # )
+            # email.send(fail_silently=False)
 
             log_coordinator_action(
                 user=request.user,
@@ -914,17 +914,17 @@ class UpdateEndorsementView(CoordinatorMixin, generics.GenericAPIView):
             </div>
             """
 
-            email = EmailMessage(
-                subject=subject,
-                body=message_html,
-                from_email=formataddr(
-                    (f'{coordinator_name}',
-                     'between_internships@gmail.com')),
-                to=[applicant_email],
-                reply_to=['no-reply@betweeninternships.com']
-            )
-            email.content_subtype = 'html'
-            email.send(fail_silently=False)
+            # email = EmailMessage(
+            #     subject=subject,
+            #     body=message_html,
+            #     from_email=formataddr(
+            #         (f'{coordinator_name}',
+            #          'between_internships@gmail.com')),
+            #     to=[applicant_email],
+            #     reply_to=['no-reply@betweeninternships.com']
+            # )
+            # email.content_subtype = 'html'
+            # email.send(fail_silently=False)
 
             log_coordinator_action(
                 user=request.user,

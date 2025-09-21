@@ -319,15 +319,15 @@ class RequestDocumentSerializer(serializers.Serializer):
           </div>
           """
 
-        email = EmailMessage(
-            subject="Request Additional Document/s",
-            body=message_html,
-            from_email=formataddr((company_name, 'between.internships@gmail.com')),
-            to=[applicant_email],
-            reply_to=['no-reply@betweeninternships.com']
-        )
-        email.content_subtype = 'html'
-        email.send(fail_silently=False)
+        # email = EmailMessage(
+        #     subject="Request Additional Document/s",
+        #     body=message_html,
+        #     from_email=formataddr((company_name, 'between.internships@gmail.com')),
+        #     to=[applicant_email],
+        #     reply_to=['no-reply@betweeninternships.com']
+        # )
+        # email.content_subtype = 'html'
+        # email.send(fail_silently=False)
 
 
 class ApplicationSerializer(serializers.ModelSerializer):
@@ -482,21 +482,21 @@ class SendDocumentSerializer(serializers.Serializer):
             </div>
         """
 
-        email = EmailMessage(
-            subject=subject,
-            body=message_html,
-            from_email=formataddr((f'{applicant.first_name} {applicant.middle_initial} {applicant.last_name}',
-                                   'between.internships@gmail.com')),
-            to=[company_email],
-            reply_to=['no-reply@betweeninternships.com']
-        )
-        email.content_subtype = 'html'
-
-        for f in files:
-            email.attach(f.name, f.read(), f.content_type)
-            f.seek(0)
-
-        email.send(fail_silently=False)
+        # email = EmailMessage(
+        #     subject=subject,
+        #     body=message_html,
+        #     from_email=formataddr((f'{applicant.first_name} {applicant.middle_initial} {applicant.last_name}',
+        #                            'between.internships@gmail.com')),
+        #     to=[company_email],
+        #     reply_to=['no-reply@betweeninternships.com']
+        # )
+        # email.content_subtype = 'html'
+        #
+        # for f in files:
+        #     email.attach(f.name, f.read(), f.content_type)
+        #     f.seek(0)
+        #
+        # email.send(fail_silently=False)
 
 
 

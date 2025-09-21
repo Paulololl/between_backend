@@ -374,14 +374,14 @@ class VerifyEmailView(APIView):
                                 'Best regards,<br><strong>Between Team</strong>'
                             )
 
-                            email = EmailMessage(
-                                subject=subject,
-                                body=html_message,
-                                from_email='Between_IMS <no-reply.between.internships@gmail.com>',
-                                to=[coordinator.user.email]
-                            )
-                            email.content_subtype = "html"
-                            email.send()
+                            # email = EmailMessage(
+                            #     subject=subject,
+                            #     body=html_message,
+                            #     from_email='Between_IMS <no-reply.between.internships@gmail.com>',
+                            #     to=[coordinator.user.email]
+                            # )
+                            # email.content_subtype = "html"
+                            # email.send()
 
                         except OJTCoordinator.DoesNotExist:
                             pass

@@ -230,14 +230,14 @@ class RequestEndorsementSerializer(serializers.ModelSerializer):
                     f"Please log in to review the request.<br><br>"
                     f"Best regards,<br><strong>Between IMS</strong>"
                 )
-                email = EmailMessage(
-                    subject=subject,
-                    body=html_message,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    to=[coordinator_email],
-                )
-                email.content_subtype = "html"
-                email.send()
+                # email = EmailMessage(
+                #     subject=subject,
+                #     body=html_message,
+                #     from_email=settings.DEFAULT_FROM_EMAIL,
+                #     to=[coordinator_email],
+                # )
+                # email.content_subtype = "html"
+                # email.send()
 
         except OJTCoordinator.DoesNotExist:
             raise serializers.ValidationError({'message': 'no OJTCoordinator assigned to this program yet.'})

@@ -296,15 +296,15 @@ class UpdateApplicationView(APIView):
                             </div>
                             """
 
-            email = EmailMessage(
-                subject=subject,
-                body=message_html,
-                from_email=formataddr((f'{company_name}', 'between_internships@gmail.com')),
-                to=[applicant_email],
-                reply_to=['no-reply@betweeninternships.com']
-            )
-            email.content_subtype = 'html'
-            email.send(fail_silently=False)
+            # email = EmailMessage(
+            #     subject=subject,
+            #     body=message_html,
+            #     from_email=formataddr((f'{company_name}', 'between_internships@gmail.com')),
+            #     to=[applicant_email],
+            #     reply_to=['no-reply@betweeninternships.com']
+            # )
+            # email.content_subtype = 'html'
+            # email.send(fail_silently=False)
 
             Notification.objects.create(
                 application=application,
@@ -496,15 +496,15 @@ class AcceptApplicationView(APIView):
                 f'Please log in to your dashboard for more details.'
             )
 
-            email = EmailMessage(
-                subject='An applicant has accepted your offer',
-                body=email_body,
-                from_email='Between_IMS <no-reply.between.internships@gmail.com>',
-                to=[company_email],
-                reply_to=['no-reply@betweeninternships.com']
-            )
-            email.content_subtype = 'html'
-            email.send(fail_silently=False)
+            # email = EmailMessage(
+            #     subject='An applicant has accepted your offer',
+            #     body=email_body,
+            #     from_email='Between_IMS <no-reply.between.internships@gmail.com>',
+            #     to=[company_email],
+            #     reply_to=['no-reply@betweeninternships.com']
+            # )
+            # email.content_subtype = 'html'
+            # email.send(fail_silently=False)
 
             program = application.applicant.program
             ojt_coordinator =  OJTCoordinator.objects.get(program=program)
@@ -523,14 +523,14 @@ class AcceptApplicationView(APIView):
                     f"Best regards,<br><strong>Between IMS</strong>"
                 )
 
-                email = EmailMessage(
-                    subject=subject,
-                    body=html_message,
-                    from_email='Between_IMS <no-reply.between.internships@gmail.com>',
-                    to=[coordinator_email],
-                )
-                email.content_subtype = "html"
-                email.send()
+                # email = EmailMessage(
+                #     subject=subject,
+                #     body=html_message,
+                #     from_email='Between_IMS <no-reply.between.internships@gmail.com>',
+                #     to=[coordinator_email],
+                # )
+                # email.content_subtype = "html"
+                # email.send()
 
             return Response({'message': 'The Application has been accepted and the company was notified.'},
                             status=status.HTTP_200_OK)
