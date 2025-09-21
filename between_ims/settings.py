@@ -80,6 +80,10 @@ CORS_ALLOWED_ORIGINS = [
     "https://between-project-web.vercel.app",
 ]
 
+CORS_ALLOW_CREDENTIALS = True
+CSRF_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SECURE = True
+
 CSRF_TRUSTED_ORIGINS = [
     "https://localhost:5173",
     "https://127.0.0.1:5173",
@@ -249,6 +253,7 @@ SESSION_COOKIE_AGE = int(timedelta(hours=1).total_seconds())
 SESSION_COOKIE_SECURE = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_SAVE_EVERY_REQUEST = False
+SESSION_COOKIE_SAMESITE = "None"
 
 # AUTH PASSWORD VALIDATORS
 AUTH_PASSWORD_VALIDATORS = [
@@ -280,3 +285,5 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'user_account.validators.NumberRequiredValidator',
     },
 ]
+
+
