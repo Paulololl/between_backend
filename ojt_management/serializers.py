@@ -293,7 +293,8 @@ class UpdatePracticumStatusSerializer(serializers.ModelSerializer):
 
         if email_message:
             try:
-                self.send_notification_email(applicant, coordinator, subject, email_message, recipient_list)
+                # self.send_notification_email(applicant, coordinator, subject, email_message, recipient_list)
+                pass
             except serializers.ValidationError as e:
                 raise e
             except Exception as e:
