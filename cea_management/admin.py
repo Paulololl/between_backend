@@ -38,4 +38,3 @@ class CustomProgram(admin.ModelAdmin):
 
     def school_name(self, obj):
         return obj.department.school.school_name
-
